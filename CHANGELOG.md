@@ -2,6 +2,7 @@
 
 ## 0.0.0 (unreleased)
 
+- Add pgvector support for storing embeddings as native vector(384) columns instead of JSON, including migration to enable the pgvector extension and alter the embedding column type.
 - Add per-task status tracking to the background worker pool (pending, running, completed, failed)
 - Add `GET /tasks/{id}` endpoint to poll for job status
 - Return `task_id` from upload and reindex endpoints so clients can track enrichment progress

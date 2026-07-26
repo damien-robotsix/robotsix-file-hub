@@ -7,6 +7,7 @@ The model is loaded lazily on first use so startup is not blocked.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import TYPE_CHECKING, cast
 
@@ -66,3 +67,12 @@ def generate_embedding(text: str) -> list[float]:
     model = _load_model()
     result = model.encode(text, normalize_embeddings=True)
     return cast("list[float]", result.tolist())
+
+
+async def generate_embedding_async(text: str) -> list[float]:
+    """Async wrapper around ``generate_embedding`` for use in async contexts.
+
+    Runs the CPU-bound embedding generation in a thread so the event
+    loop is not blocked.
+    """
+    return await asyncio.to_thread(generate_embedding, text)

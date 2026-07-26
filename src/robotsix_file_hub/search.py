@@ -7,6 +7,7 @@ keyword-only ranking when embeddings are unavailable.
 
 from __future__ import annotations
 
+import json
 import logging
 import math
 
@@ -14,7 +15,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .config import Settings
-from .enrichment import generate_embedding
+from .embeddings import generate_embedding_async
 from .models import FileRecord
 from .schemas import SearchResponse, SearchResult
 
@@ -31,6 +32,27 @@ _KW_TAGS_WEIGHT = 3.0
 def _tokenize(text: str) -> list[str]:
     """Lowercase and split into tokens."""
     return text.lower().split()
+
+
+def _parse_embedding(raw: str | None) -> list[float] | None:
+    """Parse a JSON-serialised embedding string into a list of floats.
+
+    Returns ``None`` when *raw* is ``None``, invalid JSON, or parses
+    to an empty list.  Used for backward-compatibility with embeddings
+    stored as JSON strings before the pgvector migration.
+    """
+    if raw is None:
+        return None
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError, TypeError:
+        return None
+    if not isinstance(parsed, list) or len(parsed) == 0:
+        return None
+    try:
+        return [float(x) for x in parsed]
+    except TypeError, ValueError:
+        return None
 
 
 def _keyword_score(record: FileRecord, query_tokens: list[str]) -> float:
@@ -127,7 +149,7 @@ async def search_files(
     # Generate query embedding (best-effort)
     query_embedding: list[float] | None = None
     try:
-        query_embedding = await generate_embedding(query)
+        query_embedding = await generate_embedding_async(query)
     except Exception:
         logger.warning("Query embedding generation failed, using keyword-only", exc_info=True)
 

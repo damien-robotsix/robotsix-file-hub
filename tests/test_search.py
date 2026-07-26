@@ -1,6 +1,5 @@
 """Tests for the hybrid NL search endpoint."""
 
-import json
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -138,7 +137,7 @@ async def test_hybrid_score_vector_only() -> None:
         content_type="text/plain",
         checksum="abc",
         storage_key="/tmp/f.txt",
-        embedding="[1.0, 0.0, 0.0]",
+        embedding=[1.0, 0.0, 0.0],
     )
     query_embedding = [1.0, 0.0, 0.0]
     score = _hybrid_score(record, ["nothing"], query_embedding, vector_weight=1.0)
@@ -195,7 +194,7 @@ async def test_hybrid_score_fallback_no_query_embedding() -> None:
         checksum="abc",
         storage_key="/tmp/r.pdf",
         summary="A report",
-        embedding="[1.0, 0.0]",
+        embedding=[1.0, 0.0],
     )
     score = _hybrid_score(record, ["report"], None, vector_weight=0.7)
     # Falls back to keyword: "report" in filename (10) + summary (5) = 15/18
@@ -417,13 +416,13 @@ async def test_search_with_hybrid_scoring(
 ) -> None:
     """POST /files/search uses vector similarity when embeddings are available.
 
-    Mocks generate_embedding to return a canned vector and verifies
+    Mocks generate_embedding_async to return a canned vector and verifies
     that hybrid scoring produces different (improved) rankings.
     """
     # File with matching keywords but distant embedding
-    file1_embedding = json.dumps([1.0, 0.0, 0.0])
+    file1_embedding = [1.0, 0.0, 0.0]
     # File with fewer keyword matches but close embedding
-    file2_embedding = json.dumps([0.0, 1.0, 0.0])
+    file2_embedding = [0.0, 1.0, 0.0]
 
     test_db_session.add_all(
         [
@@ -455,11 +454,11 @@ async def test_search_with_hybrid_scoring(
     )
     await test_db_session.commit()
 
-    # Mock generate_embedding to return a vector close to file2's embedding
+    # Mock generate_embedding_async to return a vector close to file2's embedding
     canned_query_embedding = [0.1, 0.9, 0.0]
 
     with patch(
-        "src.robotsix_file_hub.search.generate_embedding",
+        "src.robotsix_file_hub.search.generate_embedding_async",
         new=AsyncMock(return_value=canned_query_embedding),
     ):
         response = await test_client.post(
@@ -493,15 +492,15 @@ async def test_search_fallback_when_embedding_fails(
             storage_key="/tmp/budget.xlsx",
             summary="Budget spreadsheet",
             tags="budget,finance",
-            embedding="[1.0, 2.0]",
+            embedding=[1.0, 2.0],
             source="upload",
         )
     )
     await test_db_session.commit()
 
-    # Mock generate_embedding to return None (simulating API failure)
+    # Mock generate_embedding_async to return None (simulating API failure)
     with patch(
-        "src.robotsix_file_hub.search.generate_embedding",
+        "src.robotsix_file_hub.search.generate_embedding_async",
         new=AsyncMock(return_value=None),
     ):
         response = await test_client.post(

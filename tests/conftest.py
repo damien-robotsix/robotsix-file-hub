@@ -121,12 +121,14 @@ def mock_enrich_file() -> dict[str, str | None]:
 
 @pytest.fixture
 def mock_search_embedding() -> list[float]:
-    """Patch ``search.generate_embedding`` to return a canned vector.
+    """Patch ``search.generate_embedding_async`` to return a canned vector.
 
     Prevents real embedding API calls during search endpoint tests.
     """
     import src.robotsix_file_hub.search as search_module
 
     canned = [0.1, 0.2, 0.3]
-    with patch.object(search_module, "generate_embedding", new=AsyncMock(return_value=canned)):
+    with patch.object(
+        search_module, "generate_embedding_async", new=AsyncMock(return_value=canned)
+    ):
         yield canned
