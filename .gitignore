@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.venv/
+file_hub.db
+uploads/
+.pytest_cache/
