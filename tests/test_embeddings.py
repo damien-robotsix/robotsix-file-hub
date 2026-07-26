@@ -104,7 +104,7 @@ async def test_embedding_stored_during_enrichment(embedding_test_env) -> None:
     session_factory, storage = embedding_test_env
 
     file_id = "embed-test-001"
-    storage_path = await storage.save(file_id, b"hello world text content")
+    storage_key = await storage.save(file_id, b"hello world text content")
 
     try:
         async with session_factory() as session:
@@ -114,7 +114,7 @@ async def test_embedding_stored_during_enrichment(embedding_test_env) -> None:
                 size=24,
                 content_type="text/plain",
                 checksum="abc123",
-                storage_path=storage_path,
+                storage_key=storage_key,
             )
             session.add(record)
             await session.commit()
@@ -138,7 +138,7 @@ async def test_embedding_stored_during_enrichment(embedding_test_env) -> None:
 
             job = EnrichmentJob(
                 file_id=file_id,
-                storage_path=storage_path,
+                storage_key=storage_key,
                 content_type="text/plain",
             )
             success = await tasks_module._process_enrichment(job)
@@ -162,7 +162,7 @@ async def test_embedding_null_on_generation_failure(embedding_test_env) -> None:
     session_factory, storage = embedding_test_env
 
     file_id = "embed-fail-001"
-    storage_path = await storage.save(file_id, b"binary blob")
+    storage_key = await storage.save(file_id, b"binary blob")
 
     try:
         async with session_factory() as session:
@@ -172,7 +172,7 @@ async def test_embedding_null_on_generation_failure(embedding_test_env) -> None:
                 size=11,
                 content_type="application/octet-stream",
                 checksum="def456",
-                storage_path=storage_path,
+                storage_key=storage_key,
             )
             session.add(record)
             await session.commit()
@@ -199,7 +199,7 @@ async def test_embedding_null_on_generation_failure(embedding_test_env) -> None:
 
             job = EnrichmentJob(
                 file_id=file_id,
-                storage_path=storage_path,
+                storage_key=storage_key,
                 content_type="application/octet-stream",
             )
             success = await tasks_module._process_enrichment(job)
@@ -224,7 +224,7 @@ async def test_embedding_updated_on_reindex(embedding_test_env) -> None:
     session_factory, storage = embedding_test_env
 
     file_id = "reindex-embed-001"
-    storage_path = await storage.save(file_id, b"hello world")
+    storage_key = await storage.save(file_id, b"hello world")
 
     try:
         async with session_factory() as session:
@@ -234,7 +234,7 @@ async def test_embedding_updated_on_reindex(embedding_test_env) -> None:
                 size=11,
                 content_type="text/plain",
                 checksum="cc99",
-                storage_path=storage_path,
+                storage_key=storage_key,
                 category="old_category",
                 tags="old_tag",
                 summary="Old summary.",
@@ -262,7 +262,7 @@ async def test_embedding_updated_on_reindex(embedding_test_env) -> None:
 
             job = EnrichmentJob(
                 file_id=file_id,
-                storage_path=storage_path,
+                storage_key=storage_key,
                 content_type="text/plain",
             )
             success = await tasks_module._process_enrichment(job)

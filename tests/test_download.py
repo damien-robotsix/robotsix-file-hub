@@ -66,7 +66,7 @@ async def test_get_file_metadata(test_client: AsyncClient) -> None:
     assert data["source"] is None
     assert "created_at" in data
     assert "checksum" in data
-    assert "storage_path" in data
+    assert "storage_key" in data
 
 
 async def test_get_file_metadata_not_found(test_client: AsyncClient) -> None:
@@ -173,7 +173,7 @@ async def _seed_records(
         p = os.path.join(tmp_upload_dir, rec.filename)
         with open(p, "wb") as f:
             f.write(b"x")
-        rec.storage_path = p
+        rec.storage_key = p
     async with session_factory() as session:
         session.add_all(records)
         await session.commit()

@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class EnrichmentJob:
     file_id: str
-    storage_path: str
+    storage_key: str
     content_type: str
 
 
@@ -92,7 +92,7 @@ async def _process_enrichment(job: EnrichmentJob) -> bool:
 
     # Read file content from storage
     try:
-        content = await storage.get(job.storage_path)
+        content = await storage.get(job.storage_key)
     except StorageError:
         logger.warning("Enrichment skipped: storage read failed for file_id=%s", job.file_id)
         return False
@@ -136,9 +136,9 @@ async def _process_enrichment(job: EnrichmentJob) -> bool:
 # ── Public API ─────────────────────────────────────────────────────
 
 
-def enqueue_enrichment(*, file_id: str, storage_path: str, content_type: str) -> None:
+def enqueue_enrichment(*, file_id: str, storage_key: str, content_type: str) -> None:
     """Fire-and-forget: schedule enrichment for a newly uploaded file."""
-    job = EnrichmentJob(file_id=file_id, storage_path=storage_path, content_type=content_type)
+    job = EnrichmentJob(file_id=file_id, storage_key=storage_key, content_type=content_type)
     _queue.put_nowait(job)
 
 
@@ -179,7 +179,7 @@ async def enqueue_reindex_all(
     for record in records:
         enqueue_enrichment(
             file_id=record.id,
-            storage_path=record.storage_path,
+            storage_key=record.storage_key,
             content_type=record.content_type,
         )
     logger.info("Re-index queued %d files", _reindex_total)
