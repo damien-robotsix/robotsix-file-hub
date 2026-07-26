@@ -70,7 +70,7 @@ def _parse_embedding(raw: str | None) -> list[float] | None:
         if isinstance(vec, list) and vec and all(isinstance(x, (int, float)) for x in vec):
             return [float(x) for x in vec]
         return None
-    except json.JSONDecodeError, TypeError:
+    except (json.JSONDecodeError, TypeError):
         return None
 
 
@@ -110,7 +110,7 @@ def _hybrid_score(
 
     try:
         vec = max(_cosine_similarity(query_embedding, doc_embedding), 0.0)
-    except Exception:
+    except ValueError:
         vec = 0.0
 
     return (1.0 - vector_weight) * kw + vector_weight * vec

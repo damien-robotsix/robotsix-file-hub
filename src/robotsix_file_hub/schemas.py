@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class FileUploadResponse(BaseModel):
@@ -51,8 +51,8 @@ class ErrorResponse(BaseModel):
 
 class SearchRequest(BaseModel):
     query: str
-    offset: int = 0
-    limit: int = 50
+    offset: int = Field(default=0, ge=0)
+    limit: int = Field(default=50, ge=1, le=1000)
 
 
 class SearchResult(BaseModel):
