@@ -9,6 +9,15 @@
 - Add file detail/preview page with inline display for images, PDFs, and text files, plus fallback for unsupported types
 - Add download button on the file detail page
 - Fix frontend API paths to align with backend `/files` route prefix
+- Add authentication UI with login page and React context provider, storing
+  API token in localStorage and protecting all routes behind an auth guard.
+- Add file browser page with table view, pagination, and filter controls
+  (category, tag, content-type, date range).  Files display content-type
+  icons, size, upload date, and LLM category/tags when available.
+- Add file detail/preview page showing full metadata, download link, and
+  text-file preview.
+- Align frontend API types and route paths with backend schemas (FileMetadata,
+  SearchResult, `/files` prefix on all file endpoints).
 - Scaffold React/Vite frontend in `frontend/` with TypeScript, React Router navigation, Vite dev-server proxy forwarding `/api/*` to the FastAPI backend, ESLint + Prettier linting/formatting, and a typed API client (`frontend/src/api.ts`) wrapping all backend endpoints.
 - Added `POST /files/search` hybrid NL search endpoint combining keyword matching (filename, summary, tags) with optional vector similarity (cosine distance on embeddings). Falls back to keyword-only when embeddings are unavailable. Returns paginated results with relevance scores.
 - Add vector embedding generation for hybrid search using sentence-transformers (all-MiniLM-L6-v2). Embeddings are generated from concatenated file metadata (filename + summary + tags + category) during enrichment and stored in the `FileRecord.embedding` JSON column. Embeddings are regenerated on re-index.

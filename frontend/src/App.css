@@ -67,6 +67,172 @@
   margin: 0 auto;
 }
 
+/* --- Auth / Nav --- */
+
+.nav-logout {
+  background: none;
+  border: 1px solid #dc3545;
+  color: #dc3545;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.nav-logout:hover {
+  background: #dc3545;
+  color: #fff;
+}
+
+/* --- Login --- */
+
+.login-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 4rem;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 320px;
+  margin-top: 1.5rem;
+}
+
+.login-form label {
+  font-weight: 600;
+}
+
+.login-form input {
+  padding: 0.5rem;
+  font-size: 1rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+}
+
+.login-form button {
+  padding: 0.5rem;
+  font-size: 1rem;
+  background: #0d6efd;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.login-form button:hover {
+  background: #0b5ed7;
+}
+
+.login-error {
+  color: #dc3545;
+  font-size: 0.9rem;
+}
+
+/* --- Files page --- */
+
+.files-page h1 {
+  margin-bottom: 1rem;
+}
+
+.files-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.files-filters label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+  font-weight: 600;
+  gap: 0.25rem;
+}
+
+.files-filters input {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.files-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+
+.files-table th,
+.files-table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.files-table th {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  color: #6c757d;
+  background: #f8f9fa;
+}
+
+.files-table a {
+  color: #0d6efd;
+  text-decoration: none;
+}
+
+.files-table a:hover {
+  text-decoration: underline;
+}
+
+.cell-mono {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+  font-size: 0.85rem;
+}
+
+.files-error {
+  color: #dc3545;
+  margin-bottom: 1rem;
+}
+
+.files-empty {
+  color: #6c757d;
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.files-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.files-pagination button {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.files-pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.files-pagination button:hover:not(:disabled) {
+  background: #e9ecef;
+}
+
 /* ── Search page ── */
 .search-page h1 {
   margin-bottom: 1rem;
@@ -354,6 +520,11 @@
 
 .preview-unsupported p {
   color: #6c757d;
+  margin-bottom: 1rem;
+}
+
+.file-detail-error {
+  color: #dc3545;
   margin-bottom: 1rem;
 }
 

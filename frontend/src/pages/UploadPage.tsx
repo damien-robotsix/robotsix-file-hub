@@ -37,8 +37,8 @@ export default function UploadPage() {
       {error && <p style={{ color: "red" }}>Error: {error}</p>}
       {result && (
         <p>
-          Uploaded: <strong>{result.file.filename}</strong>{" "}
-          ({(result.file.size / 1024).toFixed(1)} KB)
+          Uploaded: <strong>{result.filename}</strong>{" "}
+          ({(result.size / 1024).toFixed(1)} KB)
         </p>
       )}
     </div>

@@ -1,4 +1,19 @@
+import { TOKEN_KEY } from "./AuthContext.tsx";
+
 const API_BASE = "/api";
+
+function getAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {};
+  try {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+  } catch {
+    // localStorage unavailable (SSR / test), skip
+  }
+  return headers;
+}
 
 export interface FileMetadata {
   id: string;
@@ -50,13 +65,21 @@ export interface ReindexProgress {
   active: boolean;
 }
 
-export interface UploadResponse {
-  file: FileMetadata;
-}
+export type UploadResponse = FileMetadata;
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE}${path}`;
-  const res = await fetch(url, options);
+  const authHeaders = getAuthHeaders();
+
+  const merged: RequestInit = {
+    ...options,
+    headers: {
+      ...authHeaders,
+      ...(options?.headers as Record<string, string> | undefined),
+    },
+  };
+
+  const res = await fetch(url, merged);
   if (!res.ok) {
     const body = await res.text();
     throw new Error(`${res.status} ${res.statusText}: ${body}`);
@@ -81,7 +104,7 @@ export async function uploadFiles(files: File[]): Promise<{ files: FileMetadata[
   return request<{ files: FileMetadata[] }>("/files/batch", { method: "POST", body: form });
 }
 
-export async function listFiles(params?: {
+export interface ListFilesParams {
   offset?: number;
   limit?: number;
   category?: string;
@@ -90,7 +113,9 @@ export async function listFiles(params?: {
   source?: string;
   before?: string;
   after?: string;
-}): Promise<FileListResponse> {
+}
+
+export async function listFiles(params?: ListFilesParams): Promise<FileListResponse> {
   const query = new URLSearchParams();
   if (params?.offset !== undefined) query.set("offset", String(params.offset));
   if (params?.limit !== undefined) query.set("limit", String(params.limit));
@@ -113,7 +138,9 @@ export function downloadFileUrl(fileId: string): string {
 }
 
 export async function downloadFile(fileId: string): Promise<Blob> {
-  const res = await fetch(downloadFileUrl(fileId));
+  const res = await fetch(`${API_BASE}/files/${fileId}`, {
+    headers: getAuthHeaders(),
+  });
   if (!res.ok) {
     throw new Error(`${res.status} ${res.statusText}`);
   }
