@@ -6,6 +6,7 @@ modules:
     paths:
       - .dockerignore
       - .env.example
+      - .github/workflows/ci.yml
       - .github/workflows/docker-publish.yml
       - .gitignore
       - Dockerfile
