@@ -2,6 +2,7 @@
 
 ## 0.0.0 (unreleased)
 
+- Add Docker Compose quick-start instructions to README (clone, copy `.env.example`, `docker compose up`, frontend access)
 - Upload dialog now sends all files in a single batch `POST /files/batch` request with per-file progress estimation, and an "+ Upload" button on the Files page opens the dialog.
 - Added `GET /files/categories` endpoint returning distinct, sorted categories
 - Changed category filter on the Files page from a free-text input to a dropdown populated from the categories endpoint

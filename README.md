@@ -38,10 +38,41 @@ with AI-generated metadata and vector-powered hybrid search.
 - Python ≥ 3.14
 - [uv](https://docs.astral.sh/uv/) package manager
 - Node.js ≥ 18 (for the frontend)
+- [Docker](https://docs.docker.com/compose/) (optional, for PostgreSQL +
+  MinIO)
 - (Optional) [Ollama](https://ollama.com/) or any OpenAI-compatible LLM API
   for file enrichment
 
-### Backend
+### Docker Compose (recommended)
+
+The easiest way to run the backend with PostgreSQL and MinIO (S3-compatible
+storage) is via Docker Compose:
+
+```bash
+# Clone and enter the project
+git clone <repo-url> && cd robotsix-file-hub
+
+# Copy the example environment file (already configured for Docker)
+cp .env.example .env
+
+# Start all services (backend, PostgreSQL, MinIO)
+docker compose up --build
+```
+
+The backend API is now live at `http://localhost:8000`. Visit `/health` for
+a liveness check and `/docs` for the interactive OpenAPI docs.
+
+Start the frontend dev server separately:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The frontend is now accessible at `http://localhost:5173`.
+
+### Manual Setup (without Docker)
 
 ```bash
 # Clone and install
