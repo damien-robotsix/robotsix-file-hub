@@ -2,6 +2,8 @@
 
 ## 0.0.0 (unreleased)
 
+- Add `/files` Vite dev-server proxy alongside existing `/api` proxy, so backend file routes are reachable via both prefixes during development.
+- Add `setAuthToken`, `clearAuthToken`, and `deleteFile` to the typed API client (`frontend/src/api.ts`).
 - Add pgvector support for storing embeddings as native vector(384) columns instead of JSON, including migration to enable the pgvector extension and alter the embedding column type.
 - Add per-task status tracking to the background worker pool (pending, running, completed, failed)
 - Add `GET /tasks/{id}` endpoint to poll for job status

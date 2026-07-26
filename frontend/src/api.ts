@@ -239,3 +239,31 @@ export async function getReindexProgress(): Promise<ReindexProgress> {
 export async function healthCheck(): Promise<{ status: string }> {
   return request<{ status: string }>("/health");
 }
+
+// ---------------------------------------------------------------------------
+// Auth helpers
+// ---------------------------------------------------------------------------
+
+export function setAuthToken(token: string): void {
+  try {
+    localStorage.setItem(TOKEN_KEY, token);
+  } catch {
+    // localStorage unavailable (SSR / test), skip
+  }
+}
+
+export function clearAuthToken(): void {
+  try {
+    localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    // localStorage unavailable (SSR / test), skip
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Delete
+// ---------------------------------------------------------------------------
+
+export async function deleteFile(fileId: string): Promise<void> {
+  await request<void>(`/files/${fileId}`, { method: "DELETE" });
+}

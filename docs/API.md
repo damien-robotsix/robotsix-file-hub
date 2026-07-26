@@ -4,8 +4,9 @@ Base URL: `http://localhost:8000`
 
 All file-related endpoints are mounted under `/files` and use JSON
 request/response bodies unless noted otherwise.  Task-status endpoints
-are mounted under `/tasks`.  Interactive docs are available at `/docs`
-(Swagger UI).
+are mounted under `/tasks`.  The DELETE method on `/files/{file_id}`
+permanently removes the file record and its stored data.  Interactive
+docs are available at `/docs` (Swagger UI).
 
 ---
 
@@ -147,6 +148,18 @@ fields (category, tags, summary, source) after the AI pipeline completes.
 **Response** `200` — [`FileMetadataResponse`](#filemetadataresponse)
 
 **Errors:** `404`
+
+---
+
+### `DELETE /files/{file_id}`
+
+Delete a file and its stored data (both the database record and the
+underlying storage blob / object).  The deletion is permanent; the file
+cannot be recovered.
+
+**Response** `204` — No Content
+
+**Errors:** `404` (file not found), `500` (storage or database failure)
 
 ---
 
