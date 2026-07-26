@@ -2,6 +2,7 @@
 
 ## 0.0.0 (unreleased)
 
+- Add Docker Compose quick-start instructions to README (clone, copy `.env.example`, `docker compose up`, frontend access)
 - Upload dialog now sends all files in a single batch `POST /files/batch` request with per-file progress estimation, and an "+ Upload" button on the Files page opens the dialog.
 - Add `/files` Vite dev-server proxy alongside existing `/api` proxy, so backend file routes are reachable via both prefixes during development.
 - Add `setAuthToken`, `clearAuthToken`, and `deleteFile` to the typed API client (`frontend/src/api.ts`).
