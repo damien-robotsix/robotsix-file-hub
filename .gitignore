@@ -4,3 +4,5 @@ __pycache__/
 file_hub.db
 uploads/
 .pytest_cache/
+node_modules/
+dist/
