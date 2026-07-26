@@ -26,8 +26,10 @@ modules:
       - src/robotsix_file_hub/storage.py
       - src/robotsix_file_hub/tasks.py
       - tests/__init__.py
+      - tests/conftest.py
       - tests/test_download.py
       - tests/test_embeddings.py
+      - tests/test_health.py
       - tests/test_search.py
       - tests/test_tasks.py
       - tests/test_upload.py
