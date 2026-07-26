@@ -8,6 +8,23 @@ available at `/docs` (Swagger UI).
 
 ---
 
+## Authentication
+
+All `/files/*` endpoints require Bearer-token authentication when
+`FILE_HUB_AUTH_TOKEN` is configured (see [`.env.example`](../.env.example)).
+
+| Header | Value |
+|---|---|
+| `Authorization` | `Bearer <token>` |
+
+- **`401`** — Missing or invalid `Authorization` header.
+- **`403`** — Token present but does not match the configured `auth_token`.
+
+When `FILE_HUB_AUTH_TOKEN` is empty (default in development), authentication
+is skipped — all requests are accepted without credentials.
+
+---
+
 ## Health
 
 ### `GET /health`
@@ -221,7 +238,8 @@ All fields from `FileUploadResponse` plus:
 
 | Field | Type | Description |
 |---|---|---|
-| `storage_path` | string | Internal storage path |
+| `storage_key` | string | Internal storage key (path or object key) |
+| `updated_at` | datetime | Last-update timestamp (ISO 8601) |
 | `category` | string \| null | AI-assigned category |
 | `tags` | string \| null | AI-assigned comma-separated tags |
 | `summary` | string \| null | AI-generated summary |
