@@ -26,6 +26,8 @@
 - Add `setAuthToken`, `clearAuthToken`, and `deleteFile` to the typed API client (`frontend/src/api.ts`).
 - Add inline file preview panel: clicking a file in search results or file list opens an in-page preview with rendered images, PDFs (first page), and text files. The preview panel includes a download button and can be closed to return to the list.
 - Add pgvector support for storing embeddings as native vector(384) columns instead of JSON, including migration to enable the pgvector extension and alter the embedding column type.
+- Enhance `GET /health` endpoint with DB and storage connectivity checks returning `{"status": "ok"|"degraded", "db": "...", "storage": "..."}`; no auth required.
+- Add guarded `DELETE /files/{id}` endpoint with confirmation header (`X-Confirm-Delete: true`) or query param (`?confirm=true`); returns 204 on success and 404 when file not found.
 - Add per-task status tracking to the background worker pool (pending, running, completed, failed)
 - Add `GET /tasks/{id}` endpoint to poll for job status
 - Return `task_id` from upload and reindex endpoints so clients can track enrichment progress

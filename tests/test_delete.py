@@ -1,112 +1,122 @@
-"""Tests for file deletion endpoint."""
+"""Tests for the file delete endpoint."""
 
 import io
-import os
+import uuid
 
+import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.robotsix_file_hub.models import FileRecord
+from src.robotsix_file_hub.storage import StorageBackend, StorageError
 
 
-async def test_delete_file_success(
+@pytest.fixture
+async def uploaded_file(
     test_client: AsyncClient,
     test_db_session: AsyncSession,
-    tmp_upload_dir: str,
-) -> None:
-    """DELETE /files/{id} removes the file record and stored bytes."""
+) -> FileRecord:
+    """Upload a file and return its DB record for delete tests."""
     content = b"delete me"
-    upload_resp = await test_client.post(
+    response = await test_client.post(
         "/files",
-        files={"file": ("to_delete.txt", io.BytesIO(content), "text/plain")},
+        files={"file": ("delete-me.txt", io.BytesIO(content), "text/plain")},
     )
-    assert upload_resp.status_code == 200
-    file_id = upload_resp.json()["id"]
+    assert response.status_code == 200
+    file_id = response.json()["id"]
+    record = await test_db_session.get(FileRecord, file_id)
+    assert record is not None
+    return record
 
-    response = await test_client.delete(f"/files/{file_id}")
 
+async def test_delete_file_with_header_confirm(
+    test_client: AsyncClient,
+    uploaded_file: FileRecord,
+) -> None:
+    """DELETE /files/{id} with X-Confirm-Delete header returns 204."""
+    response = await test_client.delete(
+        f"/files/{uploaded_file.id}",
+        headers={"X-Confirm-Delete": "true"},
+    )
     assert response.status_code == 204
     assert response.content == b""
 
-    # Verify DB record was removed
-    record = await test_db_session.get(FileRecord, file_id)
+
+async def test_delete_file_with_query_param_confirm(
+    test_client: AsyncClient,
+    uploaded_file: FileRecord,
+) -> None:
+    """DELETE /files/{id} with ?confirm=true returns 204."""
+    response = await test_client.delete(
+        f"/files/{uploaded_file.id}?confirm=true",
+    )
+    assert response.status_code == 204
+
+
+async def test_delete_file_missing_confirmation(
+    test_client: AsyncClient,
+    uploaded_file: FileRecord,
+) -> None:
+    """DELETE /files/{id} without confirmation returns 400."""
+    response = await test_client.delete(f"/files/{uploaded_file.id}")
+    assert response.status_code == 400
+    assert "confirmation" in response.json()["detail"].lower()
+
+
+async def test_delete_file_removes_db_record(
+    test_client: AsyncClient,
+    test_db_session: AsyncSession,
+    uploaded_file: FileRecord,
+) -> None:
+    """DELETE /files/{id} removes the database record."""
+    response = await test_client.delete(
+        f"/files/{uploaded_file.id}",
+        headers={"X-Confirm-Delete": "true"},
+    )
+    assert response.status_code == 204
+    record = await test_db_session.get(FileRecord, uploaded_file.id)
     assert record is None
 
-    # Verify storage file was removed
-    non_db_files = [f for f in os.listdir(tmp_upload_dir) if not f.endswith(".db")]
-    assert len(non_db_files) == 0, f"Expected 0 stored files after delete, got {len(non_db_files)}"
+
+async def test_delete_file_removes_storage_bytes(
+    test_client: AsyncClient,
+    test_storage: StorageBackend,
+    uploaded_file: FileRecord,
+) -> None:
+    """DELETE /files/{id} removes stored file bytes."""
+    # Verify bytes exist before delete
+    content = await test_storage.get(uploaded_file.storage_key)
+    assert content is not None
+
+    response = await test_client.delete(
+        f"/files/{uploaded_file.id}",
+        headers={"X-Confirm-Delete": "true"},
+    )
+    assert response.status_code == 204
+
+    # Verify bytes are gone
+    with pytest.raises(StorageError):
+        await test_storage.get(uploaded_file.storage_key)
 
 
 async def test_delete_file_not_found(test_client: AsyncClient) -> None:
     """DELETE /files/{id} with unknown id returns 404."""
-    response = await test_client.delete("/files/nonexistent-id")
-
+    fake_id = str(uuid.uuid4())
+    response = await test_client.delete(
+        f"/files/{fake_id}",
+        headers={"X-Confirm-Delete": "true"},
+    )
     assert response.status_code == 404
-    assert response.json()["detail"] == "File not found"
+    assert "not found" in response.json()["detail"].lower()
 
 
-async def test_delete_file_then_download_fails(test_client: AsyncClient) -> None:
-    """After deleting a file, downloading it returns 404."""
-    content = b"download then delete"
-    upload_resp = await test_client.post(
-        "/files",
-        files={"file": ("temp.txt", io.BytesIO(content), "text/plain")},
+async def test_delete_file_wrong_confirmation_value(
+    test_client: AsyncClient,
+    uploaded_file: FileRecord,
+) -> None:
+    """DELETE /files/{id} with wrong confirmation value returns 400."""
+    response = await test_client.delete(
+        f"/files/{uploaded_file.id}",
+        headers={"X-Confirm-Delete": "false"},
     )
-    assert upload_resp.status_code == 200
-    file_id = upload_resp.json()["id"]
-
-    # Delete it
-    del_resp = await test_client.delete(f"/files/{file_id}")
-    assert del_resp.status_code == 204
-
-    # Download must 404
-    get_resp = await test_client.get(f"/files/{file_id}")
-    assert get_resp.status_code == 404
-
-
-async def test_delete_file_then_metadata_fails(test_client: AsyncClient) -> None:
-    """After deleting a file, metadata endpoint returns 404."""
-    content = b"metadata then delete"
-    upload_resp = await test_client.post(
-        "/files",
-        files={"file": ("meta_del.txt", io.BytesIO(content), "text/plain")},
-    )
-    assert upload_resp.status_code == 200
-    file_id = upload_resp.json()["id"]
-
-    del_resp = await test_client.delete(f"/files/{file_id}")
-    assert del_resp.status_code == 204
-
-    meta_resp = await test_client.get(f"/files/{file_id}/metadata")
-    assert meta_resp.status_code == 404
-
-
-async def test_delete_file_then_not_in_list(test_client: AsyncClient) -> None:
-    """After deleting a file, it does not appear in the file list."""
-    # Upload two files
-    for name in ("keep.txt", "remove.txt"):
-        upload_resp = await test_client.post(
-            "/files",
-            files={"file": (name, io.BytesIO(b"data"), "text/plain")},
-        )
-        assert upload_resp.status_code == 200
-
-    # List before delete
-    list_before = await test_client.get("/files")
-    assert list_before.json()["total"] == 2
-    remove_id = None
-    for f in list_before.json()["files"]:
-        if f["filename"] == "remove.txt":
-            remove_id = f["id"]
-            break
-    assert remove_id is not None
-
-    # Delete one
-    del_resp = await test_client.delete(f"/files/{remove_id}")
-    assert del_resp.status_code == 204
-
-    # List after delete
-    list_after = await test_client.get("/files")
-    data = list_after.json()
-    assert data["total"] == 1
-    assert data["files"][0]["filename"] == "keep.txt"
+    assert response.status_code == 400

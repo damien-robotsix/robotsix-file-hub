@@ -11,6 +11,7 @@ from fastapi import (
     Body,
     Depends,
     File,
+    Header,
     HTTPException,
     Query,
     Response,
@@ -304,6 +305,57 @@ async def download_file(
             "Content-Length": str(record.size),
         },
     )
+
+
+@router.delete(
+    "/{file_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={404: {"model": ErrorResponse}},
+)
+async def delete_file(
+    file_id: str,
+    x_confirm_delete: Annotated[str | None, Header()] = None,
+    confirm: Annotated[str | None, Query()] = None,
+    db: Annotated[AsyncSession, Depends(get_db)] = None,
+    storage: Annotated[StorageBackend, Depends(_get_storage)] = None,
+) -> None:
+    """Delete a stored file and its database record.
+
+    Requires a confirmation guard to prevent accidental deletion.
+    Pass either the ``X-Confirm-Delete: true`` header or the
+    ``?confirm=true`` query parameter.
+    """
+    if x_confirm_delete != "true" and confirm != "true":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Confirmation required: set X-Confirm-Delete: true header "
+                "or ?confirm=true query parameter"
+            ),
+        )
+
+    record = await db.get(FileRecord, file_id)
+    if record is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+
+    storage_key = record.storage_key
+    try:
+        await storage.delete(storage_key)
+    except StorageError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Storage failure: {exc}",
+        ) from exc
+
+    await db.delete(record)
+    try:
+        await db.commit()
+    except Exception as exc:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database failure: {exc}",
+        ) from exc
 
 
 @router.get(
