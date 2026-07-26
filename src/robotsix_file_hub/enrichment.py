@@ -123,12 +123,14 @@ async def call_llm(text: str) -> dict[str, Any]:
         f"TEXT:\n{text[:8000]}"
     )
 
+    headers: dict[str, str] = {"Content-Type": "application/json"}
+    if settings.enrichment_llm_api_key:
+        headers["Authorization"] = f"Bearer {settings.enrichment_llm_api_key}"
+
     async with httpx.AsyncClient(timeout=settings.enrichment_llm_timeout) as client:
         response = await client.post(
             f"{settings.enrichment_llm_api_base}/chat/completions",
-            headers={
-                "Content-Type": "application/json",
-            },
+            headers=headers,
             json={
                 "model": settings.enrichment_llm_model,
                 "messages": [{"role": "user", "content": prompt}],
