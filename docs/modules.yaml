@@ -1,0 +1,10 @@
+package: robotsix_file_hub
+
+modules:
+  - id: core
+    description: Core application package
+    paths:
+      - src/robotsix_file_hub/__init__.py
+      - src/robotsix_file_hub/main.py
+      - tests/__init__.py
+      - pyproject.toml
