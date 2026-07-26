@@ -4,10 +4,43 @@ import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import numpy as np
+import pytest
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from src.robotsix_file_hub.models import Base, FileRecord
 from src.robotsix_file_hub.storage import LocalStorageBackend
+
+
+@pytest.fixture
+async def embedding_test_env(tmp_upload_dir: str):
+    """Set up engine, session factory, storage, and monkey-patch tasks_module.
+
+    Yields ``(session_factory, storage)`` for embedding integration tests
+    that call ``_process_enrichment`` directly.
+    """
+    import src.robotsix_file_hub.tasks as tasks_module
+
+    db_path = os.path.join(tmp_upload_dir, "test.db")
+    database_url = f"sqlite+aiosqlite:///{db_path}"
+    engine = create_async_engine(database_url, echo=False)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    session_factory = async_sessionmaker(engine, expire_on_commit=False)
+
+    storage = LocalStorageBackend(base_path=tmp_upload_dir)
+
+    original_session_local = tasks_module.async_session_factory
+    tasks_module.async_session_factory = session_factory  # type: ignore[assignment]
+
+    try:
+        yield session_factory, storage
+    finally:
+        tasks_module._storage = None
+        tasks_module.async_session_factory = original_session_local
+        await engine.dispose()
+
+
+# ── Unit tests ─────────────────────────────────────────────────────
 
 
 async def test_build_embedding_text_all_fields() -> None:
@@ -61,21 +94,15 @@ async def test_generate_embedding_returns_floats() -> None:
         emb_module._model = original_model
 
 
-async def test_embedding_stored_during_enrichment(tmp_upload_dir: str) -> None:
+# ── Integration tests ──────────────────────────────────────────────
+
+
+async def test_embedding_stored_during_enrichment(embedding_test_env) -> None:
     """_process_enrichment stores the embedding on the DB record."""
     import src.robotsix_file_hub.tasks as tasks_module
 
-    db_path = os.path.join(tmp_upload_dir, "test.db")
-    database_url = f"sqlite+aiosqlite:///{db_path}"
-    engine = create_async_engine(database_url, echo=False)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    session_factory = async_sessionmaker(engine, expire_on_commit=False)
+    session_factory, storage = embedding_test_env
 
-    original_session_local = tasks_module.async_session_factory
-    tasks_module.async_session_factory = session_factory  # type: ignore[assignment]
-
-    storage = LocalStorageBackend(base_path=tmp_upload_dir)
     file_id = "embed-test-001"
     storage_path = await storage.save(file_id, b"hello world text content")
 
@@ -126,25 +153,14 @@ async def test_embedding_stored_during_enrichment(tmp_upload_dir: str) -> None:
 
     finally:
         tasks_module._storage = None
-        tasks_module.async_session_factory = original_session_local
-        await engine.dispose()
 
 
-async def test_embedding_null_on_generation_failure(tmp_upload_dir: str) -> None:
+async def test_embedding_null_on_generation_failure(embedding_test_env) -> None:
     """When embedding generation raises, embedding is set to None (best-effort)."""
     import src.robotsix_file_hub.tasks as tasks_module
 
-    db_path = os.path.join(tmp_upload_dir, "test.db")
-    database_url = f"sqlite+aiosqlite:///{db_path}"
-    engine = create_async_engine(database_url, echo=False)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    session_factory = async_sessionmaker(engine, expire_on_commit=False)
+    session_factory, storage = embedding_test_env
 
-    original_session_local = tasks_module.async_session_factory
-    tasks_module.async_session_factory = session_factory  # type: ignore[assignment]
-
-    storage = LocalStorageBackend(base_path=tmp_upload_dir)
     file_id = "embed-fail-001"
     storage_path = await storage.save(file_id, b"binary blob")
 
@@ -199,25 +215,14 @@ async def test_embedding_null_on_generation_failure(tmp_upload_dir: str) -> None
 
     finally:
         tasks_module._storage = None
-        tasks_module.async_session_factory = original_session_local
-        await engine.dispose()
 
 
-async def test_embedding_updated_on_reindex(tmp_upload_dir: str) -> None:
+async def test_embedding_updated_on_reindex(embedding_test_env) -> None:
     """Re-indexing a file regenerates its embedding."""
     import src.robotsix_file_hub.tasks as tasks_module
 
-    db_path = os.path.join(tmp_upload_dir, "test.db")
-    database_url = f"sqlite+aiosqlite:///{db_path}"
-    engine = create_async_engine(database_url, echo=False)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    session_factory = async_sessionmaker(engine, expire_on_commit=False)
+    session_factory, storage = embedding_test_env
 
-    original_session_local = tasks_module.async_session_factory
-    tasks_module.async_session_factory = session_factory  # type: ignore[assignment]
-
-    storage = LocalStorageBackend(base_path=tmp_upload_dir)
     file_id = "reindex-embed-001"
     storage_path = await storage.save(file_id, b"hello world")
 
@@ -273,5 +278,3 @@ async def test_embedding_updated_on_reindex(tmp_upload_dir: str) -> None:
 
     finally:
         tasks_module._storage = None
-        tasks_module.async_session_factory = original_session_local
-        await engine.dispose()

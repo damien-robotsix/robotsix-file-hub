@@ -64,6 +64,17 @@ def test_storage(tmp_upload_dir: str) -> StorageBackend:
 
 
 @pytest.fixture
+async def test_db_session(test_session_factory):
+    """AsyncSession for seeding test data before endpoint calls.
+
+    Uses the same engine as ``test_client`` so pre-populated data
+    is visible to HTTP requests made through the test client.
+    """
+    async with test_session_factory() as session:
+        yield session
+
+
+@pytest.fixture
 async def test_client(
     test_session_factory,
     test_storage: StorageBackend,

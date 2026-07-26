@@ -1,63 +1,21 @@
 """Tests for file download, metadata, and listing endpoints."""
 
 import io
-import os
-import tempfile
 
-import pytest
-from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-
-from src.robotsix_file_hub.database import get_db
-from src.robotsix_file_hub.main import app
-from src.robotsix_file_hub.models import Base
-from src.robotsix_file_hub.storage import LocalStorageBackend
+from httpx import AsyncClient
 
 
-@pytest.fixture
-def tmp_upload_dir():
-    with tempfile.TemporaryDirectory() as tmpdir:
-        yield tmpdir
-
-
-async def test_download_file(tmp_upload_dir: str) -> None:
+async def test_download_file(test_client: AsyncClient) -> None:
     """GET /files/{id} returns raw bytes with correct headers."""
-    import src.robotsix_file_hub.routes.files as routes_module
+    content = b"hello download test"
+    upload_resp = await test_client.post(
+        "/files",
+        files={"file": ("download.txt", io.BytesIO(content), "text/plain")},
+    )
+    assert upload_resp.status_code == 200
+    file_id = upload_resp.json()["id"]
 
-    storage = LocalStorageBackend(base_path=tmp_upload_dir)
-    routes_module._storage = storage
-
-    db_path = os.path.join(tmp_upload_dir, "test.db")
-    database_url = f"sqlite+aiosqlite:///{db_path}"
-    engine = create_async_engine(database_url, echo=False)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    session_factory = async_sessionmaker(engine, expire_on_commit=False)
-
-    async def override_get_db() -> AsyncSession:  # type: ignore[misc]
-        async with session_factory() as session:
-            yield session
-
-    original_deps = app.dependency_overrides.copy()
-    app.dependency_overrides[get_db] = override_get_db
-
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        # Upload a file first
-        content = b"hello download test"
-        upload_resp = await client.post(
-            "/files",
-            files={"file": ("download.txt", io.BytesIO(content), "text/plain")},
-        )
-        assert upload_resp.status_code == 200
-        file_id = upload_resp.json()["id"]
-
-        # Download it
-        response = await client.get(f"/files/{file_id}")
-
-    app.dependency_overrides = original_deps
-    routes_module._storage = None
-    await engine.dispose()
+    response = await test_client.get(f"/files/{file_id}")
 
     assert response.status_code == 200
     assert response.content == content
@@ -66,77 +24,25 @@ async def test_download_file(tmp_upload_dir: str) -> None:
     assert response.headers["content-length"] == str(len(content))
 
 
-async def test_download_file_not_found(tmp_upload_dir: str) -> None:
+async def test_download_file_not_found(test_client: AsyncClient) -> None:
     """GET /files/{id} with unknown id returns 404."""
-    import src.robotsix_file_hub.routes.files as routes_module
-
-    storage = LocalStorageBackend(base_path=tmp_upload_dir)
-    routes_module._storage = storage
-
-    db_path = os.path.join(tmp_upload_dir, "test.db")
-    database_url = f"sqlite+aiosqlite:///{db_path}"
-    engine = create_async_engine(database_url, echo=False)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    session_factory = async_sessionmaker(engine, expire_on_commit=False)
-
-    async def override_get_db() -> AsyncSession:  # type: ignore[misc]
-        async with session_factory() as session:
-            yield session
-
-    original_deps = app.dependency_overrides.copy()
-    app.dependency_overrides[get_db] = override_get_db
-
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/files/nonexistent-id")
-
-    app.dependency_overrides = original_deps
-    routes_module._storage = None
-    await engine.dispose()
+    response = await test_client.get("/files/nonexistent-id")
 
     assert response.status_code == 404
     assert response.json()["detail"] == "File not found"
 
 
-async def test_get_file_metadata(tmp_upload_dir: str) -> None:
+async def test_get_file_metadata(test_client: AsyncClient) -> None:
     """GET /files/{id}/metadata returns full record as JSON."""
-    import src.robotsix_file_hub.routes.files as routes_module
+    content = b"metadata test content"
+    upload_resp = await test_client.post(
+        "/files",
+        files={"file": ("meta.txt", io.BytesIO(content), "text/plain")},
+    )
+    assert upload_resp.status_code == 200
+    file_id = upload_resp.json()["id"]
 
-    storage = LocalStorageBackend(base_path=tmp_upload_dir)
-    routes_module._storage = storage
-
-    db_path = os.path.join(tmp_upload_dir, "test.db")
-    database_url = f"sqlite+aiosqlite:///{db_path}"
-    engine = create_async_engine(database_url, echo=False)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    session_factory = async_sessionmaker(engine, expire_on_commit=False)
-
-    async def override_get_db() -> AsyncSession:  # type: ignore[misc]
-        async with session_factory() as session:
-            yield session
-
-    original_deps = app.dependency_overrides.copy()
-    app.dependency_overrides[get_db] = override_get_db
-
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        # Upload a file first
-        content = b"metadata test content"
-        upload_resp = await client.post(
-            "/files",
-            files={"file": ("meta.txt", io.BytesIO(content), "text/plain")},
-        )
-        assert upload_resp.status_code == 200
-        file_id = upload_resp.json()["id"]
-
-        # Get metadata
-        response = await client.get(f"/files/{file_id}/metadata")
-
-    app.dependency_overrides = original_deps
-    routes_module._storage = None
-    await engine.dispose()
+    response = await test_client.get(f"/files/{file_id}/metadata")
 
     assert response.status_code == 200
     data = response.json()
@@ -153,66 +59,16 @@ async def test_get_file_metadata(tmp_upload_dir: str) -> None:
     assert "storage_path" in data
 
 
-async def test_get_file_metadata_not_found(tmp_upload_dir: str) -> None:
+async def test_get_file_metadata_not_found(test_client: AsyncClient) -> None:
     """GET /files/{id}/metadata with unknown id returns 404."""
-    import src.robotsix_file_hub.routes.files as routes_module
-
-    storage = LocalStorageBackend(base_path=tmp_upload_dir)
-    routes_module._storage = storage
-
-    db_path = os.path.join(tmp_upload_dir, "test.db")
-    database_url = f"sqlite+aiosqlite:///{db_path}"
-    engine = create_async_engine(database_url, echo=False)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    session_factory = async_sessionmaker(engine, expire_on_commit=False)
-
-    async def override_get_db() -> AsyncSession:  # type: ignore[misc]
-        async with session_factory() as session:
-            yield session
-
-    original_deps = app.dependency_overrides.copy()
-    app.dependency_overrides[get_db] = override_get_db
-
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/files/nonexistent-id/metadata")
-
-    app.dependency_overrides = original_deps
-    routes_module._storage = None
-    await engine.dispose()
+    response = await test_client.get("/files/nonexistent-id/metadata")
 
     assert response.status_code == 404
 
 
-async def test_list_files_empty(tmp_upload_dir: str) -> None:
+async def test_list_files_empty(test_client: AsyncClient) -> None:
     """GET /files returns empty list when no files exist."""
-    import src.robotsix_file_hub.routes.files as routes_module
-
-    storage = LocalStorageBackend(base_path=tmp_upload_dir)
-    routes_module._storage = storage
-
-    db_path = os.path.join(tmp_upload_dir, "test.db")
-    database_url = f"sqlite+aiosqlite:///{db_path}"
-    engine = create_async_engine(database_url, echo=False)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    session_factory = async_sessionmaker(engine, expire_on_commit=False)
-
-    async def override_get_db() -> AsyncSession:  # type: ignore[misc]
-        async with session_factory() as session:
-            yield session
-
-    original_deps = app.dependency_overrides.copy()
-    app.dependency_overrides[get_db] = override_get_db
-
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/files")
-
-    app.dependency_overrides = original_deps
-    routes_module._storage = None
-    await engine.dispose()
+    response = await test_client.get("/files")
 
     assert response.status_code == 200
     data = response.json()
@@ -222,43 +78,17 @@ async def test_list_files_empty(tmp_upload_dir: str) -> None:
     assert data["limit"] == 50
 
 
-async def test_list_files_with_data(tmp_upload_dir: str) -> None:
+async def test_list_files_with_data(test_client: AsyncClient) -> None:
     """GET /files returns paginated list with all uploaded files."""
-    import src.robotsix_file_hub.routes.files as routes_module
+    # Upload two files
+    for name in ("first.txt", "second.txt"):
+        upload_resp = await test_client.post(
+            "/files",
+            files={"file": (name, io.BytesIO(b"data"), "text/plain")},
+        )
+        assert upload_resp.status_code == 200
 
-    storage = LocalStorageBackend(base_path=tmp_upload_dir)
-    routes_module._storage = storage
-
-    db_path = os.path.join(tmp_upload_dir, "test.db")
-    database_url = f"sqlite+aiosqlite:///{db_path}"
-    engine = create_async_engine(database_url, echo=False)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    session_factory = async_sessionmaker(engine, expire_on_commit=False)
-
-    async def override_get_db() -> AsyncSession:  # type: ignore[misc]
-        async with session_factory() as session:
-            yield session
-
-    original_deps = app.dependency_overrides.copy()
-    app.dependency_overrides[get_db] = override_get_db
-
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        # Upload two files
-        for name in ("first.txt", "second.txt"):
-            upload_resp = await client.post(
-                "/files",
-                files={"file": (name, io.BytesIO(b"data"), "text/plain")},
-            )
-            assert upload_resp.status_code == 200
-
-        # List all
-        response = await client.get("/files")
-
-    app.dependency_overrides = original_deps
-    routes_module._storage = None
-    await engine.dispose()
+    response = await test_client.get("/files")
 
     assert response.status_code == 200
     data = response.json()
@@ -270,45 +100,20 @@ async def test_list_files_with_data(tmp_upload_dir: str) -> None:
     assert filenames == {"first.txt", "second.txt"}
 
 
-async def test_list_files_pagination(tmp_upload_dir: str) -> None:
+async def test_list_files_pagination(test_client: AsyncClient) -> None:
     """GET /files with offset and limit respects pagination."""
-    import src.robotsix_file_hub.routes.files as routes_module
+    # Upload 3 files
+    for name in ("a.txt", "b.txt", "c.txt"):
+        upload_resp = await test_client.post(
+            "/files",
+            files={"file": (name, io.BytesIO(b"x"), "text/plain")},
+        )
+        assert upload_resp.status_code == 200
 
-    storage = LocalStorageBackend(base_path=tmp_upload_dir)
-    routes_module._storage = storage
-
-    db_path = os.path.join(tmp_upload_dir, "test.db")
-    database_url = f"sqlite+aiosqlite:///{db_path}"
-    engine = create_async_engine(database_url, echo=False)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    session_factory = async_sessionmaker(engine, expire_on_commit=False)
-
-    async def override_get_db() -> AsyncSession:  # type: ignore[misc]
-        async with session_factory() as session:
-            yield session
-
-    original_deps = app.dependency_overrides.copy()
-    app.dependency_overrides[get_db] = override_get_db
-
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        # Upload 3 files
-        for name in ("a.txt", "b.txt", "c.txt"):
-            upload_resp = await client.post(
-                "/files",
-                files={"file": (name, io.BytesIO(b"x"), "text/plain")},
-            )
-            assert upload_resp.status_code == 200
-
-        # Page 1: offset=0, limit=2
-        resp1 = await client.get("/files?offset=0&limit=2")
-        # Page 2: offset=2, limit=2
-        resp2 = await client.get("/files?offset=2&limit=2")
-
-    app.dependency_overrides = original_deps
-    routes_module._storage = None
-    await engine.dispose()
+    # Page 1: offset=0, limit=2
+    resp1 = await test_client.get("/files?offset=0&limit=2")
+    # Page 2: offset=2, limit=2
+    resp2 = await test_client.get("/files?offset=2&limit=2")
 
     assert resp1.status_code == 200
     data1 = resp1.json()
@@ -325,45 +130,19 @@ async def test_list_files_pagination(tmp_upload_dir: str) -> None:
     assert data2["limit"] == 2
 
 
-async def test_list_files_content_type_filter(tmp_upload_dir: str) -> None:
+async def test_list_files_content_type_filter(test_client: AsyncClient) -> None:
     """GET /files?content_type=... filters by MIME type."""
-    import src.robotsix_file_hub.routes.files as routes_module
+    # Upload text and image files
+    await test_client.post(
+        "/files",
+        files={"file": ("doc.txt", io.BytesIO(b"text"), "text/plain")},
+    )
+    await test_client.post(
+        "/files",
+        files={"file": ("img.png", io.BytesIO(b"png"), "image/png")},
+    )
 
-    storage = LocalStorageBackend(base_path=tmp_upload_dir)
-    routes_module._storage = storage
-
-    db_path = os.path.join(tmp_upload_dir, "test.db")
-    database_url = f"sqlite+aiosqlite:///{db_path}"
-    engine = create_async_engine(database_url, echo=False)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    session_factory = async_sessionmaker(engine, expire_on_commit=False)
-
-    async def override_get_db() -> AsyncSession:  # type: ignore[misc]
-        async with session_factory() as session:
-            yield session
-
-    original_deps = app.dependency_overrides.copy()
-    app.dependency_overrides[get_db] = override_get_db
-
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        # Upload text and image files
-        await client.post(
-            "/files",
-            files={"file": ("doc.txt", io.BytesIO(b"text"), "text/plain")},
-        )
-        await client.post(
-            "/files",
-            files={"file": ("img.png", io.BytesIO(b"png"), "image/png")},
-        )
-
-        # Filter by text/plain
-        response = await client.get("/files", params={"content_type": "text/plain"})
-
-    app.dependency_overrides = original_deps
-    routes_module._storage = None
-    await engine.dispose()
+    response = await test_client.get("/files", params={"content_type": "text/plain"})
 
     assert response.status_code == 200
     data = response.json()
