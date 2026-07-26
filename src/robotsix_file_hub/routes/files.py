@@ -1,15 +1,23 @@
-"""File upload endpoints: POST /files and POST /files/batch."""
+"""File endpoints: upload, download, metadata, and listing."""
 
 import uuid
+from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile, status
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import Settings
 from ..database import get_db
 from ..models import FileRecord
-from ..schemas import BatchUploadResponse, ErrorResponse, FileUploadResponse
+from ..schemas import (
+    BatchUploadResponse,
+    ErrorResponse,
+    FileListResponse,
+    FileMetadataResponse,
+    FileUploadResponse,
+)
 from ..storage import StorageBackend, StorageError, compute_checksum, create_storage_backend
 
 router = APIRouter(prefix="/files", tags=["files"])
@@ -117,3 +125,102 @@ async def upload_files_batch(
         result = await _process_upload(file, storage, db)
         results.append(result)
     return BatchUploadResponse(files=results)
+
+
+@router.get(
+    "/{file_id}",
+    responses={404: {"model": ErrorResponse}},
+)
+async def download_file(
+    file_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    storage: Annotated[StorageBackend, Depends(_get_storage)],
+) -> Response:
+    """Stream the raw file bytes for a stored file."""
+    record = await db.get(FileRecord, file_id)
+    if record is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+
+    try:
+        content = await storage.get(record.storage_path)
+    except StorageError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Storage failure: {exc}",
+        ) from exc
+
+    return Response(
+        content=content,
+        media_type=record.content_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{record.filename}"',
+            "Content-Length": str(record.size),
+        },
+    )
+
+
+@router.get(
+    "/{file_id}/metadata",
+    response_model=FileMetadataResponse,
+    responses={404: {"model": ErrorResponse}},
+)
+async def get_file_metadata(
+    file_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> FileMetadataResponse:
+    """Return the full DB record for a stored file."""
+    record = await db.get(FileRecord, file_id)
+    if record is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+    return FileMetadataResponse.model_validate(record)
+
+
+@router.get(
+    "",
+    response_model=FileListResponse,
+)
+async def list_files(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    category: Annotated[str | None, Query(description="Filter by category")] = None,
+    tag: Annotated[str | None, Query(description="Filter by tag (substring match)")] = None,
+    content_type: Annotated[str | None, Query(description="Filter by MIME content type")] = None,
+    source: Annotated[str | None, Query(description="Filter by source/uploader")] = None,
+    before: Annotated[
+        datetime | None, Query(description="Filter files created before this timestamp")
+    ] = None,
+    after: Annotated[
+        datetime | None, Query(description="Filter files created after this timestamp")
+    ] = None,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=1000)] = 50,
+) -> FileListResponse:
+    """List files with optional filters and pagination."""
+    stmt = select(FileRecord)
+
+    if category is not None:
+        stmt = stmt.where(FileRecord.category == category)
+    if tag is not None:
+        stmt = stmt.where(FileRecord.tags.contains(tag))
+    if content_type is not None:
+        stmt = stmt.where(FileRecord.content_type == content_type)
+    if source is not None:
+        stmt = stmt.where(FileRecord.source == source)
+    if before is not None:
+        stmt = stmt.where(FileRecord.created_at < before)
+    if after is not None:
+        stmt = stmt.where(FileRecord.created_at > after)
+
+    # Total count
+    count_stmt = select(func.count()).select_from(stmt.subquery())
+    total: int = (await db.execute(count_stmt)).scalar_one()
+
+    # Paginated results
+    stmt = stmt.order_by(FileRecord.created_at.desc()).offset(offset).limit(limit)
+    rows = (await db.execute(stmt)).scalars().all()
+
+    return FileListResponse(
+        files=[FileMetadataResponse.model_validate(r) for r in rows],
+        total=total,
+        offset=offset,
+        limit=limit,
+    )

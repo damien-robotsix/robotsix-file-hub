@@ -17,4 +17,5 @@ modules:
       - src/robotsix_file_hub/schemas.py
       - src/robotsix_file_hub/storage.py
       - tests/__init__.py
+      - tests/test_download.py
       - tests/test_upload.py
