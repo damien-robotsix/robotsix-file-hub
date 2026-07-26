@@ -212,6 +212,15 @@ The Vite dev server proxies `/api` (stripping the prefix) and `/files` to
 └── README.md
 ```
 
+## Testing conventions
+
+All test files must use the shared fixtures from [`tests/conftest.py`](tests/conftest.py)
+(`test_client`, `test_db_session`, `test_storage`, `test_session_factory`)
+instead of duplicating SQLAlchemy engine/session/client/storage setup inline.
+File-local fixtures are acceptable only when monkey-patching module globals
+(e.g., `tasks_module.async_session_factory`) — otherwise they create
+maintenance duplication.
+
 ## Deployment
 
 See [`docs/deployment.md`](docs/deployment.md) for production deployment

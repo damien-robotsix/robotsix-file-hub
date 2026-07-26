@@ -2,6 +2,9 @@
 
 ## 0.0.0 (unreleased)
 
+- Document testing conventions in README: all test files must use shared
+  fixtures from `tests/conftest.py` instead of duplicating SQLAlchemy
+  engine/session/client/storage setup inline.
 - Add Docker Compose quick-start instructions to README (clone, copy `.env.example`, `docker compose up`, frontend access)
 - Upload dialog now sends all files in a single batch `POST /files/batch` request with per-file progress estimation, and an "+ Upload" button on the Files page opens the dialog.
 - Added `GET /files/categories` endpoint returning distinct, sorted categories
