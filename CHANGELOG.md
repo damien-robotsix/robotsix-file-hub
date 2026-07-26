@@ -43,6 +43,10 @@
   batch fails, all prior files are rolled back (both DB records and stored bytes
   are cleaned up).  Previously each file was committed individually, leaving
   orphan records on mid-batch failures.
+- Add GitHub Actions CI pipeline (lint/ruff, typecheck/mypy, test/Postgres 16, frontend-lint/ESLint+Prettier)
+  - Lint and typecheck jobs use targeted `uv pip install` to avoid heavy torch/nvidia deps
+  - Test job runs against a Postgres 16 service container with full dependency tree
+  - All actions pinned to commit SHAs; uv and npm caches configured per job
 - Fix CI failures in pre-existing code: ruff format (PEP 758 except syntax), Prettier formatting (10 frontend files), and ESLint react-refresh warnings (extracted token utilities to tokenStorage.ts)
 - Add shared pytest fixtures (`tests/conftest.py`) with in-memory SQLite DB, local storage backend, and mock LLM enrichment. Add health endpoint tests (`tests/test_health.py`).
 - Add comprehensive documentation: architecture overview, quick-start
@@ -50,7 +54,6 @@
   Includes `.env.example` with all config variables, `docs/API.md` with
   full endpoint schemas, and `docs/deployment.md` with production
   setup instructions.
-- Set up GitHub Actions CI pipeline with lint, typecheck, test (Postgres), and frontend-lint jobs
 - FileDetailPage: reset text preview state when navigating between files to avoid stale/fetched content race condition
   - api.ts: rename `listFiles` param `skip` to `offset` for consistency with query key and API interfaces
 - Add search box in the top navigation bar that accepts natural-language queries
