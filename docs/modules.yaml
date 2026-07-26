@@ -20,6 +20,7 @@ modules:
       - migrations/versions/0001_initial_create_file_records.py
       - pyproject.toml
       - src/robotsix_file_hub/__init__.py
+      - src/robotsix_file_hub/auth.py
       - src/robotsix_file_hub/config.py
       - src/robotsix_file_hub/database.py
       - src/robotsix_file_hub/embeddings.py
