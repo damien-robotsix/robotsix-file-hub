@@ -39,6 +39,8 @@ modules:
       - frontend/src/App.tsx
       - frontend/src/AuthContext.tsx
       - frontend/src/api.ts
+      - frontend/src/components/UploadDialog.css
+      - frontend/src/components/UploadDialog.tsx
       - frontend/src/index.css
       - frontend/src/main.tsx
       - frontend/src/pages/FileDetailPage.tsx

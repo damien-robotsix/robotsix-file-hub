@@ -96,6 +96,60 @@ export async function uploadFile(file: File): Promise<UploadResponse> {
   return request<UploadResponse>("/files", { method: "POST", body: form });
 }
 
+/**
+ * Upload a single file with progress tracking via XMLHttpRequest.
+ * Calls `onProgress` with a value between 0 and 1.
+ * Returns the FileMetadata for the uploaded file.
+ */
+export function uploadFileWithProgress(
+  file: File,
+  onProgress: (progress: number) => void,
+): Promise<FileMetadata> {
+  return new Promise((resolve, reject) => {
+    const form = new FormData();
+    form.append("file", file);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${API_BASE}/files`);
+
+    xhr.upload.addEventListener("progress", (e) => {
+      if (e.lengthComputable) {
+        onProgress(e.loaded / e.total);
+      }
+    });
+
+    xhr.addEventListener("load", () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const raw = JSON.parse(xhr.responseText);
+          resolve({
+            id: raw.id,
+            filename: raw.filename,
+            content_type: raw.content_type ?? null,
+            size_bytes: raw.size,
+            created_at: raw.created_at,
+            embedding: raw.embedding ?? null,
+          });
+        } catch {
+          reject(new Error("Invalid JSON response"));
+        }
+      } else {
+        reject(new Error(`${xhr.status} ${xhr.statusText}: ${xhr.responseText}`));
+      }
+    });
+
+    xhr.addEventListener("error", () => {
+      reject(new Error("Network error during upload"));
+    });
+
+    xhr.addEventListener("abort", () => {
+      reject(new Error("Upload aborted"));
+    });
+
+    xhr.send(form);
+  });
+}
+
 export async function uploadFiles(files: File[]): Promise<{ files: FileMetadata[] }> {
   const form = new FormData();
   for (const f of files) {
