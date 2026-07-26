@@ -2,6 +2,7 @@
 
 ## 0.0.0 (unreleased)
 
+- Add shared pytest fixtures (`tests/conftest.py`) with in-memory SQLite DB, local storage backend, and mock LLM enrichment. Add health endpoint tests (`tests/test_health.py`).
 - Add comprehensive documentation: architecture overview, quick-start
   guide, configuration reference, API reference, and deployment guide.
   Includes `.env.example` with all config variables, `docs/API.md` with
