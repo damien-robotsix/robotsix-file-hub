@@ -14,4 +14,11 @@ class Settings(BaseSettings):
     s3_region: str = "us-east-1"
     max_file_size: int = 100 * 1024 * 1024  # 100 MB
 
+    # LLM enrichment settings (OpenAI-compatible API)
+    enrichment_llm_api_base: str = "http://localhost:11434/v1"
+    enrichment_llm_api_key: str = ""
+    enrichment_llm_model: str = "llama3.1"
+    enrichment_llm_timeout: float = 30.0
+    enrichment_llm_max_tokens: int = 256
+
     model_config = {"env_prefix": "FILE_HUB_"}

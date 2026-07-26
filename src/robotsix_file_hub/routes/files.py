@@ -96,7 +96,7 @@ async def _process_upload(
     # Fire-and-forget enrichment task
     enqueue_enrichment(
         file_id=record.id,
-        filename=record.filename,
+        storage_path=record.storage_path,
         content_type=record.content_type,
     )
 

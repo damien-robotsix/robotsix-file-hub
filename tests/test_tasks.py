@@ -4,6 +4,7 @@ import asyncio
 import io
 import os
 import tempfile
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -22,36 +23,49 @@ def tmp_upload_dir():
         yield tmpdir
 
 
-async def test_enrichment_worker_updates_record() -> None:
-    """Enqueue an enrichment job and wait for the worker to process it."""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        db_path = os.path.join(tmpdir, "test.db")
-        database_url = f"sqlite+aiosqlite:///{db_path}"
-        engine = create_async_engine(database_url, echo=False)
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-        session_factory = async_sessionmaker(engine, expire_on_commit=False)
+async def test_enrichment_worker_updates_record(tmp_upload_dir: str) -> None:
+    """Enqueue an enrichment job and wait for the worker to process it.
 
-        # Monkey-patch async_session_factory for the worker
-        import src.robotsix_file_hub.tasks as tasks_module
+    The enrichment module is mocked to return canned values so we
+    don't need a real LLM or file content.
+    """
+    import src.robotsix_file_hub.tasks as tasks_module
 
-        original_session_local = tasks_module.async_session_factory
-        tasks_module.async_session_factory = session_factory  # type: ignore[assignment]
+    db_path = os.path.join(tmp_upload_dir, "test.db")
+    database_url = f"sqlite+aiosqlite:///{db_path}"
+    engine = create_async_engine(database_url, echo=False)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    session_factory = async_sessionmaker(engine, expire_on_commit=False)
 
-        try:
-            # Insert a file record
-            file_id = "test-file-001"
-            async with session_factory() as session:
-                record = FileRecord(
-                    id=file_id,
-                    filename="report.pdf",
-                    size=1024,
-                    content_type="application/pdf",
-                    checksum="abc123",
-                    storage_path="/tmp/report.pdf",
-                )
-                session.add(record)
-                await session.commit()
+    original_session_local = tasks_module.async_session_factory
+    tasks_module.async_session_factory = session_factory  # type: ignore[assignment]
+
+    # Write a real file so the storage backend can read it
+    storage = LocalStorageBackend(base_path=tmp_upload_dir)
+    file_id = "test-file-001"
+    storage_path = await storage.save(file_id, b"hello world text content")
+
+    try:
+        # Insert a file record
+        async with session_factory() as session:
+            record = FileRecord(
+                id=file_id,
+                filename="report.txt",
+                size=24,
+                content_type="text/plain",
+                checksum="abc123",
+                storage_path=storage_path,
+            )
+            session.add(record)
+            await session.commit()
+
+        # Mock enrich_file to return canned enrichment
+        canned = {"category": "document", "tags": "pdf,report", "summary": "A report file."}
+
+        with patch.object(tasks_module, "enrich_file", new=AsyncMock(return_value=canned)):
+            # Patch _get_storage to return our storage backend
+            tasks_module._storage = storage
 
             # Start one worker
             await start_workers(count=1)
@@ -59,37 +73,105 @@ async def test_enrichment_worker_updates_record() -> None:
             # Enqueue enrichment
             enqueue_enrichment(
                 file_id=file_id,
-                filename="report.pdf",
-                content_type="application/pdf",
+                storage_path=storage_path,
+                content_type="text/plain",
             )
 
-            # Wait for the job to be processed (poll)
+            # Poll for enrichment completion
             for _ in range(20):
                 async with session_factory() as session:
-                    record = await session.get(FileRecord, file_id)
-                    if record and record.category is not None:
+                    r = await session.get(FileRecord, file_id)
+                    if r and r.category is not None:
                         break
                 await asyncio.sleep(0.1)
             else:
                 await stop_workers()
-                tasks_module.async_session_factory = original_session_local
-                await engine.dispose()
                 pytest.fail("Enrichment was not processed within timeout")
 
-            # Verify enrichment fields were populated
+            # Verify enrichment fields were populated from the mock
             async with session_factory() as session:
-                record = await session.get(FileRecord, file_id)
-                assert record is not None
-                assert record.category == "document"
-                assert record.tags is not None
-                assert "pdf" in record.tags
-                assert record.summary is not None
-                assert record.source == "upload"
+                r = await session.get(FileRecord, file_id)
+                assert r is not None
+                assert r.category == "document"
+                assert r.tags == "pdf,report"
+                assert r.summary == "A report file."
+                assert r.source == "upload"
 
-        finally:
-            await stop_workers()
-            tasks_module.async_session_factory = original_session_local
-            await engine.dispose()
+    finally:
+        await stop_workers()
+        tasks_module._storage = None
+        tasks_module.async_session_factory = original_session_local
+        await engine.dispose()
+
+
+async def test_enrichment_worker_null_on_llm_failure(tmp_upload_dir: str) -> None:
+    """When enrich_file returns None fields, the DB record is updated with nulls."""
+    import src.robotsix_file_hub.tasks as tasks_module
+
+    db_path = os.path.join(tmp_upload_dir, "test.db")
+    database_url = f"sqlite+aiosqlite:///{db_path}"
+    engine = create_async_engine(database_url, echo=False)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    session_factory = async_sessionmaker(engine, expire_on_commit=False)
+
+    original_session_local = tasks_module.async_session_factory
+    tasks_module.async_session_factory = session_factory  # type: ignore[assignment]
+
+    storage = LocalStorageBackend(base_path=tmp_upload_dir)
+    file_id = "test-file-002"
+    storage_path = await storage.save(file_id, b"binary blob")
+
+    try:
+        async with session_factory() as session:
+            record = FileRecord(
+                id=file_id,
+                filename="blob.bin",
+                size=11,
+                content_type="application/octet-stream",
+                checksum="def456",
+                storage_path=storage_path,
+            )
+            session.add(record)
+            await session.commit()
+
+        # enrich_file returns all None (no text extracted)
+        canned = {"category": None, "tags": None, "summary": None}
+
+        with patch.object(tasks_module, "enrich_file", new=AsyncMock(return_value=canned)):
+            tasks_module._storage = storage
+
+            await start_workers(count=1)
+
+            enqueue_enrichment(
+                file_id=file_id,
+                storage_path=storage_path,
+                content_type="application/octet-stream",
+            )
+
+            for _ in range(20):
+                async with session_factory() as session:
+                    r = await session.get(FileRecord, file_id)
+                    if r and r.source is not None:
+                        break
+                await asyncio.sleep(0.1)
+            else:
+                await stop_workers()
+                pytest.fail("Enrichment was not processed within timeout")
+
+            async with session_factory() as session:
+                r = await session.get(FileRecord, file_id)
+                assert r is not None
+                assert r.category is None
+                assert r.tags is None
+                assert r.summary is None
+                assert r.source == "upload"
+
+    finally:
+        await stop_workers()
+        tasks_module._storage = None
+        tasks_module.async_session_factory = original_session_local
+        await engine.dispose()
 
 
 async def test_upload_enqueues_enrichment(tmp_upload_dir: str) -> None:
@@ -117,8 +199,8 @@ async def test_upload_enqueues_enrichment(tmp_upload_dir: str) -> None:
     enqueued: list[tuple[str, str, str]] = []
     original_enqueue = routes_module.enqueue_enrichment
 
-    def _capture_enqueue(*, file_id: str, filename: str, content_type: str) -> None:
-        enqueued.append((file_id, filename, content_type))
+    def _capture_enqueue(*, file_id: str, storage_path: str, content_type: str) -> None:
+        enqueued.append((file_id, storage_path, content_type))
 
     routes_module.enqueue_enrichment = _capture_enqueue  # type: ignore[assignment]
 
@@ -134,7 +216,7 @@ async def test_upload_enqueues_enrichment(tmp_upload_dir: str) -> None:
         data = response.json()
         assert len(enqueued) == 1
         assert enqueued[0][0] == data["id"]
-        assert enqueued[0][1] == "notes.txt"
+        assert enqueued[0][1].startswith(tmp_upload_dir)  # storage_path is the saved file path
         assert enqueued[0][2] == "text/plain"
 
     finally:
@@ -186,8 +268,8 @@ async def test_reindex_all_enqueues_all_files() -> None:
         enqueued: list[tuple[str, str, str]] = []
         original_enqueue = tasks_module.enqueue_enrichment
 
-        def _capture_enqueue(*, file_id: str, filename: str, content_type: str) -> None:
-            enqueued.append((file_id, filename, content_type))
+        def _capture_enqueue(*, file_id: str, storage_path: str, content_type: str) -> None:
+            enqueued.append((file_id, storage_path, content_type))
 
         tasks_module.enqueue_enrichment = _capture_enqueue  # type: ignore[assignment]
 
@@ -227,7 +309,6 @@ async def test_reindex_endpoint_returns_ok(tmp_upload_dir: str) -> None:
     original_deps = app.dependency_overrides.copy()
     app.dependency_overrides[get_db] = override_get_db
 
-    # Patch the route module's reference so the endpoint uses test DB
     original_session_local = tasks_module.async_session_factory
     tasks_module.async_session_factory = session_factory  # type: ignore[assignment]
 
@@ -247,30 +328,36 @@ async def test_reindex_endpoint_returns_ok(tmp_upload_dir: str) -> None:
         await engine.dispose()
 
 
-async def test_category_derivation() -> None:
-    """Verify _derive_category returns expected values."""
-    from src.robotsix_file_hub.tasks import _derive_category
+async def test_extract_text_plain() -> None:
+    """extract_text returns decoded content for text/* types."""
+    from src.robotsix_file_hub.enrichment import extract_text
 
-    assert _derive_category("image/png", "photo.png") == "image"
-    assert _derive_category("video/mp4", "clip.mp4") == "video"
-    assert _derive_category("audio/mpeg", "song.mp3") == "audio"
-    assert _derive_category("text/plain", "readme.txt") == "document"
-    assert _derive_category("application/pdf", "report.pdf") == "document"
-    assert (
-        _derive_category(
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "data.xlsx"
-        )
-        == "spreadsheet"
+    result = extract_text(b"Hello, world!", "text/plain")
+    assert result == "Hello, world!"
+
+
+async def test_extract_text_unsupported() -> None:
+    """extract_text returns None for unsupported types with no handler."""
+    from src.robotsix_file_hub.enrichment import extract_text
+
+    result = extract_text(b"\x00\x01\x02", "application/octet-stream")
+    assert result is None
+
+
+async def test_extract_text_pdf_empty() -> None:
+    """extract_text handles PDFs gracefully even if empty/corrupt."""
+    from src.robotsix_file_hub.enrichment import extract_text
+
+    # Minimal valid PDF
+    pdf_bytes = (
+        b"%PDF-1.4\n"
+        b"1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n"
+        b"2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n"
+        b"3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>\nendobj\n"
+        b"xref\n0 4\n0000000000 65535 f \n0000000009 00000 n \n"
+        b"0000000058 00000 n \n0000000115 00000 n \n"
+        b"trailer\n<< /Size 4 /Root 1 0 R >>\nstartxref\n190\n%%EOF"
     )
-    assert _derive_category("application/octet-stream", "unknown.xyz") == "other"
-
-
-async def test_tags_derivation() -> None:
-    """Verify _derive_tags extracts extension and name chunks."""
-    from src.robotsix_file_hub.tasks import _derive_tags
-
-    tags = _derive_tags("quarterly_report_2024.pdf").split(",")
-    assert "pdf" in tags
-    assert "quarterly" in tags
-    assert "report" in tags
-    assert "2024" in tags
+    result = extract_text(pdf_bytes, "application/pdf")
+    # PDF has no text content, so result should be None or empty string
+    assert result is None or result == ""

@@ -2,6 +2,7 @@
 
 ## 0.0.0 (unreleased)
 
+- LLM enrichment pipeline: on file upload, extract text from common formats (PDF, plain text, DOCX, XLSX) and call a configurable OpenAI-compatible LLM to generate summary, category, and tags. Enrichment is best-effort — fields are left null if text extraction or the LLM call fails.
 - Add background task queue with asyncio workers for async file processing.
   Enrichment tasks (categorization, tagging, summarization) are enqueued
   fire-and-forget after each upload. A ``POST /files/reindex`` endpoint
