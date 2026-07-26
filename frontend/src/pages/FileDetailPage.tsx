@@ -66,7 +66,9 @@ export default function FileDetailPage() {
       .catch((e: unknown) => {
         if (!cancelled) setError(String(e));
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [fileId, metadata]);
 
   if (error) {
@@ -112,8 +114,7 @@ export default function FileDetailPage() {
           <strong>Size:</strong> {formatSize(metadata.size)}
         </span>
         <span>
-          <strong>Uploaded:</strong>{" "}
-          {new Date(metadata.created_at).toLocaleString()}
+          <strong>Uploaded:</strong> {new Date(metadata.created_at).toLocaleString()}
         </span>
         {metadata.category && (
           <span>
@@ -131,8 +132,7 @@ export default function FileDetailPage() {
           </span>
         )}
         <span>
-          <strong>Checksum:</strong>{" "}
-          <code className="checksum">{metadata.checksum}</code>
+          <strong>Checksum:</strong> <code className="checksum">{metadata.checksum}</code>
         </span>
       </div>
 
@@ -146,12 +146,7 @@ export default function FileDetailPage() {
 
         {previewKind === "pdf" && (
           <div className="preview-pdf">
-            <object
-              data={fileUrl}
-              type="application/pdf"
-              width="100%"
-              height="700"
-            >
+            <object data={fileUrl} type="application/pdf" width="100%" height="700">
               <p>
                 Your browser cannot display PDFs inline.{" "}
                 <a href={fileUrl} download={metadata.filename}>
@@ -179,14 +174,8 @@ export default function FileDetailPage() {
         {previewKind === "unsupported" && (
           <div className="preview-unsupported">
             <div className="fallback-icon">📄</div>
-            <p>
-              Preview not available for this file type ({metadata.content_type}).
-            </p>
-            <a
-              href={fileUrl}
-              className="download-btn"
-              download={metadata.filename}
-            >
+            <p>Preview not available for this file type ({metadata.content_type}).</p>
+            <a href={fileUrl} className="download-btn" download={metadata.filename}>
               ⬇ Download {metadata.filename}
             </a>
           </div>

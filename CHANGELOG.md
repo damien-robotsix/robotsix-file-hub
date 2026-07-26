@@ -2,6 +2,7 @@
 
 ## 0.0.0 (unreleased)
 
+- Fix CI failures in pre-existing code: ruff format (PEP 758 except syntax), Prettier formatting (10 frontend files), and ESLint react-refresh warnings (extracted token utilities to tokenStorage.ts)
 - Add shared pytest fixtures (`tests/conftest.py`) with in-memory SQLite DB, local storage backend, and mock LLM enrichment. Add health endpoint tests (`tests/test_health.py`).
 - Add comprehensive documentation: architecture overview, quick-start
   guide, configuration reference, API reference, and deployment guide.

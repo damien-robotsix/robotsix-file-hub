@@ -201,26 +201,18 @@ export default function FilesPage() {
         </table>
       )}
 
-      {!loading && files.length === 0 && !error && (
-        <p className="files-empty">No files found.</p>
-      )}
+      {!loading && files.length === 0 && !error && <p className="files-empty">No files found.</p>}
 
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="files-pagination">
-          <button
-            disabled={currentPage <= 1}
-            onClick={() => goToPage(currentPage - 1)}
-          >
+          <button disabled={currentPage <= 1} onClick={() => goToPage(currentPage - 1)}>
             ← Prev
           </button>
           <span>
             Page {currentPage} of {totalPages} ({total} files)
           </span>
-          <button
-            disabled={currentPage >= totalPages}
-            onClick={() => goToPage(currentPage + 1)}
-          >
+          <button disabled={currentPage >= totalPages} onClick={() => goToPage(currentPage + 1)}>
             Next →
           </button>
         </div>

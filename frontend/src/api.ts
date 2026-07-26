@@ -1,4 +1,4 @@
-import { TOKEN_KEY } from "./AuthContext.tsx";
+import { TOKEN_KEY } from "./tokenStorage";
 
 const API_BASE = "/api";
 
@@ -201,10 +201,13 @@ export async function downloadFile(fileId: string): Promise<Blob> {
   return res.blob();
 }
 
-export async function search(query: string, params?: {
-  limit?: number;
-  offset?: number;
-}): Promise<SearchResponse> {
+export async function search(
+  query: string,
+  params?: {
+    limit?: number;
+    offset?: number;
+  },
+): Promise<SearchResponse> {
   return request<SearchResponse>("/files/search", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
