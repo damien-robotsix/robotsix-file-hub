@@ -28,8 +28,9 @@ class FileMetadataResponse(BaseModel):
     size: int
     content_type: str
     checksum: str
-    storage_path: str
+    storage_key: str
     created_at: datetime
+    updated_at: datetime
     category: str | None = None
     tags: str | None = None
     summary: str | None = None

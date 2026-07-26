@@ -86,7 +86,7 @@ async def _process_upload(
 
     # Store file bytes
     try:
-        storage_path = await storage.save(file_id, content)
+        storage_key = await storage.save(file_id, content)
     except StorageError as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -100,7 +100,7 @@ async def _process_upload(
         size=len(content),
         content_type=content_type,
         checksum=checksum,
-        storage_path=storage_path,
+        storage_key=storage_key,
     )
     db.add(record)
 
@@ -130,7 +130,7 @@ async def upload_file(
     await db.refresh(record)
     enqueue_enrichment(
         file_id=record.id,
-        storage_path=record.storage_path,
+        storage_key=record.storage_key,
         content_type=record.content_type,
     )
     return FileUploadResponse.model_validate(record)
@@ -182,7 +182,7 @@ async def upload_files_batch(
         await db.refresh(record)
         enqueue_enrichment(
             file_id=record.id,
-            storage_path=record.storage_path,
+            storage_key=record.storage_key,
             content_type=record.content_type,
         )
 
@@ -196,7 +196,7 @@ async def _cleanup_storage(
     """Best-effort deletion of stored bytes for *records*."""
     for record in records:
         with contextlib.suppress(StorageError):
-            await storage.delete(record.storage_path)
+            await storage.delete(record.storage_key)
 
 
 @router.get(
@@ -214,7 +214,7 @@ async def download_file(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
 
     try:
-        content = await storage.get(record.storage_path)
+        content = await storage.get(record.storage_key)
     except StorageError as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

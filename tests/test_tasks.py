@@ -62,7 +62,7 @@ async def test_enrichment_worker_updates_record(tasks_test_env) -> None:
 
     # Write a real file so the storage backend can read it
     file_id = "test-file-001"
-    storage_path = await storage.save(file_id, b"hello world text content")
+    storage_key = await storage.save(file_id, b"hello world text content")
 
     try:
         # Insert a file record
@@ -73,7 +73,7 @@ async def test_enrichment_worker_updates_record(tasks_test_env) -> None:
                 size=24,
                 content_type="text/plain",
                 checksum="abc123",
-                storage_path=storage_path,
+                storage_key=storage_key,
             )
             session.add(record)
             await session.commit()
@@ -90,7 +90,7 @@ async def test_enrichment_worker_updates_record(tasks_test_env) -> None:
             # Enqueue enrichment
             enqueue_enrichment(
                 file_id=file_id,
-                storage_path=storage_path,
+                storage_key=storage_key,
                 content_type="text/plain",
             )
 
@@ -126,7 +126,7 @@ async def test_enrichment_worker_null_on_llm_failure(tasks_test_env) -> None:
     session_factory, storage = tasks_test_env
 
     file_id = "test-file-002"
-    storage_path = await storage.save(file_id, b"binary blob")
+    storage_key = await storage.save(file_id, b"binary blob")
 
     try:
         async with session_factory() as session:
@@ -136,7 +136,7 @@ async def test_enrichment_worker_null_on_llm_failure(tasks_test_env) -> None:
                 size=11,
                 content_type="application/octet-stream",
                 checksum="def456",
-                storage_path=storage_path,
+                storage_key=storage_key,
             )
             session.add(record)
             await session.commit()
@@ -151,7 +151,7 @@ async def test_enrichment_worker_null_on_llm_failure(tasks_test_env) -> None:
 
             enqueue_enrichment(
                 file_id=file_id,
-                storage_path=storage_path,
+                storage_key=storage_key,
                 content_type="application/octet-stream",
             )
 
@@ -191,8 +191,8 @@ async def test_upload_enqueues_enrichment(
     enqueued: list[tuple[str, str, str]] = []
     original_enqueue = routes_module.enqueue_enrichment
 
-    def _capture_enqueue(*, file_id: str, storage_path: str, content_type: str) -> None:
-        enqueued.append((file_id, storage_path, content_type))
+    def _capture_enqueue(*, file_id: str, storage_key: str, content_type: str) -> None:
+        enqueued.append((file_id, storage_key, content_type))
 
     routes_module.enqueue_enrichment = _capture_enqueue  # type: ignore[assignment]
 
@@ -232,7 +232,7 @@ async def test_reindex_all_enqueues_all_files(tasks_test_env) -> None:
                     size=10,
                     content_type="text/plain",
                     checksum="aa",
-                    storage_path="/tmp/a.txt",
+                    storage_key="/tmp/a.txt",
                 ),
                 FileRecord(
                     id="r2",
@@ -240,7 +240,7 @@ async def test_reindex_all_enqueues_all_files(tasks_test_env) -> None:
                     size=20,
                     content_type="image/png",
                     checksum="bb",
-                    storage_path="/tmp/b.png",
+                    storage_key="/tmp/b.png",
                 ),
             ]
         )
@@ -249,8 +249,8 @@ async def test_reindex_all_enqueues_all_files(tasks_test_env) -> None:
     enqueued: list[tuple[str, str, str]] = []
     original_enqueue = tasks_module.enqueue_enrichment
 
-    def _capture_enqueue(*, file_id: str, storage_path: str, content_type: str) -> None:
-        enqueued.append((file_id, storage_path, content_type))
+    def _capture_enqueue(*, file_id: str, storage_key: str, content_type: str) -> None:
+        enqueued.append((file_id, storage_key, content_type))
 
     tasks_module.enqueue_enrichment = _capture_enqueue  # type: ignore[assignment]
 
@@ -285,7 +285,7 @@ async def test_reindex_all_filtered_by_category(tasks_test_env) -> None:
                     size=10,
                     content_type="text/plain",
                     checksum="aa",
-                    storage_path="/tmp/a.txt",
+                    storage_key="/tmp/a.txt",
                     category="document",
                 ),
                 FileRecord(
@@ -294,7 +294,7 @@ async def test_reindex_all_filtered_by_category(tasks_test_env) -> None:
                     size=20,
                     content_type="image/png",
                     checksum="bb",
-                    storage_path="/tmp/b.png",
+                    storage_key="/tmp/b.png",
                     category="image",
                 ),
                 FileRecord(
@@ -303,7 +303,7 @@ async def test_reindex_all_filtered_by_category(tasks_test_env) -> None:
                     size=30,
                     content_type="text/plain",
                     checksum="cc",
-                    storage_path="/tmp/c.txt",
+                    storage_key="/tmp/c.txt",
                     category="document",
                 ),
             ]
@@ -313,8 +313,8 @@ async def test_reindex_all_filtered_by_category(tasks_test_env) -> None:
     enqueued: list[tuple[str, str, str]] = []
     original_enqueue = tasks_module.enqueue_enrichment
 
-    def _capture_enqueue(*, file_id: str, storage_path: str, content_type: str) -> None:
-        enqueued.append((file_id, storage_path, content_type))
+    def _capture_enqueue(*, file_id: str, storage_key: str, content_type: str) -> None:
+        enqueued.append((file_id, storage_key, content_type))
 
     tasks_module.enqueue_enrichment = _capture_enqueue  # type: ignore[assignment]
 
@@ -345,7 +345,7 @@ async def test_reindex_all_filtered_by_content_type(tasks_test_env) -> None:
                     size=10,
                     content_type="text/plain",
                     checksum="aa",
-                    storage_path="/tmp/a.txt",
+                    storage_key="/tmp/a.txt",
                 ),
                 FileRecord(
                     id="r2",
@@ -353,7 +353,7 @@ async def test_reindex_all_filtered_by_content_type(tasks_test_env) -> None:
                     size=20,
                     content_type="image/png",
                     checksum="bb",
-                    storage_path="/tmp/b.png",
+                    storage_key="/tmp/b.png",
                 ),
             ]
         )
@@ -362,8 +362,8 @@ async def test_reindex_all_filtered_by_content_type(tasks_test_env) -> None:
     enqueued: list[tuple[str, str, str]] = []
     original_enqueue = tasks_module.enqueue_enrichment
 
-    def _capture_enqueue(*, file_id: str, storage_path: str, content_type: str) -> None:
-        enqueued.append((file_id, storage_path, content_type))
+    def _capture_enqueue(*, file_id: str, storage_key: str, content_type: str) -> None:
+        enqueued.append((file_id, storage_key, content_type))
 
     tasks_module.enqueue_enrichment = _capture_enqueue  # type: ignore[assignment]
 
@@ -393,7 +393,7 @@ async def test_reindex_all_filtered_by_file_ids(tasks_test_env) -> None:
                     size=10,
                     content_type="text/plain",
                     checksum="aa",
-                    storage_path="/tmp/a.txt",
+                    storage_key="/tmp/a.txt",
                 ),
                 FileRecord(
                     id="r2",
@@ -401,7 +401,7 @@ async def test_reindex_all_filtered_by_file_ids(tasks_test_env) -> None:
                     size=20,
                     content_type="image/png",
                     checksum="bb",
-                    storage_path="/tmp/b.png",
+                    storage_key="/tmp/b.png",
                 ),
                 FileRecord(
                     id="r3",
@@ -409,7 +409,7 @@ async def test_reindex_all_filtered_by_file_ids(tasks_test_env) -> None:
                     size=30,
                     content_type="text/plain",
                     checksum="cc",
-                    storage_path="/tmp/c.txt",
+                    storage_key="/tmp/c.txt",
                 ),
             ]
         )
@@ -418,8 +418,8 @@ async def test_reindex_all_filtered_by_file_ids(tasks_test_env) -> None:
     enqueued: list[tuple[str, str, str]] = []
     original_enqueue = tasks_module.enqueue_enrichment
 
-    def _capture_enqueue(*, file_id: str, storage_path: str, content_type: str) -> None:
-        enqueued.append((file_id, storage_path, content_type))
+    def _capture_enqueue(*, file_id: str, storage_key: str, content_type: str) -> None:
+        enqueued.append((file_id, storage_key, content_type))
 
     tasks_module.enqueue_enrichment = _capture_enqueue  # type: ignore[assignment]
 
@@ -453,7 +453,7 @@ async def test_reindex_progress_tracking(tasks_test_env) -> None:
     tasks_module._reindex_active = False
 
     file_id = "progress-file-1"
-    storage_path = await storage.save(file_id, b"hello world text content")
+    storage_key = await storage.save(file_id, b"hello world text content")
 
     try:
         async with session_factory() as session:
@@ -463,7 +463,7 @@ async def test_reindex_progress_tracking(tasks_test_env) -> None:
                 size=24,
                 content_type="text/plain",
                 checksum="abc123",
-                storage_path=storage_path,
+                storage_key=storage_key,
             )
             session.add(record)
             await session.commit()
@@ -488,7 +488,7 @@ async def test_reindex_progress_tracking(tasks_test_env) -> None:
 
             job = EnrichmentJob(
                 file_id=file_id,
-                storage_path=storage_path,
+                storage_key=storage_key,
                 content_type="text/plain",
             )
             success = await tasks_module._process_enrichment(job)
@@ -576,7 +576,7 @@ async def test_reindex_endpoint_with_filter(
                 size=10,
                 content_type="text/plain",
                 checksum="aa",
-                storage_path="/tmp/a.txt",
+                storage_key="/tmp/a.txt",
             ),
             FileRecord(
                 id="f2",
@@ -584,7 +584,7 @@ async def test_reindex_endpoint_with_filter(
                 size=20,
                 content_type="image/png",
                 checksum="bb",
-                storage_path="/tmp/b.png",
+                storage_key="/tmp/b.png",
             ),
         ]
     )
