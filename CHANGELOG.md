@@ -2,6 +2,11 @@
 
 ## 0.0.0 (unreleased)
 
+- Add search box in the top navigation bar that accepts natural-language queries
+- Build search results page with relevance scores, file metadata, and preview thumbnails
+- Add file detail/preview page with inline display for images, PDFs, and text files, plus fallback for unsupported types
+- Add download button on the file detail page
+- Fix frontend API paths to align with backend `/files` route prefix
 - Scaffold React/Vite frontend in `frontend/` with TypeScript, React Router navigation, Vite dev-server proxy forwarding `/api/*` to the FastAPI backend, ESLint + Prettier linting/formatting, and a typed API client (`frontend/src/api.ts`) wrapping all backend endpoints.
 - Added `POST /files/search` hybrid NL search endpoint combining keyword matching (filename, summary, tags) with optional vector similarity (cosine distance on embeddings). Falls back to keyword-only when embeddings are unavailable. Returns paginated results with relevance scores.
 - Add filtering support to `POST /files/reindex` (category, content_type, file_ids) and progress tracking via `GET /files/reindex/progress` (total, completed, failed, active).
