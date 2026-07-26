@@ -36,11 +36,14 @@ modules:
       - frontend/package.json
       - frontend/src/App.css
       - frontend/src/App.tsx
+      - frontend/src/AuthContext.tsx
       - frontend/src/api.ts
       - frontend/src/index.css
       - frontend/src/main.tsx
       - frontend/src/pages/FileDetailPage.tsx
+      - frontend/src/pages/FilesPage.tsx
       - frontend/src/pages/HomePage.tsx
+      - frontend/src/pages/LoginPage.tsx
       - frontend/src/pages/SearchPage.tsx
       - frontend/src/pages/UploadPage.tsx
       - frontend/src/vite-env.d.ts

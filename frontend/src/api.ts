@@ -50,13 +50,31 @@ export interface ReindexProgress {
   active: boolean;
 }
 
-export interface UploadResponse {
-  file: FileMetadata;
-}
+export type UploadResponse = FileMetadata;
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE}${path}`;
-  const res = await fetch(url, options);
+  const headers: Record<string, string> = {};
+
+  // Attach auth token if present
+  try {
+    const token = localStorage.getItem("robotsix-file-hub-token");
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+  } catch {
+    // localStorage unavailable (SSR / test), skip
+  }
+
+  const merged: RequestInit = {
+    ...options,
+    headers: {
+      ...headers,
+      ...(options?.headers as Record<string, string> | undefined),
+    },
+  };
+
+  const res = await fetch(url, merged);
   if (!res.ok) {
     const body = await res.text();
     throw new Error(`${res.status} ${res.statusText}: ${body}`);
@@ -81,7 +99,7 @@ export async function uploadFiles(files: File[]): Promise<{ files: FileMetadata[
   return request<{ files: FileMetadata[] }>("/files/batch", { method: "POST", body: form });
 }
 
-export async function listFiles(params?: {
+export interface ListFilesParams {
   offset?: number;
   limit?: number;
   category?: string;
@@ -90,7 +108,9 @@ export async function listFiles(params?: {
   source?: string;
   before?: string;
   after?: string;
-}): Promise<FileListResponse> {
+}
+
+export async function listFiles(params?: ListFilesParams): Promise<FileListResponse> {
   const query = new URLSearchParams();
   if (params?.offset !== undefined) query.set("offset", String(params.offset));
   if (params?.limit !== undefined) query.set("limit", String(params.limit));

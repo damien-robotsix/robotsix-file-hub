@@ -37,8 +37,13 @@ export default function UploadPage() {
       {error && <p style={{ color: "red" }}>Error: {error}</p>}
       {result && (
         <p>
+<<<<<<< HEAD
           Uploaded: <strong>{result.file.filename}</strong>{" "}
           ({(result.file.size / 1024).toFixed(1)} KB)
+=======
+          Uploaded: <strong>{result.filename}</strong>{" "}
+          ({(result.size / 1024).toFixed(1)} KB)
+>>>>>>> ca76656 (mill: Frontend: Auth UI and file browser (20260726T021309Z-frontend-auth-ui-and-file-browser-4fcc))
         </p>
       )}
     </div>
