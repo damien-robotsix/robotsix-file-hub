@@ -150,6 +150,96 @@ export function uploadFileWithProgress(
   });
 }
 
+/**
+ * Upload multiple files in a single batch POST /files/batch with per-file
+ * progress estimation.  Calls `onFileProgress(index, progress)` for each
+ * file with a value between 0 and 1, estimated from the overall upload
+ * byte progress distributed across files proportionally.
+ */
+export function uploadFilesBatchWithProgress(
+  files: File[],
+  onFileProgress: (index: number, progress: number) => void,
+): Promise<FileMetadata[]> {
+  return new Promise((resolve, reject) => {
+    const form = new FormData();
+    const fileSizes: number[] = [];
+    for (const f of files) {
+      form.append("files", f);
+      fileSizes.push(f.size);
+    }
+
+    // Cumulative byte offsets for per-file progress estimation
+    const offsets: number[] = [];
+    let cum = 0;
+    for (const sz of fileSizes) {
+      offsets.push(cum);
+      cum += sz;
+    }
+    const totalFileBytes = cum;
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${API_BASE}/files/batch`);
+
+    // Set auth header (XHR does not go through the request() helper)
+    try {
+      const token = localStorage.getItem(TOKEN_KEY);
+      if (token) {
+        xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+      }
+    } catch {
+      // localStorage unavailable
+    }
+
+    xhr.upload.addEventListener("progress", (e) => {
+      if (e.lengthComputable && totalFileBytes > 0) {
+        const loaded = e.loaded;
+        for (let i = 0; i < files.length; i++) {
+          const start = offsets[i];
+          const size = fileSizes[i];
+          const fileLoaded = Math.max(0, Math.min(size, loaded - start));
+          onFileProgress(i, fileLoaded / size);
+        }
+      }
+    });
+
+    xhr.addEventListener("load", () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const raw = JSON.parse(xhr.responseText);
+          const uploaded: FileMetadata[] = (raw.files ?? []).map((f: Record<string, unknown>) => ({
+            id: f.id as string,
+            filename: f.filename as string,
+            size: f.size as number,
+            content_type: (f.content_type as string) ?? "application/octet-stream",
+            checksum: f.checksum as string,
+            storage_path: "",
+            created_at: f.created_at as string,
+            category: null,
+            tags: null,
+            summary: null,
+            source: null,
+          }));
+          resolve(uploaded);
+        } catch {
+          reject(new Error("Invalid JSON response"));
+        }
+      } else {
+        reject(new Error(`${xhr.status} ${xhr.statusText}: ${xhr.responseText}`));
+      }
+    });
+
+    xhr.addEventListener("error", () => {
+      reject(new Error("Network error during upload"));
+    });
+
+    xhr.addEventListener("abort", () => {
+      reject(new Error("Upload aborted"));
+    });
+
+    xhr.send(form);
+  });
+}
+
 export async function uploadFiles(files: File[]): Promise<{ files: FileMetadata[] }> {
   const form = new FormData();
   for (const f of files) {

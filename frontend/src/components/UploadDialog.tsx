@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, type DragEvent, type ChangeEvent } from "react";
-import { uploadFileWithProgress, type FileMetadata } from "../api.ts";
+import { uploadFilesBatchWithProgress, type FileMetadata } from "../api.ts";
 import { formatSize } from "../lib/format.ts";
 import "./UploadDialog.css";
 
@@ -109,21 +109,31 @@ export default function UploadDialog({ open, onClose, onUploadComplete }: Upload
     }
     setResults(new Map(newResults));
 
-    for (const entry of selectedFiles) {
-      try {
-        const metadata = await uploadFileWithProgress(entry.file, (progress) => {
+    try {
+      const metadatas = await uploadFilesBatchWithProgress(
+        selectedFiles.map((e) => e.file),
+        (index, progress) => {
+          const entry = selectedFiles[index];
           setResults((prev) => {
             const next = new Map(prev);
             next.set(entry.id, { kind: "uploading", progress });
             return next;
           });
-        });
+        },
+      );
+
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const entry = selectedFiles[i];
+        const metadata = metadatas[i];
         setResults((prev) => {
           const next = new Map(prev);
           next.set(entry.id, { kind: "success", metadata });
           return next;
         });
-      } catch (err: unknown) {
+      }
+    } catch (err: unknown) {
+      // Batch failure — mark all files as errored
+      for (const entry of selectedFiles) {
         setResults((prev) => {
           const next = new Map(prev);
           next.set(entry.id, { kind: "error", message: String(err) });

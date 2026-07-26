@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { listFiles, type FileMetadata, type ListFilesParams } from "../api.ts";
 import FilePreview from "../components/FilePreview.tsx";
+import UploadDialog from "../components/UploadDialog.tsx";
 
 const PAGE_SIZE = 20;
 
@@ -59,6 +60,7 @@ export default function FilesPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
+  const [uploadOpen, setUploadOpen] = useState(false);
 
   // Filters
   const [category, setCategory] = useState("");
@@ -104,7 +106,29 @@ export default function FilesPage() {
 
   return (
     <div className="files-page">
-      <h1>Files</h1>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <h1>Files</h1>
+        <button
+          onClick={() => setUploadOpen(true)}
+          style={{
+            padding: "0.4rem 0.9rem",
+            fontSize: "0.9rem",
+            cursor: "pointer",
+            background: "#0d6efd",
+            color: "#fff",
+            border: "none",
+            borderRadius: "4px",
+          }}
+        >
+          + Upload
+        </button>
+      </div>
 
       {/* Filters */}
       <div className="files-filters">
@@ -232,6 +256,12 @@ export default function FilesPage() {
           </button>
         </div>
       )}
+
+      <UploadDialog
+        open={uploadOpen}
+        onClose={() => setUploadOpen(false)}
+        onUploadComplete={fetchFiles}
+      />
     </div>
   );
 }
