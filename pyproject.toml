@@ -9,6 +9,7 @@ description = "LLM-powered file organization hub"
 requires-python = ">=3.14"
 dependencies = [
     "aiosqlite>=0.20.0",
+    "asyncpg>=0.30.0",
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.34.0",
     "sentence-transformers>=3.4.0",

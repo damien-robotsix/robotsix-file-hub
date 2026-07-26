@@ -4,8 +4,11 @@ modules:
   - id: core
     description: Core application package
     paths:
+      - .dockerignore
       - .env.example
       - .gitignore
+      - Dockerfile
+      - docker-compose.yml
       - CHANGELOG.md
       - README.md
       - alembic.ini

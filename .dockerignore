@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+
+# Tests
+tests/
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+
+# Git
+.git/
+.gitignore
+
+# Docs
+docs/
+
+# Frontend
+frontend/
+
+# Environment
+.env
+
+# Misc
+*.md
+CHANGELOG.md
