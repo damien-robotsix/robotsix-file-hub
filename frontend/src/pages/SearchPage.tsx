@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { search, downloadFileUrl, type SearchResult } from "../api.ts";
 
@@ -27,48 +27,55 @@ export default function SearchPage() {
   const [error, setError] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
   const [searched, setSearched] = useState(false);
-  const didInitialSearch = useRef(false);
 
-  async function doSearch(q: string) {
-    if (!q.trim()) return;
+  // Keep the input field in sync with the URL (e.g. when NavSearch
+  // navigates here while we are already mounted).
+  useEffect(() => {
+    setQuery(initialQuery);
+  }, [initialQuery]);
+
+  // Single source of truth: every time the URL query changes (including
+  // the first mount with ?q=…), fire the search.  handleSubmit only
+  // updates the URL — it never calls the API directly, avoiding the
+  // stale-ref double-fire on initial form submit.
+  useEffect(() => {
+    if (!initialQuery) {
+      setResults([]);
+      setTotal(0);
+      setSearched(false);
+      return;
+    }
+
+    let cancelled = false;
     setSearching(true);
     setError(null);
-    try {
-      const res = await search(q);
-      setResults(res.results);
-      setTotal(res.total);
-      setSearched(true);
-    } catch (err: unknown) {
-      setError(String(err));
-    } finally {
-      setSearching(false);
-    }
-  }
 
-  async function handleSubmit(e: FormEvent) {
+    search(initialQuery)
+      .then((res) => {
+        if (!cancelled) {
+          setResults(res.results);
+          setTotal(res.total);
+          setSearched(true);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setError(String(err));
+      })
+      .finally(() => {
+        if (!cancelled) setSearching(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initialQuery]);
+
+  function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const q = query.trim();
     if (!q) return;
     setSearchParams({ q });
-    await doSearch(q);
   }
-
-  // Support navigating here with ?q= from the nav bar
-  useEffect(() => {
-    if (!didInitialSearch.current && initialQuery) {
-      didInitialSearch.current = true;
-      setSearching(true);
-      setError(null);
-      search(initialQuery)
-        .then((res) => {
-          setResults(res.results);
-          setTotal(res.total);
-          setSearched(true);
-        })
-        .catch((err: unknown) => setError(String(err)))
-        .finally(() => setSearching(false));
-    }
-  }, [initialQuery]);
 
   return (
     <div className="search-page">
