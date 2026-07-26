@@ -7,7 +7,6 @@ keyword-only ranking when embeddings are unavailable.
 
 from __future__ import annotations
 
-import json
 import logging
 import math
 
@@ -61,19 +60,6 @@ def _keyword_score(record: FileRecord, query_tokens: list[str]) -> float:
     return score / max_score if max_score > 0 else 0.0
 
 
-def _parse_embedding(raw: str | None) -> list[float] | None:
-    """Parse a JSON-serialised embedding vector, returning ``None`` on failure."""
-    if raw is None:
-        return None
-    try:
-        vec = json.loads(raw)
-        if isinstance(vec, list) and vec and all(isinstance(x, (int, float)) for x in vec):
-            return [float(x) for x in vec]
-        return None
-    except json.JSONDecodeError, TypeError:
-        return None
-
-
 def _cosine_similarity(a: list[float], b: list[float]) -> float:
     """Compute cosine similarity between two equal-length vectors.
 
@@ -104,7 +90,7 @@ def _hybrid_score(
     if query_embedding is None:
         return kw
 
-    doc_embedding = _parse_embedding(record.embedding)
+    doc_embedding = record.embedding
     if doc_embedding is None:
         return kw
 

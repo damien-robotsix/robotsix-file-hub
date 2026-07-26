@@ -2,6 +2,9 @@
 
 ## 0.0.0 (unreleased)
 
+- Fix pre-existing mypy type errors in search, embeddings, and tasks modules
+  (unused type-ignore comments, type mismatch in `_hybrid_score`'s embedding
+  handling, and dead assignment to `record.embedding` in the enrichment worker).
 - `POST /files/batch` now uses an all-or-nothing transaction: if any file in the
   batch fails, all prior files are rolled back (both DB records and stored bytes
   are cleaned up).  Previously each file was committed individually, leaving

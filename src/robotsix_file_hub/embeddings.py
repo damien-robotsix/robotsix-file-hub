@@ -11,7 +11,7 @@ import logging
 from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
-    from sentence_transformers import SentenceTransformer  # type: ignore[import-untyped]
+    from sentence_transformers import SentenceTransformer
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ def _load_model() -> SentenceTransformer:
     """
     global _model
     if _model is None:
-        from sentence_transformers import SentenceTransformer  # type: ignore[import-untyped]
+        from sentence_transformers import SentenceTransformer
 
         from .config import Settings
 
