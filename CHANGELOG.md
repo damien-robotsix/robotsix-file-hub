@@ -2,6 +2,13 @@
 
 ## 0.0.0 (unreleased)
 
+- FileDetailPage: reset text preview state when navigating between files to avoid stale/fetched content race condition
+  - api.ts: rename `listFiles` param `skip` to `offset` for consistency with query key and API interfaces
+- Add search box in the top navigation bar that accepts natural-language queries
+- Build search results page with relevance scores, file metadata, and preview thumbnails
+- Add file detail/preview page with inline display for images, PDFs, and text files, plus fallback for unsupported types
+- Add download button on the file detail page
+- Fix frontend API paths to align with backend `/files` route prefix
 - Scaffold React/Vite frontend in `frontend/` with TypeScript, React Router navigation, Vite dev-server proxy forwarding `/api/*` to the FastAPI backend, ESLint + Prettier linting/formatting, and a typed API client (`frontend/src/api.ts`) wrapping all backend endpoints.
 - Added `POST /files/search` hybrid NL search endpoint combining keyword matching (filename, summary, tags) with optional vector similarity (cosine distance on embeddings). Falls back to keyword-only when embeddings are unavailable. Returns paginated results with relevance scores.
 - Add vector embedding generation for hybrid search using sentence-transformers (all-MiniLM-L6-v2). Embeddings are generated from concatenated file metadata (filename + summary + tags + category) during enrichment and stored in the `FileRecord.embedding` JSON column. Embeddings are regenerated on re-index.

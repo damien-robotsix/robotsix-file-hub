@@ -39,6 +39,7 @@ modules:
       - frontend/src/api.ts
       - frontend/src/index.css
       - frontend/src/main.tsx
+      - frontend/src/pages/FileDetailPage.tsx
       - frontend/src/pages/HomePage.tsx
       - frontend/src/pages/SearchPage.tsx
       - frontend/src/pages/UploadPage.tsx

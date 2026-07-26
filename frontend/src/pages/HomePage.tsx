@@ -29,7 +29,7 @@ export default function HomePage() {
       <ul>
         {files.map((f) => (
           <li key={f.id}>
-            {f.filename} ({(f.size_bytes / 1024).toFixed(1)} KB)
+            {f.filename} ({(f.size / 1024).toFixed(1)} KB)
           </li>
         ))}
       </ul>

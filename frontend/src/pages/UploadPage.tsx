@@ -38,7 +38,7 @@ export default function UploadPage() {
       {result && (
         <p>
           Uploaded: <strong>{result.file.filename}</strong>{" "}
-          ({(result.file.size_bytes / 1024).toFixed(1)} KB)
+          ({(result.file.size / 1024).toFixed(1)} KB)
         </p>
       )}
     </div>
