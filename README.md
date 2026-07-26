@@ -120,7 +120,8 @@ Base URL: `http://localhost:8000`
 | `GET` | `/files/{file_id}/metadata` | Get file metadata (category, tags, summary, etc.) | If configured |
 | `POST` | `/files/search` | Hybrid NL search — JSON body `{"query":"…","offset":0,"limit":50}` | If configured |
 | `POST` | `/files/reindex` | Re-enqueue enrichment for existing files | If configured |
-| `GET` | `/files/reindex/progress` | Reindex progress (`total`, `completed`, `failed`, `active`) | If configured |
+| `GET` | `/files/reindex/progress` | Reindex progress (`total`, `completed`, `failed`, `active`, `task_id`) | If configured |
+| `GET` | `/tasks/{task_id}` | Poll enrichment/reindex task status (`type`, `status`, `progress`, `error`) | If configured |
 
 Full request/response schemas are available in the interactive docs at
 `/docs` (Swagger UI) and in [`docs/API.md`](docs/API.md).

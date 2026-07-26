@@ -10,8 +10,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import uuid
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 
@@ -19,6 +21,7 @@ from .database import async_session_factory
 from .embeddings import build_embedding_text, generate_embedding
 from .enrichment import enrich_file
 from .models import FileRecord
+from .schemas import TaskStatus, TaskType
 from .storage import StorageBackend, StorageError, create_storage_backend
 
 logger = logging.getLogger(__name__)
@@ -31,6 +34,19 @@ class EnrichmentJob:
     file_id: str
     storage_key: str
     content_type: str
+    task_id: str
+
+
+@dataclass
+class TaskInfo:
+    task_id: str
+    type: TaskType
+    status: TaskStatus = TaskStatus.pending
+    file_id: str | None = None
+    progress: int | None = None
+    error: str | None = None
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 # ── Worker pool ────────────────────────────────────────────────────
@@ -41,12 +57,17 @@ _worker_count: int = 2
 
 _storage: StorageBackend | None = None
 
+# ── Per-task status tracking ───────────────────────────────────────
+
+_tasks: dict[str, TaskInfo] = {}
+
 # ── Reindex progress tracking ─────────────────────────────────────
 
 _reindex_total: int = 0
 _reindex_completed: int = 0
 _reindex_failed: int = 0
 _reindex_active: bool = False
+_reindex_task_id: str | None = None
 
 
 def _get_storage() -> StorageBackend:
@@ -56,12 +77,29 @@ def _get_storage() -> StorageBackend:
     return _storage
 
 
+def _update_task(task_id: str, *, status: TaskStatus, error: str | None = None) -> None:
+    """Update the status (and optional error) of a tracked task."""
+    task = _tasks.get(task_id)
+    if task is None:
+        return
+    task.status = status
+    task.updated_at = datetime.now(UTC)
+    if error is not None:
+        task.error = error
+    # Reindex progress derived from global counters
+    if task.type == TaskType.reindex and _reindex_total > 0:
+        done = _reindex_completed + _reindex_failed
+        task.progress = min(int(done / _reindex_total * 100), 100)
+
+
 async def _worker() -> None:
-    global _reindex_completed, _reindex_failed, _reindex_active
+    global _reindex_completed, _reindex_failed, _reindex_active, _reindex_task_id
     while True:
         job = await _queue.get()
+        _update_task(job.task_id, status=TaskStatus.running)
         try:
             success = await _process_enrichment(job)
+            _update_task(job.task_id, status=TaskStatus.completed if success else TaskStatus.failed)
             if _reindex_active:
                 if success:
                     _reindex_completed += 1
@@ -69,11 +107,15 @@ async def _worker() -> None:
                     _reindex_failed += 1
         except Exception:
             logger.exception("Enrichment worker failed for file_id=%s", job.file_id)
+            _update_task(job.task_id, status=TaskStatus.failed, error="Worker exception")
             if _reindex_active:
                 _reindex_failed += 1
         finally:
-            if _reindex_active and (_reindex_completed + _reindex_failed) >= _reindex_total:
-                _reindex_active = False
+            if _reindex_active:
+                _update_task(_reindex_task_id, status=TaskStatus.running)  # type: ignore[arg-type]
+                if (_reindex_completed + _reindex_failed) >= _reindex_total:
+                    _reindex_active = False
+                    _update_task(_reindex_task_id, status=TaskStatus.completed)  # type: ignore[arg-type]
             _queue.task_done()
 
 
@@ -136,10 +178,26 @@ async def _process_enrichment(job: EnrichmentJob) -> bool:
 # ── Public API ─────────────────────────────────────────────────────
 
 
-def enqueue_enrichment(*, file_id: str, storage_key: str, content_type: str) -> None:
-    """Fire-and-forget: schedule enrichment for a newly uploaded file."""
-    job = EnrichmentJob(file_id=file_id, storage_key=storage_key, content_type=content_type)
+def enqueue_enrichment(*, file_id: str, storage_key: str, content_type: str) -> str:
+    """Fire-and-forget: schedule enrichment for a newly uploaded file.
+
+    Returns the ``task_id`` that can be used with ``GET /tasks/{id}``
+    to poll for completion.
+    """
+    task_id = str(uuid.uuid4())
+    _tasks[task_id] = TaskInfo(
+        task_id=task_id,
+        type=TaskType.enrichment,
+        file_id=file_id,
+    )
+    job = EnrichmentJob(
+        file_id=file_id,
+        storage_key=storage_key,
+        content_type=content_type,
+        task_id=task_id,
+    )
     _queue.put_nowait(job)
+    return task_id
 
 
 async def enqueue_reindex_all(
@@ -147,7 +205,7 @@ async def enqueue_reindex_all(
     category: str | None = None,
     content_type: str | None = None,
     file_ids: Sequence[str] | None = None,
-) -> dict[str, int]:
+) -> dict[str, int | str]:
     """Enqueue enrichment jobs for every file currently in the database.
 
     Accepts optional filters to limit which files are re-indexed.
@@ -155,7 +213,7 @@ async def enqueue_reindex_all(
 
     Returns a count of how many jobs were enqueued.
     """
-    global _reindex_total, _reindex_completed, _reindex_failed, _reindex_active
+    global _reindex_total, _reindex_completed, _reindex_failed, _reindex_active, _reindex_task_id
 
     stmt = select(FileRecord)
     if category is not None:
@@ -176,6 +234,14 @@ async def enqueue_reindex_all(
     _reindex_failed = 0
     _reindex_active = bool(records)
 
+    # Create a parent reindex task for status polling
+    _reindex_task_id = str(uuid.uuid4())
+    _tasks[_reindex_task_id] = TaskInfo(
+        task_id=_reindex_task_id,
+        type=TaskType.reindex,
+        status=TaskStatus.running if _reindex_active else TaskStatus.completed,
+    )
+
     for record in records:
         enqueue_enrichment(
             file_id=record.id,
@@ -183,17 +249,23 @@ async def enqueue_reindex_all(
             content_type=record.content_type,
         )
     logger.info("Re-index queued %d files", _reindex_total)
-    return {"enqueued": _reindex_total}
+    return {"enqueued": _reindex_total, "task_id": _reindex_task_id}
 
 
-def get_reindex_progress() -> dict[str, int | bool]:
+def get_reindex_progress() -> dict[str, int | bool | str | None]:
     """Return the current reindex progress counters."""
     return {
         "total": _reindex_total,
         "completed": _reindex_completed,
         "failed": _reindex_failed,
         "active": _reindex_active,
+        "task_id": _reindex_task_id,
     }
+
+
+def get_task(task_id: str) -> TaskInfo | None:
+    """Return the current status of a tracked task, or ``None`` if unknown."""
+    return _tasks.get(task_id)
 
 
 async def start_workers(*, count: int | None = None) -> None:

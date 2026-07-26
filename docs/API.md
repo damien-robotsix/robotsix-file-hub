@@ -3,8 +3,9 @@
 Base URL: `http://localhost:8000`
 
 All file-related endpoints are mounted under `/files` and use JSON
-request/response bodies unless noted otherwise.  Interactive docs are
-available at `/docs` (Swagger UI).
+request/response bodies unless noted otherwise.  Task-status endpoints
+are mounted under `/tasks`.  Interactive docs are available at `/docs`
+(Swagger UI).
 
 ---
 
@@ -50,6 +51,18 @@ Upload a single file.
 
 **Response** `200` — [`FileUploadResponse`](#fileuploadresponse)
 
+```json
+{
+  "id": "uuid",
+  "filename": "report.pdf",
+  "size": 204800,
+  "content_type": "application/pdf",
+  "checksum": "sha256hex…",
+  "created_at": "2025-01-01T00:00:00Z",
+  "task_id": "uuid"
+}
+```
+
 **Errors:** `413` (file too large), `500` (storage or database failure)
 
 ---
@@ -72,7 +85,8 @@ Upload multiple files in one request.
       "size": 204800,
       "content_type": "application/pdf",
       "checksum": "sha256hex…",
-      "created_at": "2025-01-01T00:00:00Z"
+      "created_at": "2025-01-01T00:00:00Z",
+      "task_id": "uuid"
     }
   ]
 }
@@ -182,7 +196,8 @@ unavailable.
 ### `POST /files/reindex`
 
 Re-enqueue enrichment jobs for existing files.  Useful after changing the
-LLM model or enrichment logic.
+LLM model or enrichment logic.  Returns a `task_id` that can be polled
+via `GET /tasks/{task_id}` for overall batch progress.
 
 **Query parameters**
 
@@ -195,7 +210,7 @@ LLM model or enrichment logic.
 **Response** `200`
 
 ```json
-{"enqueued": 100}
+{"enqueued": 100, "task_id": "uuid"}
 ```
 
 **Errors:** `500`
@@ -213,9 +228,39 @@ Return the current reindex operation progress.
   "total": 100,
   "completed": 45,
   "failed": 2,
-  "active": true
+  "active": true,
+  "task_id": "uuid"
 }
 ```
+
+---
+
+## Tasks
+
+### `GET /tasks/{task_id}`
+
+Poll the status of a background task (enrichment or reindex).
+
+Returns the task type, current status, optional error message, and
+timestamps.  For reindex tasks, `progress` shows the percentage of
+individual enrichment jobs completed.
+
+**Response** `200` — [`TaskResponse`](#taskresponse)
+
+```json
+{
+  "task_id": "uuid",
+  "type": "enrichment",
+  "status": "completed",
+  "file_id": "uuid",
+  "progress": null,
+  "error": null,
+  "created_at": "2025-01-01T00:00:00Z",
+  "updated_at": "2025-01-01T00:00:01Z"
+}
+```
+
+**Errors:** `404` (task not found)
 
 ---
 
@@ -231,6 +276,7 @@ Return the current reindex operation progress.
 | `content_type` | string | MIME type |
 | `checksum` | string | SHA-256 hex digest |
 | `created_at` | datetime | Upload timestamp (ISO 8601) |
+| `task_id` | string (UUID) \| null | Background enrichment task ID (poll via `GET /tasks/{task_id}`) |
 
 ### `FileMetadataResponse`
 
@@ -291,3 +337,16 @@ All metadata fields plus:
 | Field | Type | Description |
 |---|---|---|
 | `files` | `FileUploadResponse[]` | Upload results for each file |
+
+### `TaskResponse`
+
+| Field | Type | Description |
+|---|---|---|
+| `task_id` | string (UUID) | Unique task identifier |
+| `type` | `"enrichment"` \| `"reindex"` | Task type |
+| `status` | `"pending"` \| `"running"` \| `"completed"` \| `"failed"` | Current status |
+| `file_id` | string (UUID) \| null | File being enriched (nullable for reindex tasks) |
+| `progress` | int \| null | Reindex completion percentage (0–100), null for single enrichment tasks |
+| `error` | string \| null | Error message if status is `failed` |
+| `created_at` | datetime | Task creation timestamp (ISO 8601) |
+| `updated_at` | datetime | Last status-update timestamp (ISO 8601) |

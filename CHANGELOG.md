@@ -2,6 +2,10 @@
 
 ## 0.0.0 (unreleased)
 
+- Add per-task status tracking to the background worker pool (pending, running, completed, failed)
+- Add `GET /tasks/{id}` endpoint to poll for job status
+- Return `task_id` from upload and reindex endpoints so clients can track enrichment progress
+- Add `TaskResponse`, `TaskType`, and `TaskStatus` Pydantic schemas
 - Wire bearer-token authentication to all file endpoints; when `FILE_HUB_AUTH_TOKEN` is set, requests must include `Authorization: Bearer <token>`
 - Add `auth_token` setting to the `Settings` class for API bearer-token authentication, with an empty-string default (no auth) for development.
 - Rename `FileRecord.storage_path` column to `storage_key` and add `updated_at` column. Rename table from `files` to `file_records`.

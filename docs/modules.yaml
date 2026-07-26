@@ -29,6 +29,7 @@ modules:
       - src/robotsix_file_hub/models.py
       - src/robotsix_file_hub/routes/__init__.py
       - src/robotsix_file_hub/routes/files.py
+      - src/robotsix_file_hub/routes/tasks.py
       - src/robotsix_file_hub/schemas.py
       - src/robotsix_file_hub/search.py
       - src/robotsix_file_hub/storage.py

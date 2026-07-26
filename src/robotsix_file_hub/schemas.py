@@ -1,8 +1,34 @@
 """Pydantic request/response schemas."""
 
 from datetime import datetime
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
+
+
+class TaskType(StrEnum):
+    enrichment = "enrichment"
+    reindex = "reindex"
+
+
+class TaskStatus(StrEnum):
+    pending = "pending"
+    running = "running"
+    completed = "completed"
+    failed = "failed"
+
+
+class TaskResponse(BaseModel):
+    """Status of a background task (enrichment or reindex)."""
+
+    task_id: str
+    type: TaskType
+    status: TaskStatus
+    file_id: str | None = None
+    progress: int | None = None
+    error: str | None = None
+    created_at: datetime
+    updated_at: datetime
 
 
 class FileUploadResponse(BaseModel):
@@ -12,6 +38,7 @@ class FileUploadResponse(BaseModel):
     content_type: str
     checksum: str
     created_at: datetime
+    task_id: str | None = None
 
     model_config = {"from_attributes": True}
 

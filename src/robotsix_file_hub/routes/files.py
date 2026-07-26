@@ -129,12 +129,20 @@ async def upload_file(
             detail=f"Database failure: {exc}",
         ) from exc
     await db.refresh(record)
-    enqueue_enrichment(
+    task_id = enqueue_enrichment(
         file_id=record.id,
         storage_key=record.storage_key,
         content_type=record.content_type,
     )
-    return FileUploadResponse.model_validate(record)
+    return FileUploadResponse(
+        id=record.id,
+        filename=record.filename,
+        size=record.size,
+        content_type=record.content_type,
+        checksum=record.checksum,
+        created_at=record.created_at,
+        task_id=task_id,
+    )
 
 
 @router.post(
@@ -179,15 +187,29 @@ async def upload_files_batch(
             detail=f"Database failure: {exc}",
         ) from exc
 
+    task_ids: dict[str, str] = {}
     for record in records:
         await db.refresh(record)
-        enqueue_enrichment(
+        task_ids[record.id] = enqueue_enrichment(
             file_id=record.id,
             storage_key=record.storage_key,
             content_type=record.content_type,
         )
 
-    return BatchUploadResponse(files=[FileUploadResponse.model_validate(r) for r in records])
+    return BatchUploadResponse(
+        files=[
+            FileUploadResponse(
+                id=r.id,
+                filename=r.filename,
+                size=r.size,
+                content_type=r.content_type,
+                checksum=r.checksum,
+                created_at=r.created_at,
+                task_id=task_ids.get(r.id),
+            )
+            for r in records
+        ]
+    )
 
 
 async def _cleanup_storage(
@@ -263,7 +285,7 @@ async def reindex_files(
     file_ids: Annotated[
         str | None, Query(description="Comma-separated file IDs to re-index")
     ] = None,
-) -> dict[str, int]:
+) -> dict[str, int | str]:
     """Enqueue enrichment jobs for existing files, optionally filtered.
 
     Query parameters allow filtering by category, content_type, or
@@ -283,7 +305,7 @@ async def reindex_files(
 @router.get(
     "/reindex/progress",
 )
-async def reindex_progress() -> dict[str, int | bool]:
+async def reindex_progress() -> dict[str, int | bool | str | None]:
     """Return the current reindex operation progress.
 
     Returns ``total``, ``completed``, ``failed``, and ``active``
