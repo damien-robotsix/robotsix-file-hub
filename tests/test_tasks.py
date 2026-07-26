@@ -490,6 +490,7 @@ async def test_reindex_progress_tracking(tasks_test_env) -> None:
                 file_id=file_id,
                 storage_key=storage_key,
                 content_type="text/plain",
+                task_id="test-task-id",
             )
             success = await tasks_module._process_enrichment(job)
             assert success is True
@@ -543,12 +544,11 @@ async def test_reindex_progress_endpoint(
 
         assert response.status_code == 200
         data = response.json()
-        assert data == {
-            "total": 10,
-            "completed": 7,
-            "failed": 1,
-            "active": True,
-        }
+        assert data["total"] == 10
+        assert data["completed"] == 7
+        assert data["failed"] == 1
+        assert data["active"] is True
+        assert "task_id" in data
 
     finally:
         tasks_module.async_session_factory = original_session_local
@@ -613,7 +613,7 @@ async def test_reindex_endpoint_returns_ok(
     test_session_factory: async_sessionmaker,
     test_storage: StorageBackend,
 ) -> None:
-    """POST /files/reindex returns 200 with enqueued count."""
+    """POST /files/reindex returns 200 with enqueued count and task_id."""
     import src.robotsix_file_hub.tasks as tasks_module
 
     original_session_local = tasks_module.async_session_factory
@@ -625,9 +625,135 @@ async def test_reindex_endpoint_returns_ok(
         assert response.status_code == 200
         data = response.json()
         assert "enqueued" in data
+        assert "task_id" in data
 
     finally:
         tasks_module.async_session_factory = original_session_local
+
+
+# ── Task status endpoint tests ─────────────────────────────────────
+
+
+async def test_get_task_not_found(test_client: AsyncClient) -> None:
+    """GET /tasks/{id} returns 404 for unknown task IDs."""
+    response = await test_client.get("/tasks/nonexistent-task-id")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Task nonexistent-task-id not found"
+
+
+async def test_get_task_returns_status(test_client: AsyncClient) -> None:
+    """GET /tasks/{id} returns status for a known enrichment task."""
+    import src.robotsix_file_hub.tasks as tasks_module
+    from src.robotsix_file_hub.schemas import TaskStatus, TaskType
+
+    # Seed a task directly
+    task_id = "task-001"
+    tasks_module._tasks[task_id] = tasks_module.TaskInfo(
+        task_id=task_id,
+        type=TaskType.enrichment,
+        status=TaskStatus.pending,
+        file_id="file-001",
+    )
+
+    response = await test_client.get(f"/tasks/{task_id}")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["task_id"] == task_id
+    assert data["type"] == "enrichment"
+    assert data["status"] == "pending"
+    assert data["file_id"] == "file-001"
+    assert data["progress"] is None
+    assert data["error"] is None
+    assert "created_at" in data
+    assert "updated_at" in data
+
+
+async def test_upload_response_includes_task_id(test_client: AsyncClient) -> None:
+    """POST /files response includes a non-null task_id."""
+    import src.robotsix_file_hub.routes.files as routes_module
+
+    original_enqueue = routes_module.enqueue_enrichment
+
+    def _fake_enqueue(*, file_id: str, storage_key: str, content_type: str) -> str:
+        return "test-task-123"
+
+    routes_module.enqueue_enrichment = _fake_enqueue  # type: ignore[assignment]
+
+    try:
+        response = await test_client.post(
+            "/files",
+            files={"file": ("notes.txt", io.BytesIO(b"hello"), "text/plain")},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["task_id"] == "test-task-123"
+
+    finally:
+        routes_module.enqueue_enrichment = original_enqueue
+
+
+async def test_task_status_transitions(
+    tasks_test_env,
+) -> None:
+    """Task status transitions pending → running → completed during enrichment."""
+    import src.robotsix_file_hub.tasks as tasks_module
+
+    session_factory, storage = tasks_test_env
+
+    file_id = "transition-file-1"
+    storage_key = await storage.save(file_id, b"some text content")
+
+    try:
+        async with session_factory() as session:
+            record = tasks_module.FileRecord(
+                id=file_id,
+                filename="doc.txt",
+                size=17,
+                content_type="text/plain",
+                checksum="xyz",
+                storage_key=storage_key,
+            )
+            session.add(record)
+            await session.commit()
+
+        canned = {"category": "doc", "tags": "txt", "summary": "A text file."}
+
+        with patch.object(tasks_module, "enrich_file", new=AsyncMock(return_value=canned)):
+            tasks_module._storage = storage
+
+            await start_workers(count=1)
+
+            task_id = enqueue_enrichment(
+                file_id=file_id,
+                storage_key=storage_key,
+                content_type="text/plain",
+            )
+
+            # Task should be pending immediately after enqueue
+            task = tasks_module.get_task(task_id)
+            assert task is not None
+            assert task.status == "pending"
+
+            # Wait for completion
+            for _ in range(20):
+                task = tasks_module.get_task(task_id)
+                if task and task.status == "completed":
+                    break
+                await asyncio.sleep(0.1)
+            else:
+                await stop_workers()
+                pytest.fail("Task did not reach completed status within timeout")
+
+            assert task is not None
+            assert task.status == "completed"
+            assert task.file_id == file_id
+            assert task.error is None
+
+    finally:
+        await stop_workers()
+        tasks_module._storage = None
 
 
 # ── Text extraction unit tests ─────────────────────────────────────

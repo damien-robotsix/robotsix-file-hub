@@ -2,10 +2,8 @@
 
 import io
 import os
-import tempfile
 from datetime import UTC, datetime
 
-import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
