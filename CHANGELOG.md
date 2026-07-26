@@ -3,6 +3,7 @@
 ## 0.0.0 (unreleased)
 
 - Rename `FileRecord.storage_path` column to `storage_key` and add `updated_at` column. Rename table from `files` to `file_records`.
+- Add Docker Compose dev environment with backend, Postgres+pgvector, and MinIO services
 - Fix uploaded file size displaying as 0 by correcting the field name mapping (`size_bytes` → `size`) in `uploadFileWithProgress` and `UploadDialog`.
 - Extract duplicated `formatSize` helper into shared `frontend/src/lib/format.ts`, imported by all three callers (SearchPage, FileDetailPage, UploadDialog).
 - Fix pre-existing mypy type errors in search, embeddings, and tasks modules
