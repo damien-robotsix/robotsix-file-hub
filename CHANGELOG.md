@@ -2,6 +2,11 @@
 
 ## 0.0.0 (unreleased)
 
+- Add comprehensive documentation: architecture overview, quick-start
+  guide, configuration reference, API reference, and deployment guide.
+  Includes `.env.example` with all config variables, `docs/API.md` with
+  full endpoint schemas, and `docs/deployment.md` with production
+  setup instructions.
 - FileDetailPage: reset text preview state when navigating between files to avoid stale/fetched content race condition
   - api.ts: rename `listFiles` param `skip` to `offset` for consistency with query key and API interfaces
 - Add search box in the top navigation bar that accepts natural-language queries

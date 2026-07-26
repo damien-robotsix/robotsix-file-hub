@@ -4,8 +4,13 @@ modules:
   - id: core
     description: Core application package
     paths:
+      - .env.example
       - .gitignore
       - CHANGELOG.md
+      - README.md
+      - docs/API.md
+      - docs/deployment.md
+      - docs/modules.yaml
       - pyproject.toml
       - src/robotsix_file_hub/__init__.py
       - src/robotsix_file_hub/config.py
