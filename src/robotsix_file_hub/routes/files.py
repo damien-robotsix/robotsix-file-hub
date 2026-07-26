@@ -25,6 +25,7 @@ from ..database import get_db
 from ..models import FileRecord
 from ..schemas import (
     BatchUploadResponse,
+    CategoriesResponse,
     ErrorResponse,
     FileListResponse,
     FileMetadataResponse,
@@ -220,6 +221,19 @@ async def _cleanup_storage(
     for record in records:
         with contextlib.suppress(StorageError):
             await storage.delete(record.storage_key)
+
+
+@router.get(
+    "/categories",
+    response_model=CategoriesResponse,
+)
+async def list_categories(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> CategoriesResponse:
+    """Return a sorted list of distinct categories across all files."""
+    stmt = select(FileRecord.category).where(FileRecord.category.isnot(None)).distinct()
+    rows = (await db.execute(stmt)).scalars().all()
+    return CategoriesResponse(categories=sorted(rows))
 
 
 @router.get(

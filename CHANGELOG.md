@@ -3,6 +3,10 @@
 ## 0.0.0 (unreleased)
 
 - Upload dialog now sends all files in a single batch `POST /files/batch` request with per-file progress estimation, and an "+ Upload" button on the Files page opens the dialog.
+- Added `GET /files/categories` endpoint returning distinct, sorted categories
+- Changed category filter on the Files page from a free-text input to a dropdown populated from the categories endpoint
+- Added page-number buttons (with ellipsis for large page counts) to the Files page pagination controls
+- Category and tag badges now styled as colored badges on each file row in the Files table
 - Add `/files` Vite dev-server proxy alongside existing `/api` proxy, so backend file routes are reachable via both prefixes during development.
 - Add `setAuthToken`, `clearAuthToken`, and `deleteFile` to the typed API client (`frontend/src/api.ts`).
 - Add inline file preview panel: clicking a file in search results or file list opens an in-page preview with rendered images, PDFs (first page), and text files. The preview panel includes a download button and can be closed to return to the list.

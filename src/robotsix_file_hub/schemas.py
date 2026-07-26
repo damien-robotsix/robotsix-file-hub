@@ -73,6 +73,10 @@ class FileListResponse(BaseModel):
     limit: int
 
 
+class CategoriesResponse(BaseModel):
+    categories: list[str]
+
+
 class ErrorResponse(BaseModel):
     detail: str
 

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { listFiles, type FileMetadata, type ListFilesParams } from "../api.ts";
+import { listFiles, listCategories, type FileMetadata, type ListFilesParams } from "../api.ts";
 import FilePreview from "../components/FilePreview.tsx";
 import UploadDialog from "../components/UploadDialog.tsx";
 
 const PAGE_SIZE = 20;
+const MAX_PAGE_BUTTONS = 7;
 
 const CONTENT_TYPE_ICONS: Record<string, string> = {
   "application/pdf": "📄",
@@ -69,6 +70,15 @@ export default function FilesPage() {
   const [after, setAfter] = useState("");
   const [before, setBefore] = useState("");
 
+  // Available categories for dropdown
+  const [categories, setCategories] = useState<string[]>([]);
+
+  useEffect(() => {
+    listCategories()
+      .then((res) => setCategories(res.categories))
+      .catch(() => setCategories([]));
+  }, []);
+
   const fetchFiles = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -104,6 +114,22 @@ export default function FilesPage() {
     setOffset((page - 1) * PAGE_SIZE);
   }
 
+  function pageNumbers(): (number | "...")[] {
+    if (totalPages <= MAX_PAGE_BUTTONS) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    const pages: (number | "...")[] = [];
+    const left = Math.max(2, currentPage - 1);
+    const right = Math.min(totalPages - 1, currentPage + 1);
+
+    pages.push(1);
+    if (left > 2) pages.push("...");
+    for (let p = left; p <= right; p++) pages.push(p);
+    if (right < totalPages - 1) pages.push("...");
+    pages.push(totalPages);
+    return pages;
+  }
+
   return (
     <div className="files-page">
       <div
@@ -134,14 +160,20 @@ export default function FilesPage() {
       <div className="files-filters">
         <label>
           Category
-          <input
+          <select
             value={category}
             onChange={(e) => {
               setCategory(e.target.value);
               setOffset(0);
             }}
-            placeholder="e.g. document, image"
-          />
+          >
+            <option value="">All</option>
+            {categories.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
         </label>
         <label>
           Tag
@@ -232,8 +264,16 @@ export default function FilesPage() {
                 <td className="cell-mono">{f.content_type}</td>
                 <td>{formatBytes(f.size)}</td>
                 <td>{formatDate(f.created_at)}</td>
-                <td>{f.category ?? "—"}</td>
-                <td>{f.tags ?? "—"}</td>
+                <td>{f.category ? <span className="badge badge-category">{f.category}</span> : "—"}</td>
+                <td>
+                  {f.tags
+                    ? f.tags.split(",").map((t) => (
+                        <span key={t} className="badge badge-tag">
+                          {t.trim()}
+                        </span>
+                      ))
+                    : "—"}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -248,9 +288,21 @@ export default function FilesPage() {
           <button disabled={currentPage <= 1} onClick={() => goToPage(currentPage - 1)}>
             ← Prev
           </button>
-          <span>
-            Page {currentPage} of {totalPages} ({total} files)
-          </span>
+          {pageNumbers().map((p, i) =>
+            p === "..." ? (
+              <span key={`ellipsis-${i}`} className="pagination-ellipsis">
+                …
+              </span>
+            ) : (
+              <button
+                key={p}
+                className={p === currentPage ? "pagination-active" : ""}
+                onClick={() => goToPage(p)}
+              >
+                {p}
+              </button>
+            ),
+          )}
           <button disabled={currentPage >= totalPages} onClick={() => goToPage(currentPage + 1)}>
             Next →
           </button>
