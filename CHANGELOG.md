@@ -3,6 +3,7 @@
 ## 0.0.0 (unreleased)
 
 - Fix uploaded file size displaying as 0 by correcting the field name mapping (`size_bytes` → `size`) in `uploadFileWithProgress` and `UploadDialog`.
+- Extract duplicated `formatSize` helper into shared `frontend/src/lib/format.ts`, imported by all three callers (SearchPage, FileDetailPage, UploadDialog).
 - Fix pre-existing mypy type errors in search, embeddings, and tasks modules
   (unused type-ignore comments, type mismatch in `_hybrid_score`'s embedding
   handling, and dead assignment to `record.embedding` in the enrichment worker).

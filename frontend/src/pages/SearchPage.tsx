@@ -1,12 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { search, downloadFileUrl, type SearchResult } from "../api.ts";
-
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
+import { formatSize } from "../lib/format.ts";
 
 function relevanceColor(score: number): string {
   if (score >= 0.7) return "#198754";
