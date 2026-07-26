@@ -2,6 +2,11 @@
 
 ## 0.0.0 (unreleased)
 
+- Add background task queue with asyncio workers for async file processing.
+  Enrichment tasks (categorization, tagging, summarization) are enqueued
+  fire-and-forget after each upload. A ``POST /files/reindex`` endpoint
+  re-enqueues enrichment for all existing files. Workers start/stop with
+  the FastAPI lifespan.
 - Add download, metadata, and list endpoints: `GET /files/{id}` streams raw bytes, `GET /files/{id}/metadata` returns full record JSON, `GET /files` lists with filters (category, tag, content_type, source, before/after) and offset/limit pagination. Add enrichment columns (category, tags, summary, source) to FileRecord.
 - Add file upload endpoints: `POST /files` (single) and `POST /files/batch`
   with storage backend abstraction (S3/MinIO via boto3 and local filesystem fallback)
