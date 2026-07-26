@@ -26,10 +26,7 @@ export default function UploadPage() {
     <div>
       <h1>Upload File</h1>
       <form onSubmit={handleSubmit}>
-        <input
-          type="file"
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-        />
+        <input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
         <button type="submit" disabled={!file || uploading}>
           {uploading ? "Uploading..." : "Upload"}
         </button>
@@ -37,8 +34,7 @@ export default function UploadPage() {
       {error && <p style={{ color: "red" }}>Error: {error}</p>}
       {result && (
         <p>
-          Uploaded: <strong>{result.filename}</strong>{" "}
-          ({(result.size / 1024).toFixed(1)} KB)
+          Uploaded: <strong>{result.filename}</strong> ({(result.size / 1024).toFixed(1)} KB)
         </p>
       )}
     </div>

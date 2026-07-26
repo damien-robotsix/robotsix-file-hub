@@ -88,11 +88,7 @@ export default function SearchPage() {
           placeholder="Search your files with natural language..."
           className="search-input"
         />
-        <button
-          type="submit"
-          disabled={!query.trim() || searching}
-          className="search-btn"
-        >
+        <button type="submit" disabled={!query.trim() || searching} className="search-btn">
           {searching ? "Searching..." : "Search"}
         </button>
       </form>
@@ -111,11 +107,7 @@ export default function SearchPage() {
             <li key={r.id} className="search-result-item">
               <div className="result-thumbnail">
                 {isImage(r.content_type) ? (
-                  <img
-                    src={downloadFileUrl(r.id)}
-                    alt={r.filename}
-                    loading="lazy"
-                  />
+                  <img src={downloadFileUrl(r.id)} alt={r.filename} loading="lazy" />
                 ) : (
                   <span className="result-file-icon">
                     {r.content_type === "application/pdf"
@@ -141,9 +133,7 @@ export default function SearchPage() {
                     </strong>
                   </span>
                 </div>
-                {r.summary && (
-                  <p className="result-summary">{r.summary}</p>
-                )}
+                {r.summary && <p className="result-summary">{r.summary}</p>}
                 {r.tags && (
                   <p className="result-tags">
                     {r.tags.split(",").map((t) => (

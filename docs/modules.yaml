@@ -56,6 +56,7 @@ modules:
       - frontend/src/pages/LoginPage.tsx
       - frontend/src/pages/SearchPage.tsx
       - frontend/src/pages/UploadPage.tsx
+      - frontend/src/tokenStorage.ts
       - frontend/src/vite-env.d.ts
       - frontend/tsconfig.app.json
       - frontend/tsconfig.json

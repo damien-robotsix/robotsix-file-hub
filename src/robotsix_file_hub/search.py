@@ -70,7 +70,7 @@ def _parse_embedding(raw: str | None) -> list[float] | None:
         if isinstance(vec, list) and vec and all(isinstance(x, (int, float)) for x in vec):
             return [float(x) for x in vec]
         return None
-    except (json.JSONDecodeError, TypeError):
+    except json.JSONDecodeError, TypeError:
         return None
 
 

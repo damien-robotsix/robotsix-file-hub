@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
+import { TOKEN_KEY, readToken } from "./tokenStorage";
+
 interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
@@ -12,16 +14,6 @@ interface AuthContextValue extends AuthState {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-
-export const TOKEN_KEY = "robotsix-file-hub-token";
-
-function readToken(): string | null {
-  try {
-    return localStorage.getItem(TOKEN_KEY);
-  } catch {
-    return null;
-  }
-}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(readToken);
@@ -44,14 +36,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (ctx === null) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return ctx;
-}
-
-export function getStoredToken(): string | null {
-  return readToken();
 }

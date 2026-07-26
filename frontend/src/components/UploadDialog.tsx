@@ -144,7 +144,9 @@ export default function UploadDialog({ open, onClose, onUploadComplete }: Upload
   if (!open) return null;
 
   const allDone =
-    !uploading && selectedFiles.length > 0 && selectedFiles.every((f) => {
+    !uploading &&
+    selectedFiles.length > 0 &&
+    selectedFiles.every((f) => {
       const r = results.get(f.id);
       return r && (r.kind === "success" || r.kind === "error");
     });
@@ -166,9 +168,13 @@ export default function UploadDialog({ open, onClose, onUploadComplete }: Upload
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
-            onClick={() => { if (!uploading) fileInputRef.current?.click(); }}
+            onClick={() => {
+              if (!uploading) fileInputRef.current?.click();
+            }}
           >
-            <p>Drag &amp; drop files here, or <span className="browse-link">browse</span></p>
+            <p>
+              Drag &amp; drop files here, or <span className="browse-link">browse</span>
+            </p>
             <p style={{ fontSize: "0.8rem" }}>Single or multiple files supported</p>
             <input
               ref={fileInputRef}
@@ -228,9 +234,7 @@ export default function UploadDialog({ open, onClose, onUploadComplete }: Upload
                         <div className="upload-progress-bar">
                           <div className="progress-fill error" style={{ width: "100%" }} />
                         </div>
-                        <div className="upload-result-status error">
-                          {result.message}
-                        </div>
+                        <div className="upload-result-status error">{result.message}</div>
                       </>
                     )}
                   </li>
@@ -249,7 +253,9 @@ export default function UploadDialog({ open, onClose, onUploadComplete }: Upload
             disabled={selectedFiles.length === 0 || uploading}
             onClick={startUpload}
           >
-            {uploading ? "Uploading..." : `Upload ${selectedFiles.length > 0 ? `(${selectedFiles.length})` : ""}`}
+            {uploading
+              ? "Uploading..."
+              : `Upload ${selectedFiles.length > 0 ? `(${selectedFiles.length})` : ""}`}
           </button>
         </div>
       </div>

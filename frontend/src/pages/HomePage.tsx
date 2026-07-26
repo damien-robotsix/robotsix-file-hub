@@ -25,12 +25,16 @@ export default function HomePage() {
     <div>
       <h1>Robotsix File Hub</h1>
       {error && <p style={{ color: "red" }}>Error: {error}</p>}
-      <p>
-        Backend status:{" "}
-        {status ? <strong>{status}</strong> : "checking..."}
-      </p>
+      <p>Backend status: {status ? <strong>{status}</strong> : "checking..."}</p>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "0.5rem",
+        }}
+      >
         <h2 style={{ margin: 0 }}>Recent Files</h2>
         <button
           onClick={() => setUploadOpen(true)}
