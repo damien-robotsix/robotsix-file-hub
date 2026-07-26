@@ -4,7 +4,17 @@ modules:
   - id: core
     description: Core application package
     paths:
-      - src/robotsix_file_hub/__init__.py
-      - src/robotsix_file_hub/main.py
-      - tests/__init__.py
+      - .gitignore
+      - CHANGELOG.md
       - pyproject.toml
+      - src/robotsix_file_hub/__init__.py
+      - src/robotsix_file_hub/config.py
+      - src/robotsix_file_hub/database.py
+      - src/robotsix_file_hub/main.py
+      - src/robotsix_file_hub/models.py
+      - src/robotsix_file_hub/routes/__init__.py
+      - src/robotsix_file_hub/routes/files.py
+      - src/robotsix_file_hub/schemas.py
+      - src/robotsix_file_hub/storage.py
+      - tests/__init__.py
+      - tests/test_upload.py

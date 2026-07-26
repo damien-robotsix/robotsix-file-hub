@@ -1,8 +1,32 @@
-"""Minimal FastAPI application stub for robotsix-file-hub."""
+"""FastAPI application for robotsix-file-hub."""
+
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-app = FastAPI(title="robotsix-file-hub", version="0.1.0")
+from .config import Settings
+from .database import engine
+from .models import Base
+from .routes.files import router as files_router
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield
+
+
+settings = Settings()
+
+app = FastAPI(
+    title="robotsix-file-hub",
+    version="0.1.0",
+    lifespan=lifespan,
+)
+
+app.include_router(files_router)
 
 
 @app.get("/health")
