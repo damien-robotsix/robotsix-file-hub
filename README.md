@@ -64,7 +64,7 @@ npm run dev
 ```
 
 The Vite dev server starts on `http://localhost:5173` and proxies `/api`
-requests to the backend at `http://localhost:8000`.
+and `/files` requests to the backend at `http://localhost:8000`.
 
 ## Authentication
 
@@ -118,6 +118,7 @@ Base URL: `http://localhost:8000`
 | `GET` | `/files` | List files with pagination and filters (`?category=`, `?tag=`, `?offset=`, `?limit=`, etc.) | If configured |
 | `GET` | `/files/{file_id}` | Download raw file bytes | If configured |
 | `GET` | `/files/{file_id}/metadata` | Get file metadata (category, tags, summary, etc.) | If configured |
+| `DELETE` | `/files/{file_id}` | Delete a file and its stored data | If configured |
 | `POST` | `/files/search` | Hybrid NL search — JSON body `{"query":"…","offset":0,"limit":50}` | If configured |
 | `POST` | `/files/reindex` | Re-enqueue enrichment for existing files | If configured |
 | `GET` | `/files/reindex/progress` | Reindex progress (`total`, `completed`, `failed`, `active`, `task_id`) | If configured |
@@ -137,8 +138,8 @@ npm run lint      # ESLint
 npm run format    # Prettier
 ```
 
-The Vite dev server proxies `/api` to `http://localhost:8000` (strips the
-`/api` prefix). See [`vite.config.ts`](frontend/vite.config.ts) for details.
+The Vite dev server proxies `/api` (stripping the prefix) and `/files` to
+`http://localhost:8000`. See [`vite.config.ts`](frontend/vite.config.ts) for details.
 
 ### Key dependencies
 
