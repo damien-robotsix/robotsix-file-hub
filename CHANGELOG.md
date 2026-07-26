@@ -2,6 +2,8 @@
 
 ## 0.0.0 (unreleased)
 
+- FileDetailPage: reset text preview state when navigating between files to avoid stale/fetched content race condition
+  - api.ts: rename `listFiles` param `skip` to `offset` for consistency with query key and API interfaces
 - Add search box in the top navigation bar that accepts natural-language queries
 - Build search results page with relevance scores, file metadata, and preview thumbnails
 - Add file detail/preview page with inline display for images, PDFs, and text files, plus fallback for unsupported types

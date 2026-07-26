@@ -82,7 +82,7 @@ export async function uploadFiles(files: File[]): Promise<{ files: FileMetadata[
 }
 
 export async function listFiles(params?: {
-  skip?: number;
+  offset?: number;
   limit?: number;
   category?: string;
   tag?: string;
@@ -92,7 +92,7 @@ export async function listFiles(params?: {
   after?: string;
 }): Promise<FileListResponse> {
   const query = new URLSearchParams();
-  if (params?.skip !== undefined) query.set("offset", String(params.skip));
+  if (params?.offset !== undefined) query.set("offset", String(params.offset));
   if (params?.limit !== undefined) query.set("limit", String(params.limit));
   if (params?.category !== undefined) query.set("category", params.category);
   if (params?.tag !== undefined) query.set("tag", params.tag);

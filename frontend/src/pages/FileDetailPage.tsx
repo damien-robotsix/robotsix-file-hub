@@ -41,6 +41,7 @@ export default function FileDetailPage() {
 
   useEffect(() => {
     if (!fileId) return;
+    setTextContent(null);
     getFileMetadata(fileId)
       .then(setMetadata)
       .catch((e: unknown) => setError(String(e)));
@@ -48,15 +49,24 @@ export default function FileDetailPage() {
 
   useEffect(() => {
     if (!fileId || !metadata) return;
-    if (classifyPreview(metadata.content_type) !== "text") return;
+    if (classifyPreview(metadata.content_type) !== "text") {
+      setTextContent(null);
+      return;
+    }
 
+    let cancelled = false;
     fetch(downloadFileUrl(fileId))
       .then((res) => {
         if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
         return res.text();
       })
-      .then(setTextContent)
-      .catch((e: unknown) => setError(String(e)));
+      .then((text) => {
+        if (!cancelled) setTextContent(text);
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) setError(String(e));
+      });
+    return () => { cancelled = true; };
   }, [fileId, metadata]);
 
   if (error) {
