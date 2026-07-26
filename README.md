@@ -116,6 +116,7 @@ Base URL: `http://localhost:8000`
 | `POST` | `/files` | Upload a single file (`multipart/form-data`, field `file`) | If configured |
 | `POST` | `/files/batch` | Upload multiple files (field `files`) | If configured |
 | `GET` | `/files` | List files with pagination and filters (`?category=`, `?tag=`, `?offset=`, `?limit=`, etc.) | If configured |
+| `GET` | `/files/categories` | Return distinct, sorted categories across all files | If configured |
 | `GET` | `/files/{file_id}` | Download raw file bytes | If configured |
 | `GET` | `/files/{file_id}/metadata` | Get file metadata (category, tags, summary, etc.) | If configured |
 | `DELETE` | `/files/{file_id}` | Delete a file and its stored data | If configured |
