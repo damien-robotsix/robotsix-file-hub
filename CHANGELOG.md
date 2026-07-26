@@ -2,6 +2,7 @@
 
 ## 0.0.0 (unreleased)
 
+- Add filtering support to `POST /files/reindex` (category, content_type, file_ids) and progress tracking via `GET /files/reindex/progress` (total, completed, failed, active).
 - LLM enrichment pipeline: on file upload, extract text from common formats (PDF, plain text, DOCX, XLSX) and call a configurable OpenAI-compatible LLM to generate summary, category, and tags. Enrichment is best-effort — fields are left null if text extraction or the LLM call fails.
 - Add background task queue with asyncio workers for async file processing.
   Enrichment tasks (categorization, tagging, summarization) are enqueued

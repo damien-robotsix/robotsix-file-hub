@@ -19,7 +19,7 @@ from ..schemas import (
     FileUploadResponse,
 )
 from ..storage import StorageBackend, StorageError, compute_checksum, create_storage_backend
-from ..tasks import enqueue_enrichment, enqueue_reindex_all
+from ..tasks import enqueue_enrichment, enqueue_reindex_all, get_reindex_progress
 
 router = APIRouter(prefix="/files", tags=["files"])
 MAX_FILE_SIZE = Settings().max_file_size
@@ -187,9 +187,45 @@ async def get_file_metadata(
     "/reindex",
     responses={500: {"model": ErrorResponse}},
 )
-async def reindex_files() -> dict[str, int]:
-    """Enqueue enrichment jobs for all existing files."""
-    return await enqueue_reindex_all()
+async def reindex_files(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    category: Annotated[
+        str | None, Query(description="Only re-index files with this category")
+    ] = None,
+    content_type: Annotated[
+        str | None, Query(description="Only re-index files with this MIME type")
+    ] = None,
+    file_ids: Annotated[
+        str | None, Query(description="Comma-separated file IDs to re-index")
+    ] = None,
+) -> dict[str, int]:
+    """Enqueue enrichment jobs for existing files, optionally filtered.
+
+    Query parameters allow filtering by category, content_type, or
+    a comma-separated list of specific file IDs.
+    """
+    parsed_file_ids: list[str] | None = None
+    if file_ids is not None:
+        parsed_file_ids = [fid.strip() for fid in file_ids.split(",") if fid.strip()]
+
+    return await enqueue_reindex_all(
+        category=category,
+        content_type=content_type,
+        file_ids=parsed_file_ids,
+    )
+
+
+@router.get(
+    "/reindex/progress",
+)
+async def reindex_progress() -> dict[str, int | bool]:
+    """Return the current reindex operation progress.
+
+    Returns ``total``, ``completed``, ``failed``, and ``active``
+    fields.  ``active`` is ``True`` while a reindex batch is still
+    being processed.
+    """
+    return get_reindex_progress()
 
 
 @router.get(
