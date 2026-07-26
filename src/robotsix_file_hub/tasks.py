@@ -2,6 +2,7 @@
 
 Provides an asyncio-based worker pool for:
 - LLM enrichment on file upload (categorization, tagging, summarization)
+- Vector embedding generation for hybrid search
 - Re-indexing existing files
 """
 
@@ -15,6 +16,7 @@ from dataclasses import dataclass
 from sqlalchemy import select
 
 from .database import async_session_factory
+from .embeddings import build_embedding_text, generate_embedding
 from .enrichment import enrich_file
 from .models import FileRecord
 from .storage import StorageBackend, StorageError, create_storage_backend
@@ -107,6 +109,20 @@ async def _process_enrichment(job: EnrichmentJob) -> bool:
         record.summary = enrichment["summary"]
         record.embedding = enrichment.get("embedding")
         record.source = "upload"
+
+        # Generate embedding from the now-enriched metadata
+        embedding_text = build_embedding_text(
+            filename=record.filename,
+            summary=enrichment["summary"],
+            tags=enrichment["tags"],
+            category=enrichment["category"],
+        )
+        try:
+            record.embedding = generate_embedding(embedding_text)
+        except Exception:
+            logger.warning("Embedding generation failed for file_id=%s", job.file_id, exc_info=True)
+            record.embedding = None
+
         await session.commit()
 
     logger.info(
