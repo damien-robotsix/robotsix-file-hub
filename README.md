@@ -68,13 +68,17 @@ requests to the backend at `http://localhost:8000`.
 
 ## Authentication
 
-The API supports Bearer-token authentication. The frontend stores the token
-in `localStorage` under the key `robotsix-file-hub-token` and sends it as
-an `Authorization: Bearer <token>` header on every request.
+The API supports Bearer-token authentication. When `FILE_HUB_AUTH_TOKEN` is set
+to a non-empty value, every `/files/*` endpoint requires an
+`Authorization: Bearer <token>` header. Requests without a header receive a
+`401` response; requests with a wrong token receive a `403`.
 
-The backend currently accepts any non-empty token — implement your own
-middleware in `src/robotsix_file_hub/main.py` to validate tokens against
-your auth provider.
+When `FILE_HUB_AUTH_TOKEN` is empty (the default in development), authentication
+is disabled — all requests pass through unauthenticated.
+
+The frontend stores the token in `localStorage` under the key
+`robotsix-file-hub-token` and sends it as an `Authorization: Bearer <token>`
+header on every request.
 
 ## Configuration
 
@@ -106,17 +110,17 @@ See [`.env.example`](.env.example) for a complete annotated example.
 
 Base URL: `http://localhost:8000`
 
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/health` | Health check — returns `{"status":"ok"}` |
-| `POST` | `/files` | Upload a single file (`multipart/form-data`, field `file`) |
-| `POST` | `/files/batch` | Upload multiple files (field `files`) |
-| `GET` | `/files` | List files with pagination and filters (`?category=`, `?tag=`, `?offset=`, `?limit=`, etc.) |
-| `GET` | `/files/{file_id}` | Download raw file bytes |
-| `GET` | `/files/{file_id}/metadata` | Get file metadata (category, tags, summary, etc.) |
-| `POST` | `/files/search` | Hybrid NL search — JSON body `{"query":"…","offset":0,"limit":50}` |
-| `POST` | `/files/reindex` | Re-enqueue enrichment for existing files |
-| `GET` | `/files/reindex/progress` | Reindex progress (`total`, `completed`, `failed`, `active`) |
+| Method | Path | Description | Auth |
+|---|---|---|---|
+| `GET` | `/health` | Health check — returns `{"status":"ok"}` | No |
+| `POST` | `/files` | Upload a single file (`multipart/form-data`, field `file`) | If configured |
+| `POST` | `/files/batch` | Upload multiple files (field `files`) | If configured |
+| `GET` | `/files` | List files with pagination and filters (`?category=`, `?tag=`, `?offset=`, `?limit=`, etc.) | If configured |
+| `GET` | `/files/{file_id}` | Download raw file bytes | If configured |
+| `GET` | `/files/{file_id}/metadata` | Get file metadata (category, tags, summary, etc.) | If configured |
+| `POST` | `/files/search` | Hybrid NL search — JSON body `{"query":"…","offset":0,"limit":50}` | If configured |
+| `POST` | `/files/reindex` | Re-enqueue enrichment for existing files | If configured |
+| `GET` | `/files/reindex/progress` | Reindex progress (`total`, `completed`, `failed`, `active`) | If configured |
 
 Full request/response schemas are available in the interactive docs at
 `/docs` (Swagger UI) and in [`docs/API.md`](docs/API.md).
