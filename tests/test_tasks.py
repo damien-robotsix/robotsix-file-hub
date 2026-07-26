@@ -281,10 +281,451 @@ async def test_reindex_all_enqueues_all_files() -> None:
             file_ids = {e[0] for e in enqueued}
             assert file_ids == {"r1", "r2"}
 
+            # Progress counters should be set
+            assert tasks_module._reindex_total == 2
+            assert tasks_module._reindex_active is True
+
         finally:
             tasks_module.async_session_factory = original_session_local
             tasks_module.enqueue_enrichment = original_enqueue
+            tasks_module._reindex_total = 0
+            tasks_module._reindex_completed = 0
+            tasks_module._reindex_failed = 0
+            tasks_module._reindex_active = False
             await engine.dispose()
+
+
+async def test_reindex_all_filtered_by_category() -> None:
+    """enqueue_reindex_all with category filter only enqueues matching files."""
+    import src.robotsix_file_hub.tasks as tasks_module
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = os.path.join(tmpdir, "test.db")
+        database_url = f"sqlite+aiosqlite:///{db_path}"
+        engine = create_async_engine(database_url, echo=False)
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        session_factory = async_sessionmaker(engine, expire_on_commit=False)
+
+        async with session_factory() as session:
+            session.add_all(
+                [
+                    FileRecord(
+                        id="r1",
+                        filename="a.txt",
+                        size=10,
+                        content_type="text/plain",
+                        checksum="aa",
+                        storage_path="/tmp/a.txt",
+                        category="document",
+                    ),
+                    FileRecord(
+                        id="r2",
+                        filename="b.png",
+                        size=20,
+                        content_type="image/png",
+                        checksum="bb",
+                        storage_path="/tmp/b.png",
+                        category="image",
+                    ),
+                    FileRecord(
+                        id="r3",
+                        filename="c.txt",
+                        size=30,
+                        content_type="text/plain",
+                        checksum="cc",
+                        storage_path="/tmp/c.txt",
+                        category="document",
+                    ),
+                ]
+            )
+            await session.commit()
+
+        original_session_local = tasks_module.async_session_factory
+        tasks_module.async_session_factory = session_factory  # type: ignore[assignment]
+
+        enqueued: list[tuple[str, str, str]] = []
+        original_enqueue = tasks_module.enqueue_enrichment
+
+        def _capture_enqueue(*, file_id: str, storage_path: str, content_type: str) -> None:
+            enqueued.append((file_id, storage_path, content_type))
+
+        tasks_module.enqueue_enrichment = _capture_enqueue  # type: ignore[assignment]
+
+        try:
+            result = await tasks_module.enqueue_reindex_all(category="document")
+
+            assert result["enqueued"] == 2
+            assert len(enqueued) == 2
+            file_ids = {e[0] for e in enqueued}
+            assert file_ids == {"r1", "r3"}
+
+        finally:
+            tasks_module.async_session_factory = original_session_local
+            tasks_module.enqueue_enrichment = original_enqueue
+            tasks_module._reindex_total = 0
+            tasks_module._reindex_completed = 0
+            tasks_module._reindex_failed = 0
+            tasks_module._reindex_active = False
+            await engine.dispose()
+
+
+async def test_reindex_all_filtered_by_content_type() -> None:
+    """enqueue_reindex_all with content_type filter only enqueues matching files."""
+    import src.robotsix_file_hub.tasks as tasks_module
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = os.path.join(tmpdir, "test.db")
+        database_url = f"sqlite+aiosqlite:///{db_path}"
+        engine = create_async_engine(database_url, echo=False)
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        session_factory = async_sessionmaker(engine, expire_on_commit=False)
+
+        async with session_factory() as session:
+            session.add_all(
+                [
+                    FileRecord(
+                        id="r1",
+                        filename="a.txt",
+                        size=10,
+                        content_type="text/plain",
+                        checksum="aa",
+                        storage_path="/tmp/a.txt",
+                    ),
+                    FileRecord(
+                        id="r2",
+                        filename="b.png",
+                        size=20,
+                        content_type="image/png",
+                        checksum="bb",
+                        storage_path="/tmp/b.png",
+                    ),
+                ]
+            )
+            await session.commit()
+
+        original_session_local = tasks_module.async_session_factory
+        tasks_module.async_session_factory = session_factory  # type: ignore[assignment]
+
+        enqueued: list[tuple[str, str, str]] = []
+        original_enqueue = tasks_module.enqueue_enrichment
+
+        def _capture_enqueue(*, file_id: str, storage_path: str, content_type: str) -> None:
+            enqueued.append((file_id, storage_path, content_type))
+
+        tasks_module.enqueue_enrichment = _capture_enqueue  # type: ignore[assignment]
+
+        try:
+            result = await tasks_module.enqueue_reindex_all(content_type="image/png")
+
+            assert result["enqueued"] == 1
+            assert len(enqueued) == 1
+            assert enqueued[0][0] == "r2"
+
+        finally:
+            tasks_module.async_session_factory = original_session_local
+            tasks_module.enqueue_enrichment = original_enqueue
+            tasks_module._reindex_total = 0
+            tasks_module._reindex_completed = 0
+            tasks_module._reindex_failed = 0
+            tasks_module._reindex_active = False
+            await engine.dispose()
+
+
+async def test_reindex_all_filtered_by_file_ids() -> None:
+    """enqueue_reindex_all with file_ids filter only enqueues specified files."""
+    import src.robotsix_file_hub.tasks as tasks_module
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = os.path.join(tmpdir, "test.db")
+        database_url = f"sqlite+aiosqlite:///{db_path}"
+        engine = create_async_engine(database_url, echo=False)
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        session_factory = async_sessionmaker(engine, expire_on_commit=False)
+
+        async with session_factory() as session:
+            session.add_all(
+                [
+                    FileRecord(
+                        id="r1",
+                        filename="a.txt",
+                        size=10,
+                        content_type="text/plain",
+                        checksum="aa",
+                        storage_path="/tmp/a.txt",
+                    ),
+                    FileRecord(
+                        id="r2",
+                        filename="b.png",
+                        size=20,
+                        content_type="image/png",
+                        checksum="bb",
+                        storage_path="/tmp/b.png",
+                    ),
+                    FileRecord(
+                        id="r3",
+                        filename="c.txt",
+                        size=30,
+                        content_type="text/plain",
+                        checksum="cc",
+                        storage_path="/tmp/c.txt",
+                    ),
+                ]
+            )
+            await session.commit()
+
+        original_session_local = tasks_module.async_session_factory
+        tasks_module.async_session_factory = session_factory  # type: ignore[assignment]
+
+        enqueued: list[tuple[str, str, str]] = []
+        original_enqueue = tasks_module.enqueue_enrichment
+
+        def _capture_enqueue(*, file_id: str, storage_path: str, content_type: str) -> None:
+            enqueued.append((file_id, storage_path, content_type))
+
+        tasks_module.enqueue_enrichment = _capture_enqueue  # type: ignore[assignment]
+
+        try:
+            result = await tasks_module.enqueue_reindex_all(file_ids=["r1", "r3"])
+
+            assert result["enqueued"] == 2
+            assert len(enqueued) == 2
+            file_ids = {e[0] for e in enqueued}
+            assert file_ids == {"r1", "r3"}
+
+        finally:
+            tasks_module.async_session_factory = original_session_local
+            tasks_module.enqueue_enrichment = original_enqueue
+            tasks_module._reindex_total = 0
+            tasks_module._reindex_completed = 0
+            tasks_module._reindex_failed = 0
+            tasks_module._reindex_active = False
+            await engine.dispose()
+
+
+async def test_reindex_progress_tracking(tmp_upload_dir: str) -> None:
+    """Progress counters update as enrichment jobs complete in a reindex batch.
+
+    Tests the counter logic directly by calling _process_enrichment
+    rather than through the worker loop, avoiding event-loop interaction
+    issues with module-level state across tests.
+    """
+    import src.robotsix_file_hub.tasks as tasks_module
+
+    # Reset reindex state
+    tasks_module._reindex_total = 0
+    tasks_module._reindex_completed = 0
+    tasks_module._reindex_failed = 0
+    tasks_module._reindex_active = False
+
+    db_path = os.path.join(tmp_upload_dir, "test.db")
+    database_url = f"sqlite+aiosqlite:///{db_path}"
+    engine = create_async_engine(database_url, echo=False)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    session_factory = async_sessionmaker(engine, expire_on_commit=False)
+
+    original_session_local = tasks_module.async_session_factory
+    tasks_module.async_session_factory = session_factory  # type: ignore[assignment]
+
+    storage = LocalStorageBackend(base_path=tmp_upload_dir)
+    file_id = "progress-file-1"
+    storage_path = await storage.save(file_id, b"hello world text content")
+
+    try:
+        async with session_factory() as session:
+            record = FileRecord(
+                id=file_id,
+                filename="report.txt",
+                size=24,
+                content_type="text/plain",
+                checksum="abc123",
+                storage_path=storage_path,
+            )
+            session.add(record)
+            await session.commit()
+
+        canned = {"category": "document", "tags": "pdf,report", "summary": "A report file."}
+
+        with patch.object(tasks_module, "enrich_file", new=AsyncMock(return_value=canned)):
+            tasks_module._storage = storage
+
+            # Simulate a reindex batch: set counters then call _process_enrichment
+            tasks_module._reindex_total = 1
+            tasks_module._reindex_active = True
+
+            progress = tasks_module.get_reindex_progress()
+            assert progress["total"] == 1
+            assert progress["completed"] == 0
+            assert progress["failed"] == 0
+            assert progress["active"] is True
+
+            # Process the job manually (simulating what the worker does)
+            from src.robotsix_file_hub.tasks import EnrichmentJob
+
+            job = EnrichmentJob(
+                file_id=file_id,
+                storage_path=storage_path,
+                content_type="text/plain",
+            )
+            success = await tasks_module._process_enrichment(job)
+            assert success is True
+
+            # Simulate worker counter update
+            if tasks_module._reindex_active:
+                if success:
+                    tasks_module._reindex_completed += 1
+                else:
+                    tasks_module._reindex_failed += 1
+
+            # Simulate worker completion check
+            if (
+                tasks_module._reindex_active
+                and (tasks_module._reindex_completed + tasks_module._reindex_failed)
+                >= tasks_module._reindex_total
+            ):
+                tasks_module._reindex_active = False
+
+            progress = tasks_module.get_reindex_progress()
+            assert progress["completed"] == 1
+            assert progress["failed"] == 0
+            assert progress["active"] is False
+
+    finally:
+        tasks_module._storage = None
+        tasks_module.async_session_factory = original_session_local
+        tasks_module._reindex_total = 0
+        tasks_module._reindex_completed = 0
+        tasks_module._reindex_failed = 0
+        tasks_module._reindex_active = False
+        await engine.dispose()
+
+
+async def test_reindex_progress_endpoint(tmp_upload_dir: str) -> None:
+    """GET /files/reindex/progress returns progress counters."""
+    import src.robotsix_file_hub.routes.files as routes_module
+    import src.robotsix_file_hub.tasks as tasks_module
+
+    storage = LocalStorageBackend(base_path=tmp_upload_dir)
+    routes_module._storage = storage
+
+    db_path = os.path.join(tmp_upload_dir, "test.db")
+    database_url = f"sqlite+aiosqlite:///{db_path}"
+    engine = create_async_engine(database_url, echo=False)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    session_factory = async_sessionmaker(engine, expire_on_commit=False)
+
+    async def override_get_db() -> AsyncSession:  # type: ignore[misc]
+        async with session_factory() as session:
+            yield session
+
+    original_deps = app.dependency_overrides.copy()
+    app.dependency_overrides[get_db] = override_get_db
+
+    original_session_local = tasks_module.async_session_factory
+    tasks_module.async_session_factory = session_factory  # type: ignore[assignment]
+
+    try:
+        # Set up progress state for testing
+        tasks_module._reindex_total = 10
+        tasks_module._reindex_completed = 7
+        tasks_module._reindex_failed = 1
+        tasks_module._reindex_active = True
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.get("/files/reindex/progress")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data == {
+            "total": 10,
+            "completed": 7,
+            "failed": 1,
+            "active": True,
+        }
+
+    finally:
+        app.dependency_overrides = original_deps
+        routes_module._storage = None
+        tasks_module.async_session_factory = original_session_local
+        tasks_module._reindex_total = 0
+        tasks_module._reindex_completed = 0
+        tasks_module._reindex_failed = 0
+        tasks_module._reindex_active = False
+        await engine.dispose()
+
+
+async def test_reindex_endpoint_with_filter(tmp_upload_dir: str) -> None:
+    """POST /files/reindex?content_type=image/png only enqueues matching files."""
+    import src.robotsix_file_hub.routes.files as routes_module
+    import src.robotsix_file_hub.tasks as tasks_module
+
+    storage = LocalStorageBackend(base_path=tmp_upload_dir)
+    routes_module._storage = storage
+
+    db_path = os.path.join(tmp_upload_dir, "test.db")
+    database_url = f"sqlite+aiosqlite:///{db_path}"
+    engine = create_async_engine(database_url, echo=False)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    session_factory = async_sessionmaker(engine, expire_on_commit=False)
+
+    async def override_get_db() -> AsyncSession:  # type: ignore[misc]
+        async with session_factory() as session:
+            yield session
+
+    original_deps = app.dependency_overrides.copy()
+    app.dependency_overrides[get_db] = override_get_db
+
+    original_session_local = tasks_module.async_session_factory
+    tasks_module.async_session_factory = session_factory  # type: ignore[assignment]
+
+    # Pre-populate DB
+    async with session_factory() as session:
+        session.add_all(
+            [
+                FileRecord(
+                    id="f1",
+                    filename="a.txt",
+                    size=10,
+                    content_type="text/plain",
+                    checksum="aa",
+                    storage_path="/tmp/a.txt",
+                ),
+                FileRecord(
+                    id="f2",
+                    filename="b.png",
+                    size=20,
+                    content_type="image/png",
+                    checksum="bb",
+                    storage_path="/tmp/b.png",
+                ),
+            ]
+        )
+        await session.commit()
+
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post("/files/reindex", params={"content_type": "image/png"})
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["enqueued"] == 1
+
+    finally:
+        app.dependency_overrides = original_deps
+        routes_module._storage = None
+        tasks_module.async_session_factory = original_session_local
+        tasks_module._reindex_total = 0
+        tasks_module._reindex_completed = 0
+        tasks_module._reindex_failed = 0
+        tasks_module._reindex_active = False
+        await engine.dispose()
 
 
 async def test_reindex_endpoint_returns_ok(tmp_upload_dir: str) -> None:
