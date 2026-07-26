@@ -164,15 +164,49 @@ async def call_llm(text: str) -> dict[str, Any]:
     }
 
 
+# ── Embedding generation ─────────────────────────────────────────────
+
+
+async def generate_embedding(text: str) -> list[float] | None:
+    """Call the OpenAI-compatible embeddings API and return a vector.
+
+    Uses the configured ``enrichment_llm_embedding_model``, falling
+    back to ``enrichment_llm_model`` if no dedicated embedding model
+    is set.
+
+    Returns ``None`` if the API call fails (best-effort).
+    """
+    model = settings.enrichment_llm_embedding_model or settings.enrichment_llm_model
+
+    headers: dict[str, str] = {"Content-Type": "application/json"}
+    if settings.enrichment_llm_api_key:
+        headers["Authorization"] = f"Bearer {settings.enrichment_llm_api_key}"
+
+    try:
+        async with httpx.AsyncClient(timeout=settings.enrichment_llm_timeout) as client:
+            response = await client.post(
+                f"{settings.enrichment_llm_api_base}/embeddings",
+                headers=headers,
+                json={"model": model, "input": text[:8000]},
+            )
+            response.raise_for_status()
+            data = response.json()
+        return list(data["data"][0]["embedding"])
+    except Exception:
+        logger.warning("Embedding generation failed", exc_info=True)
+        return None
+
+
 # ── Orchestration ───────────────────────────────────────────────────
 
 
 async def enrich_file(content: bytes, content_type: str) -> dict[str, str | None]:
     """Extract text and call the LLM for enrichment.
 
-    Returns a dict with ``category``, ``tags`` (comma-separated), and
-    ``summary`` — all nullable.  If text extraction yields nothing or
-    the LLM call fails, fields are returned as ``None`` (best-effort).
+    Returns a dict with ``category``, ``tags`` (comma-separated),
+    ``summary``, and ``embedding`` (JSON-serialised list of floats)
+    — all nullable.  If text extraction yields nothing or the LLM
+    call fails, fields are returned as ``None`` (best-effort).
     """
     text = extract_text(content, content_type)
     if not text:
@@ -180,15 +214,42 @@ async def enrich_file(content: bytes, content_type: str) -> dict[str, str | None
             "No text extracted for content_type=%s, skipping LLM enrichment",
             content_type,
         )
-        return {"category": None, "tags": None, "summary": None}
+        return {"category": None, "tags": None, "summary": None, "embedding": None}
 
     try:
         llm_result = await call_llm(text)
-        return {
-            "category": llm_result["category"] or None,
-            "tags": ",".join(llm_result["tags"]) or None,
-            "summary": llm_result["summary"] or None,
-        }
+        summary_text = llm_result.get("summary", "")
+        category = llm_result["category"] or None
+        tags = ",".join(llm_result["tags"]) or None
     except Exception:
         logger.warning("LLM enrichment failed for content_type=%s", content_type, exc_info=True)
-        return {"category": None, "tags": None, "summary": None}
+        category = None
+        tags = None
+        summary_text = ""
+
+    # Generate embedding from a composite of the enrichment fields
+    embedding: str | None = None
+    embedding_input = _embedding_input_text(summary_text, category, tags)
+    if embedding_input.strip():
+        vec = await generate_embedding(embedding_input)
+        if vec is not None:
+            embedding = json.dumps(vec)
+
+    return {
+        "category": category,
+        "tags": tags,
+        "summary": summary_text or None,
+        "embedding": embedding,
+    }
+
+
+def _embedding_input_text(summary: str, category: str | None, tags: str | None) -> str:
+    """Build a text string from enrichment fields for embedding generation."""
+    parts: list[str] = []
+    if summary:
+        parts.append(summary)
+    if category:
+        parts.append(category)
+    if tags:
+        parts.append(tags.replace(",", " "))
+    return " ".join(parts)

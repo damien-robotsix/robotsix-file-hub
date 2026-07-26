@@ -21,4 +21,10 @@ class Settings(BaseSettings):
     enrichment_llm_timeout: float = 30.0
     enrichment_llm_max_tokens: int = 256
 
+    # Embedding model (defaults to enrichment model if not set)
+    enrichment_llm_embedding_model: str = ""
+
+    # Hybrid search weighting (0.0 = keyword-only, 1.0 = vector-only)
+    search_vector_weight: float = 0.7
+
     model_config = {"env_prefix": "FILE_HUB_"}
