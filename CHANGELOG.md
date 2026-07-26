@@ -2,6 +2,10 @@
 
 ## 0.0.0 (unreleased)
 
+- `POST /files/batch` now uses an all-or-nothing transaction: if any file in the
+  batch fails, all prior files are rolled back (both DB records and stored bytes
+  are cleaned up).  Previously each file was committed individually, leaving
+  orphan records on mid-batch failures.
 - Fix CI failures in pre-existing code: ruff format (PEP 758 except syntax), Prettier formatting (10 frontend files), and ESLint react-refresh warnings (extracted token utilities to tokenStorage.ts)
 - Add shared pytest fixtures (`tests/conftest.py`) with in-memory SQLite DB, local storage backend, and mock LLM enrichment. Add health endpoint tests (`tests/test_health.py`).
 - Add comprehensive documentation: architecture overview, quick-start

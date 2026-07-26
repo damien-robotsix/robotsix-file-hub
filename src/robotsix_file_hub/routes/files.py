@@ -1,5 +1,6 @@
 """File endpoints: upload, download, metadata, listing, and search."""
 
+import contextlib
 import uuid
 from datetime import datetime
 from typing import Annotated
@@ -51,7 +52,13 @@ async def _process_upload(
     file: UploadFile,
     storage: StorageBackend,
     db: AsyncSession,
-) -> FileUploadResponse:
+) -> FileRecord:
+    """Read, validate, store, and stage a single file upload.
+
+    Does **not** commit the session — callers must commit (or
+    rollback) and then refresh the returned record before reading
+    server-generated fields such as ``created_at``.
+    """
     # Read file content
     try:
         content = await file.read()
@@ -95,25 +102,9 @@ async def _process_upload(
         checksum=checksum,
         storage_path=storage_path,
     )
-    try:
-        db.add(record)
-        await db.commit()
-        await db.refresh(record)
-    except Exception as exc:
-        await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database failure: {exc}",
-        ) from exc
+    db.add(record)
 
-    # Fire-and-forget enrichment task
-    enqueue_enrichment(
-        file_id=record.id,
-        storage_path=record.storage_path,
-        content_type=record.content_type,
-    )
-
-    return FileUploadResponse.model_validate(record)
+    return record
 
 
 @router.post(
@@ -127,7 +118,22 @@ async def upload_file(
     storage: Annotated[StorageBackend, Depends(_get_storage)],
 ) -> FileUploadResponse:
     """Upload a single file."""
-    return await _process_upload(file, storage, db)
+    record = await _process_upload(file, storage, db)
+    try:
+        await db.commit()
+    except Exception as exc:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database failure: {exc}",
+        ) from exc
+    await db.refresh(record)
+    enqueue_enrichment(
+        file_id=record.id,
+        storage_path=record.storage_path,
+        content_type=record.content_type,
+    )
+    return FileUploadResponse.model_validate(record)
 
 
 @router.post(
@@ -140,12 +146,57 @@ async def upload_files_batch(
     db: Annotated[AsyncSession, Depends(get_db)],
     storage: Annotated[StorageBackend, Depends(_get_storage)],
 ) -> BatchUploadResponse:
-    """Upload multiple files in a single batch request."""
-    results = []
+    """Upload multiple files in a single batch request.
+
+    All files must succeed — if any file fails the entire batch is
+    rolled back (both database records and stored file bytes).
+    """
+    records: list[FileRecord] = []
     for file in files:
-        result = await _process_upload(file, storage, db)
-        results.append(result)
-    return BatchUploadResponse(files=results)
+        try:
+            record = await _process_upload(file, storage, db)
+        except HTTPException:
+            await db.rollback()
+            await _cleanup_storage(storage, records)
+            raise
+        except Exception as exc:
+            await db.rollback()
+            await _cleanup_storage(storage, records)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Upload failed: {exc}",
+            ) from exc
+        records.append(record)
+
+    try:
+        await db.commit()
+    except Exception as exc:
+        await db.rollback()
+        await _cleanup_storage(storage, records)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database failure: {exc}",
+        ) from exc
+
+    for record in records:
+        await db.refresh(record)
+        enqueue_enrichment(
+            file_id=record.id,
+            storage_path=record.storage_path,
+            content_type=record.content_type,
+        )
+
+    return BatchUploadResponse(files=[FileUploadResponse.model_validate(r) for r in records])
+
+
+async def _cleanup_storage(
+    storage: StorageBackend,
+    records: list[FileRecord],
+) -> None:
+    """Best-effort deletion of stored bytes for *records*."""
+    for record in records:
+        with contextlib.suppress(StorageError):
+            await storage.delete(record.storage_path)
 
 
 @router.get(

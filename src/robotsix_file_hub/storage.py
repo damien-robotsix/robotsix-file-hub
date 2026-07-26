@@ -27,6 +27,11 @@ class StorageBackend(ABC):
         """Retrieve file bytes by storage path."""
         ...
 
+    @abstractmethod
+    async def delete(self, path: str) -> None:
+        """Delete stored file bytes by storage path."""
+        ...
+
 
 class LocalStorageBackend(StorageBackend):
     def __init__(self, base_path: str) -> None:
@@ -56,6 +61,17 @@ class LocalStorageBackend(StorageBackend):
             return await asyncio.to_thread(_read)
         except OSError as exc:
             raise StorageError(f"Failed to read file: {exc}") from exc
+
+    async def delete(self, path: str) -> None:
+        file_path = Path(path)
+
+        def _remove() -> None:
+            file_path.unlink(missing_ok=True)
+
+        try:
+            await asyncio.to_thread(_remove)
+        except OSError as exc:
+            raise StorageError(f"Failed to delete file: {exc}") from exc
 
 
 class S3StorageBackend(StorageBackend):
@@ -101,6 +117,16 @@ class S3StorageBackend(StorageBackend):
             return await asyncio.to_thread(_get)
         except Exception as exc:
             raise StorageError(f"Failed to download from S3: {exc}") from exc
+
+    async def delete(self, path: str) -> None:
+        def _remove() -> None:
+            key = path.removeprefix(f"s3://{self.bucket}/")
+            self.client.delete_object(Bucket=self.bucket, Key=key)
+
+        try:
+            await asyncio.to_thread(_remove)
+        except Exception as exc:
+            raise StorageError(f"Failed to delete from S3: {exc}") from exc
 
 
 def create_storage_backend() -> StorageBackend:
