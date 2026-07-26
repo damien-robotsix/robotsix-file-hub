@@ -91,6 +91,7 @@ See [`.env.example`](.env.example) for a complete annotated example.
 | `FILE_HUB_S3_ACCESS_KEY` | *(empty)* | S3 access key |
 | `FILE_HUB_S3_SECRET_KEY` | *(empty)* | S3 secret key |
 | `FILE_HUB_S3_REGION` | `us-east-1` | AWS / S3 region |
+| `FILE_HUB_AUTH_TOKEN` | *(empty)* | Bearer token for API auth (empty = no auth in dev) |
 | `FILE_HUB_MAX_FILE_SIZE` | `104857600` (100 MB) | Upload size limit in bytes |
 | `FILE_HUB_ENRICHMENT_LLM_API_BASE` | `http://localhost:11434/v1` | OpenAI-compatible LLM API base URL |
 | `FILE_HUB_ENRICHMENT_LLM_API_KEY` | *(empty)* | API key for the LLM service |

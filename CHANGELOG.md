@@ -2,6 +2,7 @@
 
 ## 0.0.0 (unreleased)
 
+- Add `auth_token` setting to the `Settings` class for API bearer-token authentication, with an empty-string default (no auth) for development.
 - Rename `FileRecord.storage_path` column to `storage_key` and add `updated_at` column. Rename table from `files` to `file_records`.
 - Add Docker Compose dev environment with backend, Postgres+pgvector, and MinIO services
 - Fix uploaded file size displaying as 0 by correcting the field name mapping (`size_bytes` → `size`) in `uploadFileWithProgress` and `UploadDialog`.
