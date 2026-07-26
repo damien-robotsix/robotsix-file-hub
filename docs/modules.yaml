@@ -49,6 +49,7 @@ modules:
       - frontend/src/components/UploadDialog.css
       - frontend/src/components/UploadDialog.tsx
       - frontend/src/index.css
+      - frontend/src/lib/format.ts
       - frontend/src/main.tsx
       - frontend/src/pages/FileDetailPage.tsx
       - frontend/src/pages/FilesPage.tsx

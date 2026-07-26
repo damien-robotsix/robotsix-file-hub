@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, type DragEvent, type ChangeEvent } from "react";
 import { uploadFileWithProgress, type FileMetadata } from "../api.ts";
+import { formatSize } from "../lib/format.ts";
 import "./UploadDialog.css";
 
 interface UploadDialogProps {
@@ -17,12 +18,6 @@ type UploadResult =
   | { kind: "uploading"; progress: number }
   | { kind: "success"; metadata: FileMetadata }
   | { kind: "error"; message: string };
-
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 export default function UploadDialog({ open, onClose, onUploadComplete }: UploadDialogProps) {
   const [selectedFiles, setSelectedFiles] = useState<FileEntry[]>([]);
