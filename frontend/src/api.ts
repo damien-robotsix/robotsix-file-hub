@@ -273,6 +273,14 @@ export async function listFiles(params?: ListFilesParams): Promise<FileListRespo
   return request<FileListResponse>(`/files${qs ? "?" + qs : ""}`);
 }
 
+export interface CategoriesResponse {
+  categories: string[];
+}
+
+export async function listCategories(): Promise<CategoriesResponse> {
+  return request<CategoriesResponse>("/files/categories");
+}
+
 export async function getFileMetadata(fileId: string): Promise<FileMetadata> {
   return request<FileMetadata>(`/files/${fileId}/metadata`);
 }

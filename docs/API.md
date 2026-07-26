@@ -127,6 +127,20 @@ List files with optional filters and pagination.
 
 ---
 
+### `GET /files/categories`
+
+Return a sorted list of distinct categories across all files.
+
+**Response** `200` — [`CategoriesResponse`](#categoriesresponse)
+
+```json
+{
+  "categories": ["document", "image", "spreadsheet"]
+}
+```
+
+---
+
 ### `GET /files/{file_id}`
 
 Download the raw file bytes.
@@ -312,6 +326,12 @@ All fields from `FileUploadResponse` plus:
 | `total` | int | Total matching files |
 | `offset` | int | Current offset |
 | `limit` | int | Current page size |
+
+### `CategoriesResponse`
+
+| Field | Type | Description |
+|---|---|---|
+| `categories` | `string[]` | Sorted list of distinct category names across all files |
 
 ### `ErrorResponse`
 
