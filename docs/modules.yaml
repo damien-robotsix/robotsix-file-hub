@@ -34,6 +34,7 @@ modules:
       - frontend/eslint.config.js
       - frontend/index.html
       - frontend/package.json
+      - frontend/package-lock.json
       - frontend/src/App.css
       - frontend/src/App.tsx
       - frontend/src/AuthContext.tsx

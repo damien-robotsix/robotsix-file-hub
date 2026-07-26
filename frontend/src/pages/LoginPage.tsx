@@ -1,12 +1,20 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { useAuth } from "../AuthContext.tsx";
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [token, setToken] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  // If already authenticated, redirect away from login
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+
+  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/";
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -17,7 +25,7 @@ export default function LoginPage() {
     }
     setError(null);
     login(trimmed);
-    navigate("/", { replace: true });
+    navigate(from, { replace: true });
   }
 
   return (

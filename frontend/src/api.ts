@@ -1,4 +1,19 @@
+import { TOKEN_KEY } from "./AuthContext.tsx";
+
 const API_BASE = "/api";
+
+function getAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {};
+  try {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+  } catch {
+    // localStorage unavailable (SSR / test), skip
+  }
+  return headers;
+}
 
 export interface FileMetadata {
   id: string;
@@ -54,22 +69,12 @@ export type UploadResponse = FileMetadata;
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE}${path}`;
-  const headers: Record<string, string> = {};
-
-  // Attach auth token if present
-  try {
-    const token = localStorage.getItem("robotsix-file-hub-token");
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-  } catch {
-    // localStorage unavailable (SSR / test), skip
-  }
+  const authHeaders = getAuthHeaders();
 
   const merged: RequestInit = {
     ...options,
     headers: {
-      ...headers,
+      ...authHeaders,
       ...(options?.headers as Record<string, string> | undefined),
     },
   };
@@ -133,7 +138,9 @@ export function downloadFileUrl(fileId: string): string {
 }
 
 export async function downloadFile(fileId: string): Promise<Blob> {
-  const res = await fetch(downloadFileUrl(fileId));
+  const res = await fetch(`${API_BASE}/files/${fileId}`, {
+    headers: getAuthHeaders(),
+  });
   if (!res.ok) {
     throw new Error(`${res.status} ${res.statusText}`);
   }

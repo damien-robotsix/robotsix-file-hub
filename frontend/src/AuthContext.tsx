@@ -13,7 +13,7 @@ interface AuthContextValue extends AuthState {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const TOKEN_KEY = "robotsix-file-hub-token";
+export const TOKEN_KEY = "robotsix-file-hub-token";
 
 function readToken(): string | null {
   try {
