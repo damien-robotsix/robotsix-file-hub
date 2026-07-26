@@ -27,4 +27,7 @@ class Settings(BaseSettings):
     # Hybrid search weighting (0.0 = keyword-only, 1.0 = vector-only)
     search_vector_weight: float = 0.7
 
+    # Embedding model settings
+    embedding_model_name: str = "sentence-transformers/all-MiniLM-L6-v2"
+
     model_config = {"env_prefix": "FILE_HUB_"}
