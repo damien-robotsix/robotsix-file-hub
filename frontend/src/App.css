@@ -527,6 +527,92 @@
   margin-bottom: 1rem;
 }
 
+/* ── Inline file preview panel ── */
+.file-preview-panel {
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  background: #fff;
+  margin-bottom: 1.5rem;
+}
+
+.file-preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e9ecef;
+  background: #f8f9fa;
+  border-radius: 8px 8px 0 0;
+}
+
+.file-preview-filename {
+  font-size: 1.1rem;
+  font-weight: 600;
+  word-break: break-all;
+  margin: 0;
+}
+
+.file-preview-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.file-preview-close {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.file-preview-close:hover {
+  background: #e9ecef;
+}
+
+.file-preview-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  color: #6c757d;
+  background: #fff;
+}
+
+.file-preview-category {
+  background: #e7f1ff;
+  color: #0d6efd;
+  padding: 0 0.4rem;
+  border-radius: 4px;
+}
+
+.file-preview-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.file-preview-content {
+  padding: 0;
+}
+
+.file-preview-content .preview-image,
+.file-preview-content .preview-pdf,
+.file-preview-content .preview-text,
+.file-preview-content .preview-unsupported {
+  border-radius: 0 0 8px 8px;
+}
+
+.file-preview-error {
+  color: #dc3545;
+  padding: 0.75rem 1rem;
+}
+
 /* ── Responsive ── */
 @media (max-width: 640px) {
   .app-nav {

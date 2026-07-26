@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { search, downloadFileUrl, type SearchResult } from "../api.ts";
 import { formatSize } from "../lib/format.ts";
+import FilePreview from "../components/FilePreview.tsx";
 
 function relevanceColor(score: number): string {
   if (score >= 0.7) return "#198754";
@@ -22,6 +23,7 @@ export default function SearchPage() {
   const [error, setError] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
 
   // Keep the input field in sync with the URL (e.g. when NavSearch
   // navigates here while we are already mounted).
@@ -88,6 +90,10 @@ export default function SearchPage() {
         </button>
       </form>
 
+      {selectedFileId && (
+        <FilePreview fileId={selectedFileId} onClose={() => setSelectedFileId(null)} />
+      )}
+
       {error && <p className="search-error">Error: {error}</p>}
 
       {searched && !searching && (
@@ -114,7 +120,14 @@ export default function SearchPage() {
                 )}
               </div>
               <div className="result-body">
-                <Link to={`/files/${r.id}`} className="result-title">
+                <Link
+                  to={`/files/${r.id}`}
+                  className="result-title"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setSelectedFileId(r.id);
+                  }}
+                >
                   {r.filename}
                 </Link>
                 <div className="result-meta">

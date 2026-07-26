@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { listFiles, type FileMetadata, type ListFilesParams } from "../api.ts";
+import FilePreview from "../components/FilePreview.tsx";
 
 const PAGE_SIZE = 20;
 
@@ -57,6 +58,7 @@ export default function FilesPage() {
   const [offset, setOffset] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
 
   // Filters
   const [category, setCategory] = useState("");
@@ -166,6 +168,11 @@ export default function FilesPage() {
       {/* Error */}
       {error && <p className="files-error">{error}</p>}
 
+      {/* Inline file preview */}
+      {selectedFileId && (
+        <FilePreview fileId={selectedFileId} onClose={() => setSelectedFileId(null)} />
+      )}
+
       {/* Loading */}
       {loading && <p>Loading…</p>}
 
@@ -188,7 +195,15 @@ export default function FilesPage() {
               <tr key={f.id}>
                 <td>{contentTypeIcon(f.content_type)}</td>
                 <td>
-                  <Link to={`/files/${f.id}`}>{f.filename}</Link>
+                  <Link
+                    to={`/files/${f.id}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setSelectedFileId(f.id);
+                    }}
+                  >
+                    {f.filename}
+                  </Link>
                 </td>
                 <td className="cell-mono">{f.content_type}</td>
                 <td>{formatBytes(f.size)}</td>
