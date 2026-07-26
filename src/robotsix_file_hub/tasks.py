@@ -105,6 +105,7 @@ async def _process_enrichment(job: EnrichmentJob) -> bool:
         record.category = enrichment["category"]
         record.tags = enrichment["tags"]
         record.summary = enrichment["summary"]
+        record.embedding = enrichment.get("embedding")
         record.source = "upload"
         await session.commit()
 
