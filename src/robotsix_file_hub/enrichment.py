@@ -1,0 +1,192 @@
+"""LLM enrichment pipeline: text extraction + OpenAI-compatible API call.
+
+Extracts text from common file types (PDF, plain text, DOCX, XLSX)
+and calls a configurable LLM to generate summary, category, and tags.
+
+All operations are best-effort — if text extraction fails or the LLM
+call errors/times out, enrichment fields are left null rather than
+failing the upload.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+from typing import Any
+
+import httpx
+
+from .config import Settings
+
+logger = logging.getLogger(__name__)
+
+settings = Settings()
+
+# ── Text extraction ────────────────────────────────────────────────
+
+
+def extract_text(content: bytes, content_type: str) -> str | None:
+    """Best-effort text extraction from *content* based on its MIME type.
+
+    Returns the extracted text string, or ``None`` if extraction is
+    unsupported or fails.
+    """
+    content_type_lower = content_type.lower()
+
+    # ── Plain text ──────────────────────────────────────────────
+    if content_type_lower.startswith("text/"):
+        try:
+            return content.decode("utf-8", errors="replace")
+        except Exception:
+            return content.decode("latin-1", errors="replace")
+
+    # ── PDF ─────────────────────────────────────────────────────
+    if content_type_lower == "application/pdf":
+        try:
+            from io import BytesIO
+
+            from pypdf import PdfReader
+
+            reader = PdfReader(BytesIO(content))
+            parts: list[str] = []
+            for page in reader.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    parts.append(page_text)
+            text = "\n".join(parts).strip()
+            return text or None
+        except Exception:
+            logger.warning("Failed to extract text from PDF", exc_info=True)
+            return None
+
+    # ── DOCX (Office Open XML word processing) ──────────────────
+    if (
+        "officedocument.wordprocessingml" in content_type_lower
+        or content_type_lower
+        == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ):
+        try:
+            from io import BytesIO
+
+            from docx import Document
+
+            doc = Document(BytesIO(content))
+            text = "\n".join(p.text for p in doc.paragraphs).strip()
+            return text or None
+        except Exception:
+            logger.warning("Failed to extract text from DOCX", exc_info=True)
+            return None
+
+    # ── XLSX / spreadsheet ──────────────────────────────────────
+    if "spreadsheet" in content_type_lower or "excel" in content_type_lower:
+        try:
+            from io import BytesIO
+
+            from openpyxl import load_workbook  # type: ignore[import-untyped]
+
+            wb = load_workbook(BytesIO(content), read_only=True, data_only=True)
+            rows: list[str] = []
+            for sheet_name in wb.sheetnames:
+                ws = wb[sheet_name]
+                for row in ws.iter_rows(values_only=True):
+                    rows.append("\t".join(str(cell) if cell is not None else "" for cell in row))
+            text = "\n".join(rows).strip()
+            wb.close()
+            return text or None
+        except Exception:
+            logger.warning("Failed to extract text from XLSX", exc_info=True)
+            return None
+
+    return None
+
+
+# ── LLM call ────────────────────────────────────────────────────────
+
+
+async def call_llm(text: str) -> dict[str, Any]:
+    """Call the OpenAI-compatible chat API and return structured enrichment.
+
+    The LLM is prompted to return a JSON object with ``summary``,
+    ``category``, and ``tags`` fields.  The response is parsed and
+    returned as a dict.
+
+    Raises ``httpx.HTTPError`` or ``json.JSONDecodeError`` on failure.
+    """
+    prompt = (
+        "Analyze the following text content from a file and return a JSON object "
+        "with exactly three fields:\n"
+        '  "summary": a 1-3 sentence summary of the content,\n'
+        '  "category": a single category label (e.g. "document", "image", "code", '
+        '"spreadsheet", "presentation", "legal", "financial", "scientific", "other"),\n'
+        '  "tags": a list of up to 10 keyword tags (strings).\n'
+        "Respond with only the JSON object, no other text.\n\n"
+        f"TEXT:\n{text[:8000]}"
+    )
+
+    async with httpx.AsyncClient(timeout=settings.enrichment_llm_timeout) as client:
+        response = await client.post(
+            f"{settings.enrichment_llm_api_base}/chat/completions",
+            headers={
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": settings.enrichment_llm_model,
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": settings.enrichment_llm_max_tokens,
+                "temperature": 0.3,
+            },
+        )
+        response.raise_for_status()
+        data = response.json()
+
+    content_raw = data["choices"][0]["message"]["content"]
+
+    # Parse the JSON response (handle markdown code fences gracefully)
+    result: dict[str, Any]
+    try:
+        result = json.loads(content_raw)
+    except json.JSONDecodeError:
+        if "```json" in content_raw:
+            block = content_raw.split("```json")[1].split("```")[0]
+            result = json.loads(block)
+        elif "```" in content_raw:
+            block = content_raw.split("```")[1].split("```")[0]
+            result = json.loads(block)
+        else:
+            raise
+
+    return {
+        "summary": str(result.get("summary", "")),
+        "category": str(result.get("category", "")),
+        "tags": [str(t) for t in result.get("tags", [])],
+    }
+
+
+# ── Orchestration ───────────────────────────────────────────────────
+
+
+async def enrich_file(content: bytes, content_type: str) -> dict[str, str | None]:
+    """Extract text and call the LLM for enrichment.
+
+    Returns a dict with ``category``, ``tags`` (comma-separated), and
+    ``summary`` — all nullable.  If text extraction yields nothing or
+    the LLM call fails, fields are returned as ``None`` (best-effort).
+    """
+    text = extract_text(content, content_type)
+    if not text:
+        logger.info(
+            "No text extracted for content_type=%s, skipping LLM enrichment",
+            content_type,
+        )
+        return {"category": None, "tags": None, "summary": None}
+
+    try:
+        llm_result = await call_llm(text)
+        return {
+            "category": llm_result["category"] or None,
+            "tags": ",".join(llm_result["tags"]) or None,
+            "summary": llm_result["summary"] or None,
+        }
+    except Exception:
+        logger.warning("LLM enrichment failed for content_type=%s", content_type, exc_info=True)
+        return {"category": None, "tags": None, "summary": None}
