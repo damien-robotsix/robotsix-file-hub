@@ -16,6 +16,8 @@ modules:
       - src/robotsix_file_hub/routes/files.py
       - src/robotsix_file_hub/schemas.py
       - src/robotsix_file_hub/storage.py
+      - src/robotsix_file_hub/tasks.py
       - tests/__init__.py
       - tests/test_download.py
+      - tests/test_tasks.py
       - tests/test_upload.py

@@ -19,6 +19,7 @@ from ..schemas import (
     FileUploadResponse,
 )
 from ..storage import StorageBackend, StorageError, compute_checksum, create_storage_backend
+from ..tasks import enqueue_enrichment, enqueue_reindex_all
 
 router = APIRouter(prefix="/files", tags=["files"])
 MAX_FILE_SIZE = Settings().max_file_size
@@ -91,6 +92,13 @@ async def _process_upload(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Database failure: {exc}",
         ) from exc
+
+    # Fire-and-forget enrichment task
+    enqueue_enrichment(
+        file_id=record.id,
+        filename=record.filename,
+        content_type=record.content_type,
+    )
 
     return FileUploadResponse.model_validate(record)
 
@@ -173,6 +181,15 @@ async def get_file_metadata(
     if record is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
     return FileMetadataResponse.model_validate(record)
+
+
+@router.post(
+    "/reindex",
+    responses={500: {"model": ErrorResponse}},
+)
+async def reindex_files() -> dict[str, int]:
+    """Enqueue enrichment jobs for all existing files."""
+    return await enqueue_reindex_all()
 
 
 @router.get(
