@@ -18,6 +18,7 @@
   text-file preview.
 - Align frontend API types and route paths with backend schemas (FileMetadata,
   SearchResult, `/files` prefix on all file endpoints).
+- Fix upload dialog: disable drop zone during active upload to prevent straggler files; fix drag-leave flicker by checking `relatedTarget`; remove dead `{ kind: "pending" }` union variant
 - Add upload dialog to the file browser: toolbar "Upload" button opens a modal
   with drag-and-drop zone, multi-file selection, per-file progress bars (using
   XMLHttpRequest progress events), and success/error display. File list

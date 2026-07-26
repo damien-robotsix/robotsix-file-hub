@@ -14,7 +14,6 @@ interface FileEntry {
 }
 
 type UploadResult =
-  | { kind: "pending" }
   | { kind: "uploading"; progress: number }
   | { kind: "success"; metadata: FileMetadata }
   | { kind: "error"; message: string };
@@ -68,20 +67,34 @@ export default function UploadDialog({ open, onClose, onUploadComplete }: Upload
     (e: DragEvent) => {
       e.preventDefault();
       setDragOver(false);
+      if (uploading) return;
       addFiles(e.dataTransfer.files);
     },
-    [addFiles],
+    [addFiles, uploading],
   );
 
-  const handleDragOver = useCallback((e: DragEvent) => {
-    e.preventDefault();
-    setDragOver(true);
-  }, []);
+  const handleDragOver = useCallback(
+    (e: DragEvent) => {
+      e.preventDefault();
+      if (uploading) return;
+      setDragOver(true);
+    },
+    [uploading],
+  );
 
-  const handleDragLeave = useCallback((e: DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
-  }, []);
+  const handleDragLeave = useCallback(
+    (e: DragEvent) => {
+      e.preventDefault();
+      if (uploading) return;
+      // Only set dragOver=false when the pointer truly leaves the drop zone,
+      // not when it crosses a child element.
+      const target = e.currentTarget as HTMLElement;
+      const related = e.relatedTarget as HTMLElement | null;
+      if (related && target.contains(related)) return;
+      setDragOver(false);
+    },
+    [uploading],
+  );
 
   const handleFileInput = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
@@ -149,11 +162,11 @@ export default function UploadDialog({ open, onClose, onUploadComplete }: Upload
         <div className="upload-dialog-body">
           {/* Drop zone */}
           <div
-            className={`upload-drop-zone ${dragOver ? "drag-over" : ""}`}
+            className={`upload-drop-zone ${dragOver ? "drag-over" : ""} ${uploading ? "disabled" : ""}`}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => { if (!uploading) fileInputRef.current?.click(); }}
           >
             <p>Drag &amp; drop files here, or <span className="browse-link">browse</span></p>
             <p style={{ fontSize: "0.8rem" }}>Single or multiple files supported</p>
