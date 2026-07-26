@@ -225,7 +225,7 @@ export default function UploadDialog({ open, onClose, onUploadComplete }: Upload
                           <div className="progress-fill success" style={{ width: "100%" }} />
                         </div>
                         <div className="upload-result-status success">
-                          Uploaded &mdash; {formatSize(result.metadata.size_bytes ?? 0)}
+                          Uploaded &mdash; {formatSize(result.metadata.size ?? 0)}
                         </div>
                       </>
                     )}

@@ -126,7 +126,7 @@ export function uploadFileWithProgress(
             id: raw.id,
             filename: raw.filename,
             content_type: raw.content_type ?? null,
-            size_bytes: raw.size,
+            size: raw.size,
             created_at: raw.created_at,
             embedding: raw.embedding ?? null,
           });
