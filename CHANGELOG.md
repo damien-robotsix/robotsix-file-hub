@@ -2,6 +2,9 @@
 
 ## 0.0.0 (unreleased)
 
+- Fix Docker image build failure: split `uv sync` in builder stage to install
+  dependencies first (`--no-install-project`) before copying source, so hatchling
+  can find the project directory during the project install step.
 - Add multi-stage Dockerfile with frontend build, uv-based Python install, and HEALTHCHECK.
 - Add `deploy/docker-compose.yml` for central-deploy (GHCR image, named volumes, `robotsix.deploy.*` labels).
 - Add `.github/workflows/docker-publish.yml` using the fleet shared reusable publish workflow.
