@@ -2,6 +2,7 @@
 
 ## 0.0.0 (unreleased)
 
+- Fix ruff violations (import sorting, `Union` → `X | Y`, B018/F821) in migration files and vulture whitelist
 - Add `DELETE /files/{file_id}` endpoint to delete stored files and their metadata.
 - Fix TypeScript build error in `frontend/src/api.ts` by removing unused `embedding` property from `uploadFileWithProgress` response mapping. The `FileMetadata` interface does not declare `embedding`, and the backend does not return it in file upload responses.
 - Fix Docker image build failure: split `uv sync` in builder stage to install

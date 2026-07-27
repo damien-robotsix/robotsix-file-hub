@@ -1,3 +1,4 @@
+# ruff: noqa: F821, B018
 # vulture whitelist — symbols that are used but not detected by static analysis.
 # Route handlers are discovered by FastAPI at runtime.
 # Pydantic model_config is a class variable consumed by the metaclass.
