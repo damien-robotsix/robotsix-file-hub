@@ -681,32 +681,22 @@ async def test_list_categories_with_data(
 # ---------------------------------------------------------------------------
 
 
-async def test_list_files_source_filter(tmp_upload_dir: str) -> None:
+async def test_list_files_source_filter(
+    test_client: AsyncClient,
+    test_db_session: AsyncSession,
+) -> None:
     """GET /files?source=... filters by source field."""
-    import src.robotsix_file_hub.routes.files as routes_module
-
-    storage = LocalStorageBackend(base_path=tmp_upload_dir)
-    routes_module._storage = storage
-
-    db_path = os.path.join(tmp_upload_dir, "test.db")
-    database_url = f"sqlite+aiosqlite:///{db_path}"
-    engine = create_async_engine(database_url, echo=False)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    session_factory = async_sessionmaker(engine, expire_on_commit=False)
+    from datetime import UTC, datetime
 
     now = datetime.now(UTC)
-    await _seed_records(
-        tmp_upload_dir,
-        session_factory,
+    test_db_session.add_all(
         [
             FileRecord(
                 filename="uploaded.txt",
                 size=1,
                 content_type="text/plain",
                 checksum="u1",
-                category=None,
-                tags=None,
+                storage_key="/tmp/uploaded.txt",
                 source="upload",
                 created_at=now,
             ),
@@ -715,8 +705,7 @@ async def test_list_files_source_filter(tmp_upload_dir: str) -> None:
                 size=1,
                 content_type="text/plain",
                 checksum="a1",
-                category=None,
-                tags=None,
+                storage_key="/tmp/api.txt",
                 source="api",
                 created_at=now,
             ),
@@ -725,28 +714,15 @@ async def test_list_files_source_filter(tmp_upload_dir: str) -> None:
                 size=1,
                 content_type="text/plain",
                 checksum="u2",
-                category=None,
-                tags=None,
+                storage_key="/tmp/also_uploaded.txt",
                 source="upload",
                 created_at=now,
             ),
-        ],
+        ]
     )
+    await test_db_session.commit()
 
-    async def override_get_db() -> AsyncSession:  # type: ignore[misc]
-        async with session_factory() as session:
-            yield session
-
-    original_deps = app.dependency_overrides.copy()
-    app.dependency_overrides[get_db] = override_get_db
-
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/files", params={"source": "upload"})
-
-    app.dependency_overrides = original_deps
-    routes_module._storage = None
-    await engine.dispose()
+    response = await test_client.get("/files", params={"source": "upload"})
 
     assert response.status_code == 200
     data = response.json()

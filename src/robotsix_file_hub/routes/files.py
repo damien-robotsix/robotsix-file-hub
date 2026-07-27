@@ -1,6 +1,7 @@
 """File endpoints: upload, download, metadata, listing, and search."""
 
 import contextlib
+import logging
 import uuid
 from datetime import datetime
 from typing import Annotated
@@ -36,6 +37,8 @@ from ..schemas import (
 from ..search import search_files
 from ..storage import StorageBackend, StorageError, compute_checksum, create_storage_backend
 from ..tasks import enqueue_enrichment, enqueue_reindex_all, get_reindex_progress
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/files", tags=["files"], dependencies=[Depends(require_auth)])
 MAX_FILE_SIZE = Settings().max_file_size
@@ -251,16 +254,24 @@ async def delete_file(
     if record is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
 
+    # Delete the DB record first so we never have an orphan row
+    # pointing to already-deleted storage bytes.
+    await db.delete(record)
     try:
-        await storage.delete(record.storage_key)
-    except StorageError as exc:
+        await db.commit()
+    except Exception as exc:
+        await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Storage failure: {exc}",
+            detail=f"Database failure: {exc}",
         ) from exc
 
-    await db.delete(record)
-    await db.commit()
+    # Best-effort storage cleanup — the record is already gone, so
+    # a stale file on disk is harmless; log and move on.
+    try:
+        await storage.delete(record.storage_key)
+    except StorageError:
+        logger.warning("Failed to delete storage key %s for file %s", record.storage_key, file_id)
 
 
 @router.get(

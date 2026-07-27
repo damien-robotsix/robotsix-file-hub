@@ -1,18 +1,18 @@
 """Tests for file deletion endpoint."""
 
 import io
+import os
 
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.robotsix_file_hub.models import FileRecord
-from src.robotsix_file_hub.storage import StorageBackend
 
 
 async def test_delete_file_success(
     test_client: AsyncClient,
     test_db_session: AsyncSession,
-    test_storage: StorageBackend,
+    tmp_upload_dir: str,
 ) -> None:
     """DELETE /files/{id} removes the file record and stored bytes."""
     content = b"delete me"
@@ -33,8 +33,8 @@ async def test_delete_file_success(
     assert record is None
 
     # Verify storage file was removed
-    stored = [p for p in test_storage.base_path.iterdir() if p.suffix != ".db"]
-    assert len(stored) == 0, f"Expected 0 stored files after delete, got {len(stored)}"
+    non_db_files = [f for f in os.listdir(tmp_upload_dir) if not f.endswith(".db")]
+    assert len(non_db_files) == 0, f"Expected 0 stored files after delete, got {len(non_db_files)}"
 
 
 async def test_delete_file_not_found(test_client: AsyncClient) -> None:
