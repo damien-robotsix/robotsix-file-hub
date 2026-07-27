@@ -2,6 +2,7 @@
 
 ## 0.0.0 (unreleased)
 
+- Fix ruff violations (import sorting, `Union` → `X | Y`, B018/F821) in migration files and vulture whitelist
 - Add `DELETE /files/{file_id}` endpoint to delete stored files and their metadata.
 - Decouple TypeScript type-checking from the Docker image build: `frontend` build script now runs `vite build` only (no `tsc -b` gate). A separate `typecheck` script (`tsc -b`) is available for local/CI use.
 - Fix TypeScript build error in `frontend/src/api.ts` by removing unused `embedding` property from `uploadFileWithProgress` response mapping. The `FileMetadata` interface does not declare `embedding`, and the backend does not return it in file upload responses.
