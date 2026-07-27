@@ -11,6 +11,7 @@ from .config import Settings
 from .database import engine
 from .models import Base
 from .routes.files import router as files_router
+from .routes.search import router as search_router
 from .routes.tasks import router as tasks_router
 from .tasks import start_workers, stop_workers
 
@@ -44,6 +45,7 @@ app = FastAPI(
 )
 
 app.include_router(files_router)
+app.include_router(search_router)
 app.include_router(tasks_router)
 
 

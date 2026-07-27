@@ -85,6 +85,10 @@ class SearchRequest(BaseModel):
     query: str
     offset: int = Field(default=0, ge=0)
     limit: int = Field(default=50, ge=1, le=1000)
+    category: str | None = None
+    tags: str | None = None
+    created_after: datetime | None = None
+    created_before: datetime | None = None
 
 
 class SearchResult(BaseModel):
