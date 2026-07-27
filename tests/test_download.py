@@ -600,6 +600,161 @@ async def test_list_files_combined_filters(tmp_upload_dir: str) -> None:
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# Categories endpoint
+# ---------------------------------------------------------------------------
+
+
+async def test_list_categories_empty(test_client: AsyncClient) -> None:
+    """GET /files/categories returns empty list when no files exist."""
+    response = await test_client.get("/files/categories")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["categories"] == []
+
+
+async def test_list_categories_with_data(
+    test_client: AsyncClient,
+    test_db_session: AsyncSession,
+) -> None:
+    """GET /files/categories returns sorted distinct categories."""
+    from datetime import UTC, datetime
+
+    now = datetime.now(UTC)
+    test_db_session.add_all(
+        [
+            FileRecord(
+                filename="a.txt",
+                size=1,
+                content_type="text/plain",
+                checksum="aa",
+                storage_key="/tmp/a.txt",
+                category="reports",
+                tags="a",
+                created_at=now,
+            ),
+            FileRecord(
+                filename="b.txt",
+                size=1,
+                content_type="text/plain",
+                checksum="bb",
+                storage_key="/tmp/b.txt",
+                category="images",
+                tags="b",
+                created_at=now,
+            ),
+            FileRecord(
+                filename="c.txt",
+                size=1,
+                content_type="text/plain",
+                checksum="cc",
+                storage_key="/tmp/c.txt",
+                category="reports",
+                tags="c",
+                created_at=now,
+            ),
+            FileRecord(
+                filename="d.txt",
+                size=1,
+                content_type="text/plain",
+                checksum="dd",
+                storage_key="/tmp/d.txt",
+                category=None,
+                tags="d",
+                created_at=now,
+            ),
+        ]
+    )
+    await test_db_session.commit()
+
+    response = await test_client.get("/files/categories")
+
+    assert response.status_code == 200
+    data = response.json()
+    # Should have "images" and "reports" sorted, no None
+    assert data["categories"] == ["images", "reports"]
+
+
+# ---------------------------------------------------------------------------
+# Source filter
+# ---------------------------------------------------------------------------
+
+
+async def test_list_files_source_filter(tmp_upload_dir: str) -> None:
+    """GET /files?source=... filters by source field."""
+    import src.robotsix_file_hub.routes.files as routes_module
+
+    storage = LocalStorageBackend(base_path=tmp_upload_dir)
+    routes_module._storage = storage
+
+    db_path = os.path.join(tmp_upload_dir, "test.db")
+    database_url = f"sqlite+aiosqlite:///{db_path}"
+    engine = create_async_engine(database_url, echo=False)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    session_factory = async_sessionmaker(engine, expire_on_commit=False)
+
+    now = datetime.now(UTC)
+    await _seed_records(
+        tmp_upload_dir,
+        session_factory,
+        [
+            FileRecord(
+                filename="uploaded.txt",
+                size=1,
+                content_type="text/plain",
+                checksum="u1",
+                category=None,
+                tags=None,
+                source="upload",
+                created_at=now,
+            ),
+            FileRecord(
+                filename="api.txt",
+                size=1,
+                content_type="text/plain",
+                checksum="a1",
+                category=None,
+                tags=None,
+                source="api",
+                created_at=now,
+            ),
+            FileRecord(
+                filename="also_uploaded.txt",
+                size=1,
+                content_type="text/plain",
+                checksum="u2",
+                category=None,
+                tags=None,
+                source="upload",
+                created_at=now,
+            ),
+        ],
+    )
+
+    async def override_get_db() -> AsyncSession:  # type: ignore[misc]
+        async with session_factory() as session:
+            yield session
+
+    original_deps = app.dependency_overrides.copy()
+    app.dependency_overrides[get_db] = override_get_db
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/files", params={"source": "upload"})
+
+    app.dependency_overrides = original_deps
+    routes_module._storage = None
+    await engine.dispose()
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 2
+    filenames = {f["filename"] for f in data["files"]}
+    assert filenames == {"uploaded.txt", "also_uploaded.txt"}
+
+
 async def test_auth_disabled_when_token_empty(test_client: AsyncClient) -> None:
     """When auth_token is empty, requests without auth headers succeed."""
     response = await test_client.get("/files")

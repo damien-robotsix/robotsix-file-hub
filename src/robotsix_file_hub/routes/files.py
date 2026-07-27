@@ -236,6 +236,33 @@ async def list_categories(
     return CategoriesResponse(categories=sorted(rows))
 
 
+@router.delete(
+    "/{file_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={404: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
+)
+async def delete_file(
+    file_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    storage: Annotated[StorageBackend, Depends(_get_storage)],
+) -> None:
+    """Delete a stored file and its metadata."""
+    record = await db.get(FileRecord, file_id)
+    if record is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+
+    try:
+        await storage.delete(record.storage_key)
+    except StorageError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Storage failure: {exc}",
+        ) from exc
+
+    await db.delete(record)
+    await db.commit()
+
+
 @router.get(
     "/{file_id}",
     responses={404: {"model": ErrorResponse}},

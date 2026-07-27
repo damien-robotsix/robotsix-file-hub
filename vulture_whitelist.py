@@ -13,6 +13,8 @@ _.reindex_files  # FastAPI route
 _.reindex_progress  # FastAPI route
 _.search  # FastAPI route
 _.list_files  # FastAPI route
+_.list_categories  # FastAPI route
+_.delete_file  # FastAPI route
 _.get_task_status  # FastAPI route
 _.detail  # Pydantic schema field
 _.relevance  # Pydantic schema field
