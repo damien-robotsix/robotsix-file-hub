@@ -2,6 +2,10 @@
 
 ## 0.0.0 (unreleased)
 
+- Add multi-stage Dockerfile with frontend build, uv-based Python install, and HEALTHCHECK.
+- Add `deploy/docker-compose.yml` for central-deploy (GHCR image, named volumes, `robotsix.deploy.*` labels).
+- Add `.github/workflows/docker-publish.yml` using the fleet shared reusable publish workflow.
+- Add `log_level` config field with UTC ISO-8601 stdout logging.
 - Document testing conventions in README: all test files must use shared
   fixtures from `tests/conftest.py` instead of duplicating SQLAlchemy
   engine/session/client/storage setup inline.
