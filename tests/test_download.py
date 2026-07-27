@@ -600,6 +600,137 @@ async def test_list_files_combined_filters(tmp_upload_dir: str) -> None:
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# Categories endpoint
+# ---------------------------------------------------------------------------
+
+
+async def test_list_categories_empty(test_client: AsyncClient) -> None:
+    """GET /files/categories returns empty list when no files exist."""
+    response = await test_client.get("/files/categories")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["categories"] == []
+
+
+async def test_list_categories_with_data(
+    test_client: AsyncClient,
+    test_db_session: AsyncSession,
+) -> None:
+    """GET /files/categories returns sorted distinct categories."""
+    from datetime import UTC, datetime
+
+    now = datetime.now(UTC)
+    test_db_session.add_all(
+        [
+            FileRecord(
+                filename="a.txt",
+                size=1,
+                content_type="text/plain",
+                checksum="aa",
+                storage_key="/tmp/a.txt",
+                category="reports",
+                tags="a",
+                created_at=now,
+            ),
+            FileRecord(
+                filename="b.txt",
+                size=1,
+                content_type="text/plain",
+                checksum="bb",
+                storage_key="/tmp/b.txt",
+                category="images",
+                tags="b",
+                created_at=now,
+            ),
+            FileRecord(
+                filename="c.txt",
+                size=1,
+                content_type="text/plain",
+                checksum="cc",
+                storage_key="/tmp/c.txt",
+                category="reports",
+                tags="c",
+                created_at=now,
+            ),
+            FileRecord(
+                filename="d.txt",
+                size=1,
+                content_type="text/plain",
+                checksum="dd",
+                storage_key="/tmp/d.txt",
+                category=None,
+                tags="d",
+                created_at=now,
+            ),
+        ]
+    )
+    await test_db_session.commit()
+
+    response = await test_client.get("/files/categories")
+
+    assert response.status_code == 200
+    data = response.json()
+    # Should have "images" and "reports" sorted, no None
+    assert data["categories"] == ["images", "reports"]
+
+
+# ---------------------------------------------------------------------------
+# Source filter
+# ---------------------------------------------------------------------------
+
+
+async def test_list_files_source_filter(
+    test_client: AsyncClient,
+    test_db_session: AsyncSession,
+) -> None:
+    """GET /files?source=... filters by source field."""
+    from datetime import UTC, datetime
+
+    now = datetime.now(UTC)
+    test_db_session.add_all(
+        [
+            FileRecord(
+                filename="uploaded.txt",
+                size=1,
+                content_type="text/plain",
+                checksum="u1",
+                storage_key="/tmp/uploaded.txt",
+                source="upload",
+                created_at=now,
+            ),
+            FileRecord(
+                filename="api.txt",
+                size=1,
+                content_type="text/plain",
+                checksum="a1",
+                storage_key="/tmp/api.txt",
+                source="api",
+                created_at=now,
+            ),
+            FileRecord(
+                filename="also_uploaded.txt",
+                size=1,
+                content_type="text/plain",
+                checksum="u2",
+                storage_key="/tmp/also_uploaded.txt",
+                source="upload",
+                created_at=now,
+            ),
+        ]
+    )
+    await test_db_session.commit()
+
+    response = await test_client.get("/files", params={"source": "upload"})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 2
+    filenames = {f["filename"] for f in data["files"]}
+    assert filenames == {"uploaded.txt", "also_uploaded.txt"}
+
+
 async def test_auth_disabled_when_token_empty(test_client: AsyncClient) -> None:
     """When auth_token is empty, requests without auth headers succeed."""
     response = await test_client.get("/files")
