@@ -164,7 +164,8 @@ Full request/response schemas are available in the interactive docs at
 ```bash
 cd frontend
 npm run dev       # Start dev server (http://localhost:5173)
-npm run build     # TypeScript check + production build
+npm run build     # Production build (Vite only; run `typecheck` separately)
+npm run typecheck  # TypeScript type-check only (tsc -b)
 npm run preview   # Preview production build
 npm run lint      # ESLint
 npm run format    # Prettier
