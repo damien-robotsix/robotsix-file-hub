@@ -25,9 +25,6 @@ tests/
 # Docs
 docs/
 
-# Frontend
-frontend/
-
 # Environment
 .env
 

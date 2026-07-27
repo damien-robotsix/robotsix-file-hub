@@ -1,0 +1,20 @@
+services:
+  file-hub:
+    image: ghcr.io/damien-robotsix/robotsix-file-hub:main
+    ports:
+      - "8300:8080"
+    volumes:
+      - uploads-data:/home/app/uploads
+      - db-data:/home/app/data
+    environment:
+      FILE_HUB_DATABASE_URL: sqlite+aiosqlite:////home/app/data/file_hub.db
+      FILE_HUB_STORAGE_BACKEND: local
+      FILE_HUB_LOCAL_STORAGE_PATH: /home/app/uploads
+    labels:
+      robotsix.deploy.mode: "deployment-system"
+      robotsix.deploy.port: "8080"
+      robotsix.deploy.health: "/health"
+
+volumes:
+  uploads-data:
+  db-data:

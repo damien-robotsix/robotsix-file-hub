@@ -1,5 +1,7 @@
 """FastAPI application for robotsix-file-hub."""
 
+import logging
+import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -25,6 +27,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 settings = Settings()
+
+# Configure logging: UTC ISO-8601 timestamps to stdout
+logging.Formatter.converter = time.gmtime
+logging.basicConfig(
+    level=settings.log_level,
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+    datefmt="%Y-%m-%dT%H:%M:%S",
+    handlers=[logging.StreamHandler()],
+)
 
 app = FastAPI(
     title="robotsix-file-hub",

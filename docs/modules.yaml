@@ -6,12 +6,14 @@ modules:
     paths:
       - .dockerignore
       - .env.example
+      - .github/workflows/docker-publish.yml
       - .gitignore
       - Dockerfile
       - docker-compose.yml
       - CHANGELOG.md
       - README.md
       - alembic.ini
+      - deploy/docker-compose.yml
       - docs/API.md
       - docs/deployment.md
       - docs/modules.yaml
