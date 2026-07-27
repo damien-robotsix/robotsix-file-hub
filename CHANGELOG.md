@@ -2,6 +2,7 @@
 
 ## 0.0.0 (unreleased)
 
+- Fix TypeScript build error in `frontend/src/api.ts` by removing unused `embedding` property from `uploadFileWithProgress` response mapping. The `FileMetadata` interface does not declare `embedding`, and the backend does not return it in file upload responses.
 - Fix Docker image build failure: split `uv sync` in builder stage to install
   dependencies first (`--no-install-project`) before copying source, so hatchling
   can find the project directory during the project install step.

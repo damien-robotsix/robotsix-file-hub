@@ -128,7 +128,6 @@ export function uploadFileWithProgress(
             content_type: raw.content_type ?? null,
             size: raw.size,
             created_at: raw.created_at,
-            embedding: raw.embedding ?? null,
           });
         } catch {
           reject(new Error("Invalid JSON response"));
