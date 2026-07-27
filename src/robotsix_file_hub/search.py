@@ -264,6 +264,8 @@ async def search_files_pg(
     Falls back to ``search_files`` when the backend does not support the
     required features (e.g. SQLite in tests).
     """
+    from pgvector.sqlalchemy import Vector
+    from sqlalchemy import bindparam
     from sqlalchemy import text as sa_text
 
     # Check whether the backend supports pgvector / FTS
@@ -285,28 +287,6 @@ async def search_files_pg(
         logger.warning("Query embedding generation failed, using keyword-only", exc_info=True)
 
     vector_weight = settings.search_vector_weight
-
-    # Build the base query with optional filters
-    base_cols = [
-        FileRecord,
-        # Keyword score: ts_rank over combined text fields
-        func.ts_rank(
-            func.to_tsvector(
-                "english",
-                func.coalesce(FileRecord.filename, "")
-                + " "
-                + func.coalesce(FileRecord.summary, "")
-                + " "
-                + func.coalesce(FileRecord.tags, ""),
-            ),
-            func.plainto_tsquery("english", query),
-        ).label("keyword_score"),
-        # Vector similarity: 1 - (cosine_distance / 2)  → maps [0,2] to [1,0]
-        func.coalesce(
-            sa_text("1.0 - (file_records.embedding <=> :query_embedding) / 2.0"),
-            0.0,
-        ).label("vector_score"),
-    ]
 
     # Collect where conditions
     conditions: list = []
@@ -338,17 +318,30 @@ async def search_files_pg(
 
     # Count total before pagination
     count_stmt = select(func.count()).select_from(FileRecord).where(*conditions)
-    params: dict[str, list[float]] = {}
-    if query_embedding is not None:
-        params["query_embedding"] = query_embedding
-    total_result = await db.execute(count_stmt, params)
+    total_result = await db.execute(count_stmt)
     total: int = total_result.scalar_one()
+
+    # Keyword score expression (ts_rank over combined text fields)
+    kw_score_expr = func.ts_rank(
+        func.to_tsvector(
+            "english",
+            func.coalesce(FileRecord.filename, "")
+            + " "
+            + func.coalesce(FileRecord.summary, "")
+            + " "
+            + func.coalesce(FileRecord.tags, ""),
+        ),
+        func.plainto_tsquery("english", query),
+    )
 
     # Compute hybrid score: weighted combination of keyword + vector
     hybrid_score = (1.0 - vector_weight) * func.coalesce(
-        sa_text("ts_rank"), 0.0
+        kw_score_expr, 0.0
     ) + vector_weight * func.coalesce(
-        sa_text("1.0 - (file_records.embedding <=> :query_embedding) / 2.0"), 0.0
+        sa_text("1.0 - (file_records.embedding <=> :query_embedding) / 2.0").bindparams(
+            bindparam("query_embedding", type_=Vector(384))
+        ),
+        0.0,
     )
 
     # Main query with scoring + ordering + pagination
@@ -360,7 +353,11 @@ async def search_files_pg(
         .limit(limit)
     )
 
-    result = await db.execute(stmt, params)
+    exec_params: dict[str, list[float]] = {}
+    if query_embedding is not None:
+        exec_params["query_embedding"] = query_embedding
+
+    result = await db.execute(stmt, exec_params)
     rows = result.all()
 
     results = [
