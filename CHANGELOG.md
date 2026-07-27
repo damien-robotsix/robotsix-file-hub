@@ -3,6 +3,7 @@
 ## 0.0.0 (unreleased)
 
 - Add `DELETE /files/{file_id}` endpoint to delete stored files and their metadata.
+- Decouple TypeScript type-checking from the Docker image build: `frontend` build script now runs `vite build` only (no `tsc -b` gate). A separate `typecheck` script (`tsc -b`) is available for local/CI use.
 - Fix TypeScript build error in `frontend/src/api.ts` by removing unused `embedding` property from `uploadFileWithProgress` response mapping. The `FileMetadata` interface does not declare `embedding`, and the backend does not return it in file upload responses.
 - Fix Docker image build failure: split `uv sync` in builder stage to install
   dependencies first (`--no-install-project`) before copying source, so hatchling
