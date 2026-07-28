@@ -2,6 +2,7 @@
 
 ## 0.0.0 (unreleased)
 
+- Fix broken PostgreSQL-native hybrid search path in `search_files_pg`: replace bare `sa_text("ts_rank")` (no arguments) with proper `func.ts_rank(...)` call; remove dead `base_cols` block; add explicit `bindparam` typing for the pgvector `<=>` operator's `:query_embedding` parameter via `pgvector.sqlalchemy.Vector`.
 - Fix ruff violations (import sorting, `Union` → `X | Y`, B018/F821) in migration files and vulture whitelist
 - Add `DELETE /files/{file_id}` endpoint to delete stored files and their metadata.
 - Decouple TypeScript type-checking from the Docker image build: `frontend` build script now runs `vite build` only (no `tsc -b` gate). A separate `typecheck` script (`tsc -b`) is available for local/CI use.

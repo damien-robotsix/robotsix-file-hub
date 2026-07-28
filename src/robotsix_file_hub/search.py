@@ -1,8 +1,12 @@
 """Hybrid NL search: keyword matching + optional vector similarity.
 
-Provides a search function that combines text-based relevance scoring
-with cosine-similarity ranking over stored embeddings.  Falls back to
-keyword-only ranking when embeddings are unavailable.
+Provides two search strategies:
+- ``search_files``: Python-based keyword + cosine similarity (works on any backend).
+- ``search_files_pg``: Postgres-native full-text search (tsvector/tsquery) plus
+  pgvector cosine distance, with optional metadata filters.
+
+The ``POST /search`` endpoint prefers the Postgres-native path and falls back
+to ``search_files`` when the database backend does not support it.
 """
 
 from __future__ import annotations
@@ -10,8 +14,9 @@ from __future__ import annotations
 import json
 import logging
 import math
+from datetime import datetime
 
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .config import Settings
@@ -129,6 +134,10 @@ async def search_files(
     query: str,
     offset: int = 0,
     limit: int = 50,
+    category: str | None = None,
+    tags: str | None = None,
+    created_after: datetime | None = None,
+    created_before: datetime | None = None,
 ) -> SearchResponse:
     """Perform a hybrid keyword+vector search and return ranked, paginated results.
 
@@ -165,6 +174,15 @@ async def search_files(
 
     if conditions:
         stmt = select(FileRecord).where(or_(*conditions))
+        # Apply optional metadata filters
+        if category is not None:
+            stmt = stmt.where(FileRecord.category == category)
+        if tags is not None:
+            stmt = stmt.where(FileRecord.tags.contains(tags))
+        if created_after is not None:
+            stmt = stmt.where(FileRecord.created_at >= created_after)
+        if created_before is not None:
+            stmt = stmt.where(FileRecord.created_at <= created_before)
         result = await db.execute(stmt)
         for rec in result.scalars().all():
             candidate_ids.add(rec.id)
@@ -172,6 +190,15 @@ async def search_files(
     # When vector search is active, also pull in files with embeddings
     if query_embedding is not None:
         stmt = select(FileRecord).where(FileRecord.embedding.isnot(None))
+        # Apply optional metadata filters
+        if category is not None:
+            stmt = stmt.where(FileRecord.category == category)
+        if tags is not None:
+            stmt = stmt.where(FileRecord.tags.contains(tags))
+        if created_after is not None:
+            stmt = stmt.where(FileRecord.created_at >= created_after)
+        if created_before is not None:
+            stmt = stmt.where(FileRecord.created_at <= created_before)
         result = await db.execute(stmt)
         for rec in result.scalars().all():
             candidate_ids.add(rec.id)
@@ -210,6 +237,144 @@ async def search_files(
             relevance=round(score, 4),
         )
         for score, rec in page
+    ]
+
+    return SearchResponse(
+        results=results,
+        total=total,
+        offset=offset,
+        limit=limit,
+        query=query,
+    )
+
+
+async def search_files_pg(
+    db: AsyncSession,
+    query: str,
+    offset: int = 0,
+    limit: int = 50,
+    category: str | None = None,
+    tags: str | None = None,
+    created_after: datetime | None = None,
+    created_before: datetime | None = None,
+) -> SearchResponse:
+    """Hybrid NL search using Postgres full-text search + pgvector cosine distance.
+
+    Requires a PostgreSQL backend with the ``pgvector`` extension enabled.
+    Falls back to ``search_files`` when the backend does not support the
+    required features (e.g. SQLite in tests).
+    """
+    from pgvector.sqlalchemy import Vector
+    from sqlalchemy import bindparam
+    from sqlalchemy import text as sa_text
+
+    # Check whether the backend supports pgvector / FTS
+    dialect_name = db.get_bind().dialect.name if db.get_bind() is not None else ""
+    if dialect_name != "postgresql":
+        logger.debug(
+            "Dialect %s does not support pgvector+FTS; falling back to search_files",
+            dialect_name,
+        )
+        return await search_files(
+            db, query, offset, limit, category, tags, created_after, created_before
+        )
+
+    # Generate query embedding (best-effort)
+    query_embedding: list[float] | None = None
+    try:
+        query_embedding = await generate_embedding_async(query)
+    except Exception:
+        logger.warning("Query embedding generation failed, using keyword-only", exc_info=True)
+
+    vector_weight = settings.search_vector_weight
+
+    # Collect where conditions
+    conditions: list = []
+
+    # Keyword pre-filter
+    kw_cond = func.to_tsvector(
+        "english",
+        func.coalesce(FileRecord.filename, "")
+        + " "
+        + func.coalesce(FileRecord.summary, "")
+        + " "
+        + func.coalesce(FileRecord.tags, ""),
+    ).op("@@")(func.plainto_tsquery("english", query))
+
+    if query_embedding is not None:
+        conditions.append(or_(kw_cond, FileRecord.embedding.isnot(None)))
+    else:
+        conditions.append(kw_cond)
+
+    # Optional metadata filters
+    if category is not None:
+        conditions.append(FileRecord.category == category)
+    if tags is not None:
+        conditions.append(FileRecord.tags.contains(tags))
+    if created_after is not None:
+        conditions.append(FileRecord.created_at >= created_after)
+    if created_before is not None:
+        conditions.append(FileRecord.created_at <= created_before)
+
+    # Count total before pagination
+    count_stmt = select(func.count()).select_from(FileRecord).where(*conditions)
+    total_result = await db.execute(count_stmt)
+    total: int = total_result.scalar_one()
+
+    # Keyword score expression (ts_rank over combined text fields)
+    kw_score_expr = func.ts_rank(
+        func.to_tsvector(
+            "english",
+            func.coalesce(FileRecord.filename, "")
+            + " "
+            + func.coalesce(FileRecord.summary, "")
+            + " "
+            + func.coalesce(FileRecord.tags, ""),
+        ),
+        func.plainto_tsquery("english", query),
+    )
+
+    # Compute hybrid score: weighted combination of keyword + vector
+    hybrid_score = (1.0 - vector_weight) * func.coalesce(
+        kw_score_expr, 0.0
+    ) + vector_weight * func.coalesce(
+        sa_text("1.0 - (file_records.embedding <=> :query_embedding) / 2.0").bindparams(
+            bindparam("query_embedding", type_=Vector(384))
+        ),
+        0.0,
+    )
+
+    # Main query with scoring + ordering + pagination
+    stmt = (
+        select(FileRecord, hybrid_score.label("hybrid_score"))
+        .where(*conditions)
+        .order_by(sa_text("hybrid_score DESC"))
+        .offset(offset)
+        .limit(limit)
+    )
+
+    exec_params: dict[str, list[float]] = {}
+    if query_embedding is not None:
+        exec_params["query_embedding"] = query_embedding
+
+    result = await db.execute(stmt, exec_params)
+    rows = result.all()
+
+    results = [
+        SearchResult(
+            id=rec.id,
+            filename=rec.filename,
+            size=rec.size,
+            content_type=rec.content_type,
+            checksum=rec.checksum,
+            created_at=rec.created_at,
+            category=rec.category,
+            tags=rec.tags,
+            summary=rec.summary,
+            source=rec.source,
+            relevance=round(float(hybrid), 4),
+        )
+        for rec, hybrid in rows
     ]
 
     return SearchResponse(
