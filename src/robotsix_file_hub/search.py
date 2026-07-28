@@ -335,14 +335,17 @@ async def search_files_pg(
     )
 
     # Compute hybrid score: weighted combination of keyword + vector
-    hybrid_score = (1.0 - vector_weight) * func.coalesce(
-        kw_score_expr, 0.0
-    ) + vector_weight * func.coalesce(
-        sa_text("1.0 - (file_records.embedding <=> :query_embedding) / 2.0").bindparams(
-            bindparam("query_embedding", type_=Vector(384))
-        ),
-        0.0,
-    )
+    if query_embedding is not None:
+        hybrid_score = (1.0 - vector_weight) * func.coalesce(
+            kw_score_expr, 0.0
+        ) + vector_weight * func.coalesce(
+            sa_text("1.0 - (file_records.embedding <=> :query_embedding) / 2.0").bindparams(
+                bindparam("query_embedding", type_=Vector(384))
+            ),
+            0.0,
+        )
+    else:
+        hybrid_score = kw_score_expr
 
     # Main query with scoring + ordering + pagination
     stmt = (
