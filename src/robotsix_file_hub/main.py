@@ -6,12 +6,14 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from sqlalchemy import text
 
 from .config import Settings
 from .database import engine
 from .models import Base
 from .routes.files import router as files_router
 from .routes.tasks import router as tasks_router
+from .storage import StorageError, create_storage_backend
 from .tasks import start_workers, stop_workers
 
 
@@ -49,4 +51,23 @@ app.include_router(tasks_router)
 
 @app.get("/health")
 async def health() -> dict[str, str]:
-    return {"status": "ok"}
+    db_status = "ok"
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+    except Exception:
+        db_status = "error"
+
+    storage_status = "ok"
+    try:
+        storage = create_storage_backend()
+        await storage.save("__health_check__", b"health-check")
+        await storage.delete("__health_check__")
+    except StorageError:
+        storage_status = "error"
+
+    return {
+        "status": "ok" if db_status == "ok" and storage_status == "ok" else "degraded",
+        "db": db_status,
+        "storage": storage_status,
+    }
