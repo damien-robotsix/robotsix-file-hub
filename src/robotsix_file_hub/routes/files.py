@@ -240,41 +240,6 @@ async def list_categories(
     return CategoriesResponse(categories=sorted(rows))
 
 
-@router.delete(
-    "/{file_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    responses={404: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
-)
-async def delete_file(
-    file_id: str,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    storage: Annotated[StorageBackend, Depends(_get_storage)],
-) -> None:
-    """Delete a stored file and its metadata."""
-    record = await db.get(FileRecord, file_id)
-    if record is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
-
-    # Delete the DB record first so we never have an orphan row
-    # pointing to already-deleted storage bytes.
-    await db.delete(record)
-    try:
-        await db.commit()
-    except Exception as exc:
-        await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database failure: {exc}",
-        ) from exc
-
-    # Best-effort storage cleanup — the record is already gone, so
-    # a stale file on disk is harmless; log and move on.
-    try:
-        await storage.delete(record.storage_key)
-    except StorageError:
-        logger.warning("Failed to delete storage key %s for file %s", record.storage_key, file_id)
-
-
 @router.get(
     "/{file_id}",
     responses={404: {"model": ErrorResponse}},
@@ -325,6 +290,10 @@ async def delete_file(
     Pass either the ``X-Confirm-Delete: true`` header or the
     ``?confirm=true`` query parameter.
     """
+    record = await db.get(FileRecord, file_id)
+    if record is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+
     if x_confirm_delete != "true" and confirm != "true":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -334,19 +303,8 @@ async def delete_file(
             ),
         )
 
-    record = await db.get(FileRecord, file_id)
-    if record is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
-
-    storage_key = record.storage_key
-    try:
-        await storage.delete(storage_key)
-    except StorageError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Storage failure: {exc}",
-        ) from exc
-
+    # Delete the DB record first so we never have an orphan row
+    # pointing to already-deleted storage bytes.
     await db.delete(record)
     try:
         await db.commit()
@@ -356,6 +314,13 @@ async def delete_file(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Database failure: {exc}",
         ) from exc
+
+    # Best-effort storage cleanup — the record is already gone, so
+    # a stale file on disk is harmless; log and move on.
+    try:
+        await storage.delete(record.storage_key)
+    except StorageError:
+        logger.warning("Failed to delete storage key %s for file %s", record.storage_key, file_id)
 
 
 @router.get(
