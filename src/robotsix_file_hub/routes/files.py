@@ -237,7 +237,7 @@ async def list_categories(
     """Return a sorted list of distinct categories across all files."""
     stmt = select(FileRecord.category).where(FileRecord.category.isnot(None)).distinct()
     rows = (await db.execute(stmt)).scalars().all()
-    return CategoriesResponse(categories=sorted(rows))
+    return CategoriesResponse(categories=sorted(c for c in rows if c is not None))
 
 
 @router.get(
@@ -279,10 +279,10 @@ async def download_file(
 )
 async def delete_file(
     file_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    storage: Annotated[StorageBackend, Depends(_get_storage)],
     x_confirm_delete: Annotated[str | None, Header()] = None,
     confirm: Annotated[str | None, Query()] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None,
-    storage: Annotated[StorageBackend, Depends(_get_storage)] = None,
 ) -> None:
     """Delete a stored file and its database record.
 
