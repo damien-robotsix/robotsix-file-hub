@@ -2,6 +2,7 @@
 
 ## 0.0.0 (unreleased)
 
+- Add MIT LICENSE file at repo root and declare `license = {text = "MIT"}` in pyproject.toml.
 - Add `GET /deploy-spec` endpoint that serves `deploy/docker-compose.yml` with the `central-deploy-contract-version: 1` response header, enabling central-deploy component registration.
 - Remove duplicate `DELETE /{file_id}` handler; consolidate into single guarded handler with correct DB-first ordering (404 check before confirmation, storage delete after DB commit)
 - Fix `search_files_pg` 500 error when embedding generation fails: guard the hybrid_score expression so the vector component is only included when `query_embedding is not None`, falling back to keyword-only scoring.
