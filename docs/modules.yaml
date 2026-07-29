@@ -41,6 +41,7 @@ modules:
       - tests/__init__.py
       - tests/conftest.py
       - tests/test_delete.py
+      - tests/test_deploy_spec.py
       - tests/test_download.py
       - tests/test_embeddings.py
       - tests/test_health.py
