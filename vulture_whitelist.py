@@ -5,6 +5,7 @@
 # _parse_embedding is used by test suites and for backward compatibility.
 
 _.model_config  # pydantic settings / base model config
+_.deploy_spec  # FastAPI route
 _.health  # FastAPI route
 _.upload_file  # FastAPI route
 _.upload_files_batch  # FastAPI route

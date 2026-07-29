@@ -4,8 +4,9 @@ import logging
 import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from sqlalchemy import text
 
 from .config import Settings
@@ -73,3 +74,16 @@ async def health() -> dict[str, str]:
         "db": db_status,
         "storage": storage_status,
     }
+
+
+_DEPLOY_SPEC_PATH = Path("deploy/docker-compose.yml")
+
+
+@app.get("/deploy-spec")
+async def deploy_spec() -> Response:
+    spec_content = _DEPLOY_SPEC_PATH.read_text()
+    return Response(
+        content=spec_content,
+        media_type="application/x-yaml",
+        headers={"central-deploy-contract-version": "1"},
+    )
