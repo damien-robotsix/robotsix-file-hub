@@ -144,6 +144,7 @@ Base URL: `http://localhost:8000`
 | Method | Path | Description | Auth |
 |---|---|---|---|
 | `GET` | `/health` | Health check — returns `{"status":"ok"}` | No |
+| `GET` | `/deploy-spec` | Deploy spec for central-deploy — returns `deploy/docker-compose.yml` with contract-version header | No |
 | `POST` | `/files` | Upload a single file (`multipart/form-data`, field `file`) | If configured |
 | `POST` | `/files/batch` | Upload multiple files (field `files`) | If configured |
 | `GET` | `/files` | List files with pagination and filters (`?category=`, `?tag=`, `?offset=`, `?limit=`, etc.) | If configured |

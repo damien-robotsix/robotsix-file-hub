@@ -41,6 +41,27 @@ Returns a liveness check.
 
 ---
 
+## Deploy Spec
+
+### `GET /deploy-spec`
+
+Returns the deploy specification (`deploy/docker-compose.yml`) for
+central-deploy component registration.  The response includes the
+`central-deploy-contract-version: 1` header, which central-deploy
+requires to validate the spec during component registration.
+
+No authentication is required.
+
+**Response** `200`
+
+- **Content-Type:** `application/x-yaml`
+- **Headers:** `central-deploy-contract-version: 1`
+- **Body:** YAML content of `deploy/docker-compose.yml`
+
+---
+
+
+
 ## Files
 
 ### `POST /files`
