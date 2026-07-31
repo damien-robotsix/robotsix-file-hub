@@ -63,12 +63,14 @@ known_first_party = ["robotsix_file_hub"]
 [tool.deptry.per_rule_ignores]
 DEP002 = [
     "aiosqlite",
+    "alembic",
     "asyncpg",
-    "uvicorn",
+    "pytest",
+    "pytest-asyncio",
     "python-multipart",
     "ruff",
     "mypy",
-    "pytest-asyncio",
+    "uvicorn",
 ]
 
 [dependency-groups]
