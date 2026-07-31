@@ -43,7 +43,7 @@ MAX_FILE_SIZE = get_settings().max_file_size
 _storage: StorageBackend | None = None
 
 
-def get_storage_dep() -> StorageBackend:
+def _get_storage() -> StorageBackend:
     global _storage
     if _storage is None:
         _storage = _get_storage()
@@ -115,7 +115,7 @@ async def _process_upload(
 async def upload_file(
     file: Annotated[UploadFile, File()],
     db: Annotated[AsyncSession, Depends(get_db)],
-    storage: Annotated[StorageBackend, Depends(get_storage_dep)],
+    storage: Annotated[StorageBackend, Depends(_get_storage)],
 ) -> FileUploadResponse:
     """Upload a single file."""
     record = await _process_upload(file, storage, db)
@@ -152,7 +152,7 @@ async def upload_file(
 async def upload_files_batch(
     files: Annotated[list[UploadFile], File()],
     db: Annotated[AsyncSession, Depends(get_db)],
-    storage: Annotated[StorageBackend, Depends(get_storage_dep)],
+    storage: Annotated[StorageBackend, Depends(_get_storage)],
 ) -> BatchUploadResponse:
     """Upload multiple files in a single batch request.
 
@@ -241,7 +241,7 @@ async def list_categories(
 async def download_file(
     file_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
-    storage: Annotated[StorageBackend, Depends(get_storage_dep)],
+    storage: Annotated[StorageBackend, Depends(_get_storage)],
 ) -> Response:
     """Stream the raw file bytes for a stored file."""
     record = await db.get(FileRecord, file_id)
@@ -274,7 +274,7 @@ async def download_file(
 async def delete_file(
     file_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
-    storage: Annotated[StorageBackend, Depends(get_storage_dep)],
+    storage: Annotated[StorageBackend, Depends(_get_storage)],
     x_confirm_delete: Annotated[str | None, Header()] = None,
     confirm: Annotated[str | None, Query()] = None,
 ) -> None:

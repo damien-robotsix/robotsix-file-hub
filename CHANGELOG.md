@@ -49,7 +49,6 @@
 - Add `robotsix-http` retry/backoff for upstream LLM API calls in `enrichment.py`, so transient errors (429 rate-limit, 503 unavailable, connection resets) are retried with exponential backoff instead of failing immediately.
 - Bootstrap `.robotsix-mill/periodic/` with presence files for 14 periodic workflows (audit, health, survey, changelog_autofill, repo_description_sync, completeness_check, copy_paste, docstring_coverage, test_gap, module_curator, module_size, bc_check, agent_check, triage_boilerplate)
 - Fix invalid commit SHA in `.github/workflows/docker-publish.yml` for `docker-release` reusable workflow (`damien-robotsix/robotsix-github-workflows`).
-- Add GitHub Actions CI pipeline with lint (ruff), type-check (mypy), and test (pytest) jobs, including a Postgres pgvector service container for tests.
 - Add `get_current_user` FastAPI dependency that extracts and validates
   bearer tokens / API keys and returns the authenticated user identity
 - Add `X-API-Key` header support as an alternative to `Authorization: Bearer` for authentication.
