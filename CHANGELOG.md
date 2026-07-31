@@ -2,6 +2,7 @@
 
 ## 0.0.0 (unreleased)
 
+- Fix invalid commit SHA in `.github/workflows/docker-publish.yml` for `docker-release` reusable workflow (`damien-robotsix/robotsix-github-workflows`).
 - Add `get_current_user` FastAPI dependency that extracts and validates
   bearer tokens / API keys and returns the authenticated user identity
 - Add `X-API-Key` header support as an alternative to `Authorization: Bearer` for authentication.
