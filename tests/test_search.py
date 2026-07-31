@@ -183,15 +183,17 @@ async def _search_db_session() -> AsyncGenerator[AsyncSession]:
     seed records and call ``search_files`` directly without relying
     on the application stack or ``conftest.py`` imports.
     """
-    tmpdir = tempfile.mkdtemp()
-    db_path = os.path.join(tmpdir, "test.db")
-    engine = create_async_engine(f"sqlite+aiosqlite:///{db_path}", echo=False)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    factory = async_sessionmaker(engine, expire_on_commit=False)
-    async with factory() as session:
-        yield session
-    await engine.dispose()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = os.path.join(tmpdir, "test.db")
+        engine = create_async_engine(f"sqlite+aiosqlite:///{db_path}", echo=False)
+        try:
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+            factory = async_sessionmaker(engine, expire_on_commit=False)
+            async with factory() as session:
+                yield session
+        finally:
+            await engine.dispose()
 
 
 async def test_search_files_keyword_basic(
