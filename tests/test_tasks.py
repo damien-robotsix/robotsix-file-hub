@@ -2,49 +2,15 @@
 
 import asyncio
 import io
-import os
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from src.robotsix_file_hub.models import Base, FileRecord
-from src.robotsix_file_hub.storage import LocalStorageBackend, StorageBackend
+from src.robotsix_file_hub.models import FileRecord
+from src.robotsix_file_hub.storage import StorageBackend
 from src.robotsix_file_hub.tasks import enqueue_enrichment, start_workers, stop_workers
-
-
-@pytest.fixture
-async def tasks_test_env(tmp_upload_dir: str):
-    """Set up engine, session factory, storage, and monkey-patch tasks_module.
-
-    Yields ``(session_factory, storage)`` for worker / reindex unit tests
-    that monkey-patch ``tasks_module.async_session_factory``.
-    """
-    import src.robotsix_file_hub.tasks as tasks_module
-
-    db_path = os.path.join(tmp_upload_dir, "test.db")
-    database_url = f"sqlite+aiosqlite:///{db_path}"
-    engine = create_async_engine(database_url, echo=False)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    session_factory = async_sessionmaker(engine, expire_on_commit=False)
-
-    storage = LocalStorageBackend(base_path=tmp_upload_dir)
-
-    original_session_local = tasks_module.async_session_factory
-    tasks_module.async_session_factory = session_factory  # type: ignore[assignment]
-
-    try:
-        yield session_factory, storage
-    finally:
-        tasks_module._storage = None
-        tasks_module.async_session_factory = original_session_local
-        tasks_module._reindex_total = 0
-        tasks_module._reindex_completed = 0
-        tasks_module._reindex_failed = 0
-        tasks_module._reindex_active = False
-        await engine.dispose()
 
 
 # ── Enrichment worker tests ────────────────────────────────────────

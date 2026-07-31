@@ -132,3 +132,34 @@ def mock_search_embedding() -> list[float]:
         search_module, "generate_embedding_async", new=AsyncMock(return_value=canned)
     ):
         yield canned
+
+
+@pytest.fixture
+async def tasks_test_env(
+    test_session_factory,
+    test_storage: StorageBackend,
+):
+    """Session factory + storage + monkey-patch of ``tasks.async_session_factory``.
+
+    Composes the shared ``test_session_factory`` and ``test_storage`` fixtures
+    and monkey-patches ``src.robotsix_file_hub.tasks.async_session_factory``
+    so worker / reindex / embedding tests share one environment.
+
+    Yields ``(session_factory, storage)``.  Teardown restores the original
+    ``async_session_factory``, clears module-level reindex state, and
+    nulls out ``tasks._storage``.
+    """
+    import src.robotsix_file_hub.tasks as tasks_module
+
+    original_session_factory = tasks_module.async_session_factory
+    tasks_module.async_session_factory = test_session_factory  # type: ignore[assignment]
+
+    try:
+        yield test_session_factory, test_storage
+    finally:
+        tasks_module._storage = None
+        tasks_module.async_session_factory = original_session_factory
+        tasks_module._reindex_total = 0
+        tasks_module._reindex_completed = 0
+        tasks_module._reindex_failed = 0
+        tasks_module._reindex_active = False

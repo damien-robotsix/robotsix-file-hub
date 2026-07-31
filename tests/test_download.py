@@ -1,7 +1,6 @@
 """Tests for file download, metadata, and listing endpoints."""
 
 import io
-import os
 from datetime import UTC, datetime
 
 from httpx import AsyncClient
@@ -158,24 +157,6 @@ async def test_list_files_content_type_filter(test_client: AsyncClient) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Helper: create dummy files and populate the DB with given FileRecord list
-# ---------------------------------------------------------------------------
-async def _seed_records(
-    base_path: str,
-    session: AsyncSession,
-    records: list[FileRecord],
-) -> None:
-    """Create placeholder files on disk and insert FileRecords into the DB."""
-    for rec in records:
-        p = os.path.join(base_path, rec.filename)
-        with open(p, "wb") as f:
-            f.write(b"x")
-        rec.storage_key = p
-    session.add_all(records)
-    await session.commit()
-
-
-# ---------------------------------------------------------------------------
 # Category filter
 # ---------------------------------------------------------------------------
 
@@ -183,19 +164,17 @@ async def _seed_records(
 async def test_list_files_category_filter(
     test_client: AsyncClient,
     test_db_session: AsyncSession,
-    tmp_upload_dir: str,
 ) -> None:
     """GET /files?category=... filters by exact category match."""
     now = datetime.now(UTC)
-    await _seed_records(
-        tmp_upload_dir,
-        test_db_session,
+    test_db_session.add_all(
         [
             FileRecord(
                 filename="doc_a.txt",
                 size=1,
                 content_type="text/plain",
                 checksum="a1",
+                storage_key="/tmp/doc_a.txt",
                 category="documents",
                 tags="important",
                 created_at=now,
@@ -205,6 +184,7 @@ async def test_list_files_category_filter(
                 size=1,
                 content_type="text/plain",
                 checksum="b2",
+                storage_key="/tmp/doc_b.txt",
                 category="documents",
                 tags="draft",
                 created_at=now,
@@ -214,12 +194,14 @@ async def test_list_files_category_filter(
                 size=1,
                 content_type="image/png",
                 checksum="c3",
+                storage_key="/tmp/img_c.png",
                 category="images",
                 tags="photo",
                 created_at=now,
             ),
-        ],
+        ]
     )
+    await test_db_session.commit()
 
     response = await test_client.get("/files", params={"category": "documents"})
 
@@ -238,19 +220,17 @@ async def test_list_files_category_filter(
 async def test_list_files_tag_filter(
     test_client: AsyncClient,
     test_db_session: AsyncSession,
-    tmp_upload_dir: str,
 ) -> None:
     """GET /files?tag=... filters by tag substring match."""
     now = datetime.now(UTC)
-    await _seed_records(
-        tmp_upload_dir,
-        test_db_session,
+    test_db_session.add_all(
         [
             FileRecord(
                 filename="a.txt",
                 size=1,
                 content_type="text/plain",
                 checksum="aa",
+                storage_key="/tmp/a.txt",
                 category="docs",
                 tags="urgent,review",
                 created_at=now,
@@ -260,6 +240,7 @@ async def test_list_files_tag_filter(
                 size=1,
                 content_type="text/plain",
                 checksum="bb",
+                storage_key="/tmp/b.txt",
                 category="docs",
                 tags="review,later",
                 created_at=now,
@@ -269,12 +250,14 @@ async def test_list_files_tag_filter(
                 size=1,
                 content_type="text/plain",
                 checksum="cc",
+                storage_key="/tmp/c.txt",
                 category="misc",
                 tags="archive",
                 created_at=now,
             ),
-        ],
+        ]
     )
+    await test_db_session.commit()
 
     response = await test_client.get("/files", params={"tag": "review"})
 
@@ -293,21 +276,19 @@ async def test_list_files_tag_filter(
 async def test_list_files_date_before_filter(
     test_client: AsyncClient,
     test_db_session: AsyncSession,
-    tmp_upload_dir: str,
 ) -> None:
     """GET /files?before=... filters files created before a date."""
     t0 = datetime(2025, 1, 10, tzinfo=UTC)
     t1 = datetime(2025, 1, 15, tzinfo=UTC)
     t2 = datetime(2025, 1, 20, tzinfo=UTC)
-    await _seed_records(
-        tmp_upload_dir,
-        test_db_session,
+    test_db_session.add_all(
         [
             FileRecord(
                 filename="old.txt",
                 size=1,
                 content_type="text/plain",
                 checksum="o1",
+                storage_key="/tmp/old.txt",
                 category=None,
                 tags=None,
                 created_at=t0,
@@ -317,6 +298,7 @@ async def test_list_files_date_before_filter(
                 size=1,
                 content_type="text/plain",
                 checksum="m1",
+                storage_key="/tmp/mid.txt",
                 category=None,
                 tags=None,
                 created_at=t1,
@@ -326,16 +308,17 @@ async def test_list_files_date_before_filter(
                 size=1,
                 content_type="text/plain",
                 checksum="n1",
+                storage_key="/tmp/new.txt",
                 category=None,
                 tags=None,
                 created_at=t2,
             ),
-        ],
+        ]
     )
+    await test_db_session.commit()
 
-    response = await test_client.get(
-        "/files", params={"before": "2025-01-17T00:00:00Z"}
-    )
+    cutoff = "2025-01-17T00:00:00Z"
+    response = await test_client.get("/files", params={"before": cutoff})
 
     assert response.status_code == 200
     data = response.json()
@@ -352,21 +335,19 @@ async def test_list_files_date_before_filter(
 async def test_list_files_date_after_filter(
     test_client: AsyncClient,
     test_db_session: AsyncSession,
-    tmp_upload_dir: str,
 ) -> None:
     """GET /files?after=... filters files created after a date."""
     t0 = datetime(2025, 1, 10, tzinfo=UTC)
     t1 = datetime(2025, 1, 15, tzinfo=UTC)
     t2 = datetime(2025, 1, 20, tzinfo=UTC)
-    await _seed_records(
-        tmp_upload_dir,
-        test_db_session,
+    test_db_session.add_all(
         [
             FileRecord(
                 filename="old.txt",
                 size=1,
                 content_type="text/plain",
                 checksum="o1",
+                storage_key="/tmp/old.txt",
                 category=None,
                 tags=None,
                 created_at=t0,
@@ -376,6 +357,7 @@ async def test_list_files_date_after_filter(
                 size=1,
                 content_type="text/plain",
                 checksum="m1",
+                storage_key="/tmp/mid.txt",
                 category=None,
                 tags=None,
                 created_at=t1,
@@ -385,16 +367,17 @@ async def test_list_files_date_after_filter(
                 size=1,
                 content_type="text/plain",
                 checksum="n1",
+                storage_key="/tmp/new.txt",
                 category=None,
                 tags=None,
                 created_at=t2,
             ),
-        ],
+        ]
     )
+    await test_db_session.commit()
 
-    response = await test_client.get(
-        "/files", params={"after": "2025-01-17T00:00:00Z"}
-    )
+    cutoff = "2025-01-17T00:00:00Z"
+    response = await test_client.get("/files", params={"after": cutoff})
 
     assert response.status_code == 200
     data = response.json()
@@ -410,15 +393,12 @@ async def test_list_files_date_after_filter(
 async def test_list_files_combined_filters(
     test_client: AsyncClient,
     test_db_session: AsyncSession,
-    tmp_upload_dir: str,
 ) -> None:
     """GET /files combines category, tag, and date filters."""
     t_old = datetime(2025, 1, 5, tzinfo=UTC)
     t_mid = datetime(2025, 1, 15, tzinfo=UTC)
     t_new = datetime(2025, 1, 25, tzinfo=UTC)
-    await _seed_records(
-        tmp_upload_dir,
-        test_db_session,
+    test_db_session.add_all(
         [
             # Should match: docs + "review" tag + mid-range date
             FileRecord(
@@ -426,6 +406,7 @@ async def test_list_files_combined_filters(
                 size=1,
                 content_type="text/plain",
                 checksum="m1",
+                storage_key="/tmp/match.txt",
                 category="docs",
                 tags="review,urgent",
                 created_at=t_mid,
@@ -436,6 +417,7 @@ async def test_list_files_combined_filters(
                 size=1,
                 content_type="text/plain",
                 checksum="w1",
+                storage_key="/tmp/wrong_cat.txt",
                 category="images",
                 tags="review",
                 created_at=t_mid,
@@ -446,6 +428,7 @@ async def test_list_files_combined_filters(
                 size=1,
                 content_type="text/plain",
                 checksum="w2",
+                storage_key="/tmp/wrong_tag.txt",
                 category="docs",
                 tags="draft",
                 created_at=t_mid,
@@ -456,6 +439,7 @@ async def test_list_files_combined_filters(
                 size=1,
                 content_type="text/plain",
                 checksum="w3",
+                storage_key="/tmp/too_old.txt",
                 category="docs",
                 tags="review",
                 created_at=t_old,
@@ -466,12 +450,14 @@ async def test_list_files_combined_filters(
                 size=1,
                 content_type="text/plain",
                 checksum="w4",
+                storage_key="/tmp/too_new.txt",
                 category="docs",
                 tags="review",
                 created_at=t_new,
             ),
-        ],
+        ]
     )
+    await test_db_session.commit()
 
     response = await test_client.get(
         "/files",
