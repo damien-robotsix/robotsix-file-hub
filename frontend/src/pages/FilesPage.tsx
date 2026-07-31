@@ -1,6 +1,15 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { deleteFile, listFiles, listCategories, type FileMetadata, type ListFilesParams } from "../api.ts";
+import {
+  deleteFile,
+  listFiles,
+  listCategories,
+  triggerReindex,
+  getReindexProgress,
+  type FileMetadata,
+  type ListFilesParams,
+  type ReindexProgress,
+} from "../api.ts";
 import FilePreview from "../components/FilePreview.tsx";
 import UploadDialog from "../components/UploadDialog.tsx";
 
@@ -70,6 +79,12 @@ export default function FilesPage() {
   const [after, setAfter] = useState("");
   const [before, setBefore] = useState("");
 
+  // Reindex
+  const [reindexing, setReindexing] = useState(false);
+  const [reindexProgress, setReindexProgress] = useState<ReindexProgress | null>(null);
+  const [reindexError, setReindexError] = useState<string | null>(null);
+  const reindexTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   // Available categories for dropdown
   const [categories, setCategories] = useState<string[]>([]);
 
@@ -89,6 +104,46 @@ export default function FilesPage() {
       setError(String(e));
     }
   };
+
+  const handleReindex = async () => {
+    setReindexError(null);
+    setReindexProgress(null);
+    setReindexing(true);
+    try {
+      await triggerReindex();
+    } catch (e: unknown) {
+      setReindexError(String(e));
+      setReindexing(false);
+    }
+  };
+
+  // Poll reindex progress while active
+  useEffect(() => {
+    if (!reindexing) return;
+
+    const poll = async () => {
+      try {
+        const progress = await getReindexProgress();
+        setReindexProgress(progress);
+        if (!progress.active) {
+          setReindexing(false);
+        }
+      } catch (e: unknown) {
+        setReindexError(String(e));
+        setReindexing(false);
+      }
+    };
+
+    poll(); // immediate first poll
+    reindexTimerRef.current = setInterval(poll, 2000);
+
+    return () => {
+      if (reindexTimerRef.current !== null) {
+        clearInterval(reindexTimerRef.current);
+        reindexTimerRef.current = null;
+      }
+    };
+  }, [reindexing]);
 
   const fetchFiles = useCallback(async () => {
     setLoading(true);
@@ -151,7 +206,24 @@ export default function FilesPage() {
         }}
       >
         <h1>Files</h1>
-        <button
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          <button
+            onClick={handleReindex}
+            disabled={reindexing}
+            style={{
+              padding: "0.4rem 0.9rem",
+              fontSize: "0.9rem",
+              cursor: reindexing ? "not-allowed" : "pointer",
+              background: "#6c757d",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              opacity: reindexing ? 0.65 : 1,
+            }}
+          >
+            {reindexing ? "Reindexing…" : "Reindex"}
+          </button>
+          <button
           onClick={() => setUploadOpen(true)}
           style={{
             padding: "0.4rem 0.9rem",
@@ -164,7 +236,8 @@ export default function FilesPage() {
           }}
         >
           + Upload
-        </button>
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -234,6 +307,34 @@ export default function FilesPage() {
 
       {/* Error */}
       {error && <p className="files-error">{error}</p>}
+
+      {/* Reindex status */}
+      {(reindexing || reindexProgress || reindexError) && (
+        <div style={{ marginBottom: "1rem" }}>
+          {reindexError && <p className="files-error">{reindexError}</p>}
+          {reindexProgress && (
+            <div style={{ padding: "0.75rem", background: "#f8f9fa", borderRadius: "6px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem" }}>
+                <span style={{ fontSize: "0.9rem", fontWeight: 500 }}>
+                  {reindexProgress.active ? "Reindexing…" : "Reindex complete"}
+                </span>
+                <span style={{ fontSize: "0.85rem", color: "#6c757d" }}>
+                  {reindexProgress.completed} / {reindexProgress.total}
+                  {reindexProgress.failed > 0 && ` (${reindexProgress.failed} failed)`}
+                </span>
+              </div>
+              <div className="upload-progress-bar">
+                <div
+                  className={`progress-fill${reindexProgress.failed > 0 ? " error" : ""}${!reindexProgress.active && reindexProgress.failed === 0 ? " success" : ""}`}
+                  style={{
+                    width: `${reindexProgress.total > 0 ? Math.round((reindexProgress.completed / reindexProgress.total) * 100) : 0}%`,
+                  }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Inline file preview */}
       {selectedFileId && (
