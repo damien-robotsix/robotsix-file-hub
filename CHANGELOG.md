@@ -2,6 +2,7 @@
 
 ## 0.0.0 (unreleased)
 
+- Fix broken hot-reload in `docker-compose.yml`: corrected uvicorn import target from `src.robotsix_file_hub.main:app` to `robotsix_file_hub.main:app`, bind mount from `./src:/app/src` to `./src:/home/app/src`, and added `PYTHONPATH: /home/app/src` so the mounted source takes precedence over the installed package.
 - Add `robotsix-http` retry/backoff for upstream LLM API calls in `enrichment.py`, so transient errors (429 rate-limit, 503 unavailable, connection resets) are retried with exponential backoff instead of failing immediately.
 - Bootstrap `.robotsix-mill/periodic/` with presence files for 14 periodic workflows (audit, health, survey, changelog_autofill, repo_description_sync, completeness_check, copy_paste, docstring_coverage, test_gap, module_curator, module_size, bc_check, agent_check, triage_boilerplate)
 - Fix invalid commit SHA in `.github/workflows/docker-publish.yml` for `docker-release` reusable workflow (`damien-robotsix/robotsix-github-workflows`).
