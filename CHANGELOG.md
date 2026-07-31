@@ -2,6 +2,8 @@
 
 ## 0.0.0 (unreleased)
 
+- Add `get_current_user` FastAPI dependency that extracts and validates
+  bearer tokens / API keys and returns the authenticated user identity
 - Add `X-API-Key` header support as an alternative to `Authorization: Bearer` for authentication.
   Invalid tokens now return 401 Unauthorized (was 403).
 - Docker Compose development environment (backend, postgres+pgvector, minio) already in place; no changes needed for this foundation ticket.

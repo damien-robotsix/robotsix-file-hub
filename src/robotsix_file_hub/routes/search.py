@@ -5,12 +5,12 @@ from typing import Annotated
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..auth import require_auth
+from ..auth import get_current_user
 from ..database import get_db
 from ..schemas import ErrorResponse, SearchRequest, SearchResponse
 from ..search import search_files_pg
 
-router = APIRouter(tags=["search"], dependencies=[Depends(require_auth)])
+router = APIRouter(tags=["search"], dependencies=[Depends(get_current_user)])
 
 
 @router.post(

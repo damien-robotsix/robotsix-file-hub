@@ -21,7 +21,7 @@ from fastapi import (
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..auth import require_auth
+from ..auth import get_current_user
 from ..config import Settings
 from ..database import get_db
 from ..models import FileRecord
@@ -41,7 +41,7 @@ from ..tasks import enqueue_enrichment, enqueue_reindex_all, get_reindex_progres
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/files", tags=["files"], dependencies=[Depends(require_auth)])
+router = APIRouter(prefix="/files", tags=["files"], dependencies=[Depends(get_current_user)])
 MAX_FILE_SIZE = Settings().max_file_size
 
 _storage: StorageBackend | None = None
