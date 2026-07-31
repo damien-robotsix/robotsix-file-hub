@@ -1,10 +1,12 @@
-"""Unit tests for storage backend abstractions."""
+"""Unit tests for storage backend abstractions (S3, local) and utilities."""
 
 import tempfile
+from collections.abc import Generator
 from unittest.mock import MagicMock, patch
 
 import pytest
 
+from src.robotsix_file_hub.config import Settings
 from src.robotsix_file_hub.storage import (
     LocalStorageBackend,
     S3StorageBackend,
@@ -266,3 +268,218 @@ async def test_s3_delete_wraps_exception_in_storage_error(
     mock_boto3_client.delete_object.side_effect = RuntimeError("permission denied")
     with pytest.raises(StorageError, match="Failed to delete from S3"):
         await s3_backend.delete("s3://test-bucket/key")
+
+
+# ---------------------------------------------------------------------------
+# S3StorageBackend class-based tests (from PR)
+# ---------------------------------------------------------------------------
+
+
+class TestS3StorageBackend:
+    """Tests for S3StorageBackend with a mocked boto3 client."""
+
+    @pytest.fixture
+    def mock_boto3(self) -> Generator[MagicMock, None, None]:
+        """Patch boto3.client and return the mock client."""
+        with patch("src.robotsix_file_hub.storage.boto3.client") as mock_client_factory:
+            mock_client = MagicMock()
+            mock_client_factory.return_value = mock_client
+            yield mock_client
+
+    @pytest.fixture
+    def backend(self, mock_boto3: MagicMock) -> S3StorageBackend:
+        """Return an S3StorageBackend with a canned config."""
+        return S3StorageBackend(
+            endpoint="http://localhost:9000",
+            bucket="test-bucket",
+            access_key="fake-access",
+            secret_key="fake-secret",
+            region="us-east-1",
+        )
+
+    # -- save -----------------------------------------------------------------
+
+    async def test_save_returns_s3_uri(self, backend: S3StorageBackend) -> None:
+        """save() returns an s3:// URI and calls put_object."""
+        result = await backend.save("abc123", b"content")
+
+        assert result == "s3://test-bucket/abc123"
+        backend.client.put_object.assert_called_once_with(
+            Bucket="test-bucket",
+            Key="abc123",
+            Body=b"content",
+        )
+
+    async def test_save_maps_exception_to_storage_error(self, backend: S3StorageBackend) -> None:
+        """save() wraps put_object failures in StorageError."""
+        backend.client.put_object.side_effect = RuntimeError("bucket gone")
+
+        with pytest.raises(StorageError, match="Failed to upload to S3"):
+            await backend.save("abc123", b"content")
+
+    # -- get ------------------------------------------------------------------
+
+    async def test_get_fetches_bytes(self, backend: S3StorageBackend) -> None:
+        """get() returns bytes from the S3 object body."""
+        mock_body = MagicMock()
+        mock_body.read.return_value = b"stored content"
+        backend.client.get_object.return_value = {"Body": mock_body}
+
+        result = await backend.get("s3://test-bucket/abc123")
+
+        assert result == b"stored content"
+        backend.client.get_object.assert_called_once_with(Bucket="test-bucket", Key="abc123")
+
+    async def test_get_strips_s3_prefix(self, backend: S3StorageBackend) -> None:
+        """get() strips the s3://<bucket>/ prefix when calling get_object."""
+        mock_body = MagicMock()
+        mock_body.read.return_value = b"data"
+        backend.client.get_object.return_value = {"Body": mock_body}
+
+        await backend.get("s3://test-bucket/nested/path/file.txt")
+
+        # The Key passed to S3 is just the suffix after the bucket prefix.
+        backend.client.get_object.assert_called_once_with(
+            Bucket="test-bucket", Key="nested/path/file.txt"
+        )
+
+    async def test_get_maps_exception_to_storage_error(self, backend: S3StorageBackend) -> None:
+        """get() wraps get_object failures in StorageError."""
+        backend.client.get_object.side_effect = RuntimeError("not found")
+
+        with pytest.raises(StorageError, match="Failed to download from S3"):
+            await backend.get("s3://test-bucket/abc123")
+
+    # -- delete ---------------------------------------------------------------
+
+    async def test_delete_calls_delete_object(self, backend: S3StorageBackend) -> None:
+        """delete() calls delete_object with the correct key."""
+        await backend.delete("s3://test-bucket/abc123")
+
+        backend.client.delete_object.assert_called_once_with(Bucket="test-bucket", Key="abc123")
+
+    async def test_delete_strips_s3_prefix(self, backend: S3StorageBackend) -> None:
+        """delete() strips the s3://<bucket>/ prefix correctly."""
+        await backend.delete("s3://test-bucket/nested/file.txt")
+
+        backend.client.delete_object.assert_called_once_with(
+            Bucket="test-bucket", Key="nested/file.txt"
+        )
+
+    async def test_delete_maps_exception_to_storage_error(self, backend: S3StorageBackend) -> None:
+        """delete() wraps delete_object failures in StorageError."""
+        backend.client.delete_object.side_effect = RuntimeError("permission denied")
+
+        with pytest.raises(StorageError, match="Failed to delete from S3"):
+            await backend.delete("s3://test-bucket/abc123")
+
+    # -- __init__ -------------------------------------------------------------
+
+    def test_init_constructs_client(self) -> None:
+        """__init__ calls boto3.client with expected arguments."""
+        with patch("src.robotsix_file_hub.storage.boto3.client") as mock_client_factory:
+            S3StorageBackend(
+                endpoint="http://minio:9000",
+                bucket="my-bucket",
+                access_key="AK",
+                secret_key="SK",
+                region="eu-west-1",
+            )
+
+        mock_client_factory.assert_called_once_with(
+            "s3",
+            endpoint_url="http://minio:9000",
+            aws_access_key_id="AK",
+            aws_secret_access_key="SK",
+            region_name="eu-west-1",
+        )
+
+    def test_init_empty_endpoint_passes_none(self) -> None:
+        """__init__ passes None for endpoint_url when endpoint is empty."""
+        with patch("src.robotsix_file_hub.storage.boto3.client") as mock_client_factory:
+            S3StorageBackend(
+                endpoint="",
+                bucket="my-bucket",
+                access_key="AK",
+                secret_key="SK",
+                region="us-east-1",
+            )
+
+        mock_client_factory.assert_called_once_with(
+            "s3",
+            endpoint_url=None,
+            aws_access_key_id="AK",
+            aws_secret_access_key="SK",
+            region_name="us-east-1",
+        )
+
+
+class TestCreateStorageBackend:
+    """Tests for create_storage_backend factory."""
+
+    def test_returns_s3_backend_when_configured(self) -> None:
+        """Returns S3StorageBackend when storage_backend == 's3'."""
+        s3_settings = Settings(
+            storage_backend="s3",
+            s3_endpoint="http://s3.local",
+            s3_bucket="the-bucket",
+            s3_access_key="key",
+            s3_secret_key="secret",
+            s3_region="us-west-2",
+        )
+        with (
+            patch("src.robotsix_file_hub.storage.settings", s3_settings),
+            patch("src.robotsix_file_hub.storage.boto3.client") as mock_client_factory,
+        ):
+            mock_client = MagicMock()
+            mock_client_factory.return_value = mock_client
+
+            backend = create_storage_backend()
+
+        assert isinstance(backend, S3StorageBackend)
+        assert backend.bucket == "the-bucket"
+        mock_client_factory.assert_called_once_with(
+            "s3",
+            endpoint_url="http://s3.local",
+            aws_access_key_id="key",
+            aws_secret_access_key="secret",
+            region_name="us-west-2",
+        )
+
+    def test_returns_local_backend_by_default(self) -> None:
+        """Returns LocalStorageBackend when storage_backend is not 's3'."""
+        from src.robotsix_file_hub.storage import LocalStorageBackend
+
+        local_settings = Settings(
+            storage_backend="local",
+            local_storage_path="/tmp/uploads",
+        )
+        with patch("src.robotsix_file_hub.storage.settings", local_settings):
+            backend = create_storage_backend()
+
+        assert isinstance(backend, LocalStorageBackend)
+        assert str(backend.base_path) == "/tmp/uploads"
+
+
+class TestComputeChecksum:
+    """Tests for compute_checksum."""
+
+    def test_returns_sha256_hex(self) -> None:
+        """Returns the SHA-256 hex digest of the input bytes."""
+        result = compute_checksum(b"hello")
+        expected = "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+        assert result == expected
+
+    def test_empty_bytes(self) -> None:
+        """Returns the correct digest for empty bytes."""
+        result = compute_checksum(b"")
+        expected = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        assert result == expected
+
+    def test_different_content_different_digest(self) -> None:
+        """Different input produces different digests."""
+        a = compute_checksum(b"hello")
+        b = compute_checksum(b"world")
+        assert a != b
+        assert len(a) == 64
+        assert len(b) == 64
