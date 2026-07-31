@@ -25,4 +25,4 @@ jobs:
         run: uv audit --frozen
 
       - name: Check dependency hygiene
-        run: uv run deptry src/
+        run: uv run --frozen deptry src/
