@@ -21,3 +21,4 @@ _.get_task_status  # FastAPI route
 _.detail  # Pydantic schema field
 _.relevance  # Pydantic schema field
 _._parse_embedding  # backward compat + tests
+_.get_current_user  # auth dependency — consumed by external consumers and tests
