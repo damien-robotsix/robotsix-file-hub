@@ -2,6 +2,8 @@
 
 ## 0.0.0 (unreleased)
 
+- Add `X-API-Key` header support as an alternative to `Authorization: Bearer` for authentication.
+  Invalid tokens now return 401 Unauthorized (was 403).
 - Fix missing favicon: add `frontend/public/vite.svg` so the link in `index.html` resolves.
 - Add MIT LICENSE file at repo root and declare `license = {text = "MIT"}` in pyproject.toml.
 - Add `GET /deploy-spec` endpoint that serves `deploy/docker-compose.yml` with the `central-deploy-contract-version: 1` response header, enabling central-deploy component registration.

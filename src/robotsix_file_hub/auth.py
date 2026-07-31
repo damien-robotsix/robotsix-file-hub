@@ -1,8 +1,8 @@
-"""Authentication dependency for bearer-token protected endpoints."""
+"""Authentication dependency for bearer-token / API-key protected endpoints."""
 
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from .config import Settings
@@ -13,25 +13,36 @@ _bearer_scheme = HTTPBearer(auto_error=False)
 async def require_auth(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer_scheme)],
     settings: Annotated[Settings, Depends(Settings)],
+    x_api_key: Annotated[str | None, Header()] = None,
 ) -> None:
-    """Dependency that enforces bearer-token auth when ``auth_token`` is set.
+    """Dependency that enforces bearer-token or API-key auth when ``auth_token`` is set.
 
     When ``auth_token`` is empty auth is disabled — all requests pass.
-    Otherwise the request MUST include an ``Authorization: Bearer <token>``
-    header matching the configured token.
+    Otherwise the request MUST include either:
+
+    - ``Authorization: Bearer <token>`` header, or
+    - ``X-API-Key: <token>`` header
+
+    matching the configured token.
     """
     if not settings.auth_token:
         return
 
-    if credentials is None:
+    token: str | None = None
+    if credentials is not None:
+        token = credentials.credentials
+    elif x_api_key is not None:
+        token = x_api_key
+
+    if token is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Missing or invalid authorization header",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    if credentials.credentials != settings.auth_token:
+    if token != settings.auth_token:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid bearer token",
         )
