@@ -749,15 +749,38 @@ async def test_auth_missing_token_returns_401(test_client: AsyncClient) -> None:
     assert "detail" in response.json()
 
 
-async def test_auth_wrong_token_returns_403(test_client: AsyncClient) -> None:
-    """When auth_token is set, requests with wrong token return 403."""
+async def test_auth_wrong_token_returns_401(test_client: AsyncClient) -> None:
+    """When auth_token is set, requests with wrong bearer token return 401."""
     app.dependency_overrides[Settings] = lambda: Settings(auth_token="secret")
     try:
         response = await test_client.get("/files", headers={"Authorization": "Bearer wrong"})
     finally:
         app.dependency_overrides.pop(Settings, None)
 
-    assert response.status_code == 403
+    assert response.status_code == 401
+    assert "detail" in response.json()
+
+
+async def test_auth_api_key_succeeds(test_client: AsyncClient) -> None:
+    """When auth_token is set, requests with correct X-API-Key header succeed."""
+    app.dependency_overrides[Settings] = lambda: Settings(auth_token="secret")
+    try:
+        response = await test_client.get("/files", headers={"X-API-Key": "secret"})
+    finally:
+        app.dependency_overrides.pop(Settings, None)
+
+    assert response.status_code == 200
+
+
+async def test_auth_api_key_wrong_returns_401(test_client: AsyncClient) -> None:
+    """When auth_token is set, requests with wrong X-API-Key header return 401."""
+    app.dependency_overrides[Settings] = lambda: Settings(auth_token="secret")
+    try:
+        response = await test_client.get("/files", headers={"X-API-Key": "wrong"})
+    finally:
+        app.dependency_overrides.pop(Settings, None)
+
+    assert response.status_code == 401
     assert "detail" in response.json()
 
 
