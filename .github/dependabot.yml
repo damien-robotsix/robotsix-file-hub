@@ -6,7 +6,7 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 10
     groups:
-      uv-all:
+      python-dependencies:
         patterns:
           - "*"
 
@@ -15,12 +15,17 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
+    groups:
+      npm-dependencies:
+        patterns:
+          - "*"
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+    open-pull-requests-limit: 10
     groups:
-      actions-all:
+      github-actions-dependencies:
         patterns:
           - "*"
