@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  supply-chain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4
+
+      - uses: astral-sh/setup-uv@d4b8049511633b372aa8b5dc7fd0c5dc9ae14bf5  # v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        env:
+          UV_MALWARE_CHECK: "1"
+        run: uv sync --frozen
+
+      - name: Audit dependencies
+        run: uv audit --frozen
+
+      - name: Check dependency hygiene
+        run: uv run deptry src/

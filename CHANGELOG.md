@@ -2,6 +2,7 @@
 
 ## 0.0.0 (unreleased)
 
+- Add supply-chain security scanning to CI: `uv audit --frozen` vulnerability check, `deptry` dependency hygiene, `UV_MALWARE_CHECK=1` during install, and Dependabot configuration for pip and npm ecosystems.
 - Rename `storage_path` → `storage_key` in the frontend `FileMetadata` interface and fix the batch-upload response mapping to pass through the actual backend field value instead of hardcoding an empty string.
 - Eliminated ~150 lines of code duplication between `FilePreview.tsx` and `FileDetailPage.tsx`: extracted `classifyPreview`, `escapeHtml`, and `PreviewKind` into `frontend/src/lib/preview.ts`; `FileDetailPage` now reuses `FilePreview` with `showHeader={false}` and `showMeta={false}` props.
 - Remove five dead `api.ts` exports (`uploadFileWithProgress`, `uploadFiles`, `downloadFile`, `setAuthToken`, `clearAuthToken`) — each superseded by a used sibling helper already wired into the UI.
