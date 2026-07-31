@@ -35,30 +35,10 @@ def _validate_token(
     if token != settings.auth_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid bearer token",
+            detail="Invalid token",
         )
 
     return token
-
-
-async def require_auth(
-    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer_scheme)],
-    settings: Annotated[Settings, Depends(Settings)],
-    x_api_key: Annotated[str | None, Header()] = None,
-) -> None:
-    """Dependency that enforces bearer-token or API-key auth when ``auth_token`` is set.
-
-    When ``auth_token`` is empty auth is disabled — all requests pass.
-    Otherwise the request MUST include either:
-
-    - ``Authorization: Bearer <token>`` header, or
-    - ``X-API-Key: <token>`` header
-
-    matching the configured token.
-    """
-    if not settings.auth_token:
-        return
-    _validate_token(credentials, x_api_key, settings)
 
 
 async def get_current_user(

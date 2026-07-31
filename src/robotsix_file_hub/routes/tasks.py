@@ -2,11 +2,11 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from ..auth import require_auth
+from ..auth import get_current_user
 from ..schemas import ErrorResponse, TaskResponse
 from ..tasks import get_task
 
-router = APIRouter(prefix="/tasks", tags=["tasks"], dependencies=[Depends(require_auth)])
+router = APIRouter(prefix="/tasks", tags=["tasks"], dependencies=[Depends(get_current_user)])
 
 
 @router.get(
