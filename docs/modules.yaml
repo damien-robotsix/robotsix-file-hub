@@ -8,6 +8,7 @@ modules:
       - .env.example
       - .github/workflows/docker-publish.yml
       - .gitignore
+      - .robotsix-mill/periodic/*.yaml
       - Dockerfile
       - LICENSE
       - docker-compose.yml
