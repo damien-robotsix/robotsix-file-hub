@@ -9,6 +9,7 @@ modules:
       - .github/workflows/docker-publish.yml
       - .gitignore
       - Dockerfile
+      - LICENSE
       - docker-compose.yml
       - CHANGELOG.md
       - README.md
