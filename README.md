@@ -136,6 +136,7 @@ See [`.env.example`](.env.example) for a complete annotated example.
 | `FILE_HUB_ENRICHMENT_LLM_EMBEDDING_MODEL` | *(empty)* | Separate embedding model name (falls back to enrichment model) |
 | `FILE_HUB_SEARCH_VECTOR_WEIGHT` | `0.7` | Hybrid search balance (0=keyword, 1=vector) |
 | `FILE_HUB_EMBEDDING_MODEL_NAME` | `sentence-transformers/all-MiniLM-L6-v2` | Local sentence-transformers model |
+| `FILE_HUB_LOG_LEVEL` | `INFO` | Application log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`) |
 
 ## API Reference
 

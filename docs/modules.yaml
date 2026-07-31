@@ -19,6 +19,7 @@ modules:
       - alembic.ini
       - deploy/docker-compose.yml
       - docs/API.md
+      - docs/configuration.md
       - docs/deployment.md
       - docs/modules.yaml
       - migrations/env.py
