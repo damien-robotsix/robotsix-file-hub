@@ -1,38 +1,21 @@
 import { useEffect, useState } from "react";
 import { deleteFile, getFileMetadata, downloadFileUrl, type FileMetadata } from "../api.ts";
 import { formatSize } from "../lib/format.ts";
-
-type PreviewKind = "image" | "pdf" | "text" | "unsupported";
-
-function classifyPreview(contentType: string | null): PreviewKind {
-  if (!contentType) return "unsupported";
-  if (contentType.startsWith("image/")) return "image";
-  if (contentType === "application/pdf") return "pdf";
-  if (
-    contentType.startsWith("text/") ||
-    contentType === "application/json" ||
-    contentType === "application/javascript" ||
-    contentType === "application/xml"
-  ) {
-    return "text";
-  }
-  return "unsupported";
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
+import { classifyPreview, escapeHtml } from "../lib/preview.ts";
 
 interface FilePreviewProps {
   fileId: string;
-  onClose: () => void;
+  onClose?: () => void;
+  showHeader?: boolean;
+  showMeta?: boolean;
 }
 
-export default function FilePreview({ fileId, onClose }: FilePreviewProps) {
+export default function FilePreview({
+  fileId,
+  onClose,
+  showHeader = true,
+  showMeta = true,
+}: FilePreviewProps) {
   const [metadata, setMetadata] = useState<FileMetadata | null>(null);
   const [textContent, setTextContent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +27,7 @@ export default function FilePreview({ fileId, onClose }: FilePreviewProps) {
     setDeleting(true);
     try {
       await deleteFile(fileId);
-      onClose();
+      onClose?.();
     } catch (e: unknown) {
       setError(String(e));
       setDeleting(false);
@@ -86,14 +69,18 @@ export default function FilePreview({ fileId, onClose }: FilePreviewProps) {
   if (error) {
     return (
       <div className="file-preview-panel">
-        <div className="file-preview-header">
-          <h3 className="file-preview-filename">Error loading file</h3>
-          <div className="file-preview-actions">
-            <button onClick={onClose} className="file-preview-close" type="button">
-              ✕ Close
-            </button>
+        {showHeader && (
+          <div className="file-preview-header">
+            <h3 className="file-preview-filename">Error loading file</h3>
+            {onClose && (
+              <div className="file-preview-actions">
+                <button onClick={onClose} className="file-preview-close" type="button">
+                  ✕ Close
+                </button>
+              </div>
+            )}
           </div>
-        </div>
+        )}
         <p className="file-preview-error">{error}</p>
       </div>
     );
@@ -102,14 +89,18 @@ export default function FilePreview({ fileId, onClose }: FilePreviewProps) {
   if (!metadata) {
     return (
       <div className="file-preview-panel">
-        <div className="file-preview-header">
-          <h3 className="file-preview-filename">Loading...</h3>
-          <div className="file-preview-actions">
-            <button onClick={onClose} className="file-preview-close" type="button">
-              ✕ Close
-            </button>
+        {showHeader && (
+          <div className="file-preview-header">
+            <h3 className="file-preview-filename">Loading...</h3>
+            {onClose && (
+              <div className="file-preview-actions">
+                <button onClick={onClose} className="file-preview-close" type="button">
+                  ✕ Close
+                </button>
+              </div>
+            )}
           </div>
-        </div>
+        )}
       </div>
     );
   }
@@ -119,40 +110,46 @@ export default function FilePreview({ fileId, onClose }: FilePreviewProps) {
 
   return (
     <div className="file-preview-panel">
-      <div className="file-preview-header">
-        <h3 className="file-preview-filename">{metadata.filename}</h3>
-        <div className="file-preview-actions">
-          <a href={fileUrl} className="download-btn" download={metadata.filename}>
-            ⬇ Download
-          </a>
-          <button
-            className="delete-btn"
-            onClick={handleDelete}
-            disabled={deleting}
-            type="button"
-          >
-            {deleting ? "Deleting…" : "🗑 Delete"}
-          </button>
-          <button onClick={onClose} className="file-preview-close" type="button">
-            ✕ Close
-          </button>
+      {showHeader && (
+        <div className="file-preview-header">
+          <h3 className="file-preview-filename">{metadata.filename}</h3>
+          <div className="file-preview-actions">
+            <a href={fileUrl} className="download-btn" download={metadata.filename}>
+              ⬇ Download
+            </a>
+            <button
+              className="delete-btn"
+              onClick={handleDelete}
+              disabled={deleting}
+              type="button"
+            >
+              {deleting ? "Deleting…" : "🗑 Delete"}
+            </button>
+            {onClose && (
+              <button onClick={onClose} className="file-preview-close" type="button">
+                ✕ Close
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="file-preview-meta">
-        <span>{formatSize(metadata.size)}</span>
-        <span>{metadata.content_type}</span>
-        {metadata.category && <span className="file-preview-category">{metadata.category}</span>}
-        {metadata.tags && (
-          <span className="file-preview-tags">
-            {metadata.tags.split(",").map((t) => (
-              <span key={t} className="tag">
-                {t.trim()}
-              </span>
-            ))}
-          </span>
-        )}
-      </div>
+      {showMeta && (
+        <div className="file-preview-meta">
+          <span>{formatSize(metadata.size)}</span>
+          <span>{metadata.content_type}</span>
+          {metadata.category && <span className="file-preview-category">{metadata.category}</span>}
+          {metadata.tags && (
+            <span className="file-preview-tags">
+              {metadata.tags.split(",").map((t) => (
+                <span key={t} className="tag">
+                  {t.trim()}
+                </span>
+              ))}
+            </span>
+          )}
+        </div>
+      )}
 
       <div className="file-preview-content">
         {previewKind === "image" && (

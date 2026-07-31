@@ -2,6 +2,7 @@
 
 ## 0.0.0 (unreleased)
 
+- Eliminated ~150 lines of code duplication between `FilePreview.tsx` and `FileDetailPage.tsx`: extracted `classifyPreview`, `escapeHtml`, and `PreviewKind` into `frontend/src/lib/preview.ts`; `FileDetailPage` now reuses `FilePreview` with `showHeader={false}` and `showMeta={false}` props.
 - Remove five dead `api.ts` exports (`uploadFileWithProgress`, `uploadFiles`, `downloadFile`, `setAuthToken`, `clearAuthToken`) — each superseded by a used sibling helper already wired into the UI.
 - Reindex button and live progress indicator added to the Files page, wiring the existing `POST /files/reindex` and `GET /files/reindex/progress` backend endpoints to the UI.
 - Wire delete-file UI: add Delete buttons to FilesPage table rows, FilePreview modal header, and FileDetailPage, backed by `deleteFile` with `X-Confirm-Delete` header and `window.confirm` guard.
