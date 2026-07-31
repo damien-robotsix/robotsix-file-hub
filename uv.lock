@@ -1223,6 +1223,7 @@ dependencies = [
     { name = "pypdf" },
     { name = "python-docx" },
     { name = "python-multipart" },
+    { name = "robotsix-http" },
     { name = "sentence-transformers" },
     { name = "sqlalchemy" },
     { name = "uvicorn", extra = ["standard"] },
@@ -1264,6 +1265,7 @@ requires-dist = [
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.25.0" },
     { name = "python-docx", specifier = ">=1.1.0" },
     { name = "python-multipart", specifier = ">=0.0.19" },
+    { name = "robotsix-http", git = "https://github.com/damien-robotsix/robotsix-http.git?tag=v0.1.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8.0" },
     { name = "sentence-transformers", specifier = ">=3.4.0" },
     { name = "sqlalchemy", specifier = ">=2.0.36" },
@@ -1278,6 +1280,14 @@ dev = [
     { name = "mypy-baseline", specifier = ">=0.7.4" },
     { name = "ruff", specifier = ">=0.16.0" },
     { name = "vulture", specifier = ">=2.16" },
+]
+
+[[package]]
+name = "robotsix-http"
+version = "0.1.0"
+source = { git = "https://github.com/damien-robotsix/robotsix-http.git?tag=v0.1.0#8650e7382a3b005655f87dc714bf20d539815281" }
+dependencies = [
+    { name = "httpx" },
 ]
 
 [[package]]
