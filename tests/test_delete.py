@@ -76,7 +76,7 @@ async def test_delete_file_removes_db_record(
     assert response.status_code == 204
     # Expunge the cached record so session.get() hits the database
     # rather than returning the stale identity-map entry.
-    await test_db_session.expunge(uploaded_file)
+    test_db_session.expunge(uploaded_file)
     record = await test_db_session.get(FileRecord, uploaded_file.id)
     assert record is None
 

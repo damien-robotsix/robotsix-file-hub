@@ -6,3 +6,4 @@ uploads/
 .pytest_cache/
 node_modules/
 dist/
+.deps/
