@@ -11,18 +11,19 @@ services:
       FILE_HUB_S3_SECRET_KEY: minioadmin
       FILE_HUB_S3_BUCKET: file-hub
       FILE_HUB_S3_REGION: us-east-1
+      PYTHONPATH: /home/app/src
     depends_on:
       postgres:
         condition: service_healthy
       minio:
         condition: service_healthy
     volumes:
-      - ./src:/app/src
+      - ./src:/home/app/src
     command:
       - uv
       - run
       - uvicorn
-      - src.robotsix_file_hub.main:app
+      - robotsix_file_hub.main:app
       - --host
       - "0.0.0.0"
       - --port
