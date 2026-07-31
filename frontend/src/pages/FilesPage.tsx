@@ -377,7 +377,9 @@ export default function FilesPage() {
                 <td className="cell-mono">{f.content_type}</td>
                 <td>{formatBytes(f.size)}</td>
                 <td>{formatDate(f.created_at)}</td>
-                <td>{f.category ? <span className="badge badge-category">{f.category}</span> : "—"}</td>
+                <td>
+                  {f.category ? <span className="badge badge-category">{f.category}</span> : "—"}
+                </td>
                 <td>
                   {f.tags
                     ? f.tags.split(",").map((t) => (
