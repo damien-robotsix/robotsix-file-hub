@@ -10,12 +10,14 @@ failing the upload.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
+import random
+from collections.abc import Callable
 from typing import Any, cast
 
 import httpx
-from robotsix_http.retry import RetryConfig, acall_with_retry
 
 from .config import Settings
 
@@ -25,8 +27,61 @@ settings = Settings()
 
 # Retry configuration for upstream LLM API calls.
 # Transient errors (429, 5xx, timeouts, transport errors) are retried
-# with exponential backoff + jitter via robotsix_http.acall_with_retry.
-_LLM_RETRY_CONFIG = RetryConfig(max_retries=3, backoff_base=2.0)
+# with exponential backoff + jitter.
+_LLM_MAX_RETRIES = 3
+_LLM_BACKOFF_BASE = 2.0
+
+
+# ── Retry helpers ────────────────────────────────────────────────────
+
+
+def _is_retryable(exc: BaseException) -> bool:
+    """Return ``True`` for exceptions that warrant a retry.
+
+    Considered transient: ``httpx.TimeoutException``,
+    ``httpx.TransportError``, and any exception carrying HTTP
+    status 429 or 5xx.
+    """
+    if isinstance(exc, (httpx.TimeoutException, httpx.TransportError)):
+        return True
+    status: int | None = None
+    if hasattr(exc, "response"):
+        response = getattr(exc, "response", None)
+        if response is not None and hasattr(response, "status_code"):
+            status = getattr(response, "status_code", None)
+    if status is None and hasattr(exc, "status_code"):
+        status = getattr(exc, "status_code", None)
+    return status is not None and (status == 429 or 500 <= status < 600)
+
+
+async def _retry_async[T](
+    fn: Callable[..., T],
+    *,
+    max_retries: int,
+    backoff_base: float,
+) -> T:
+    """Call ``await fn()`` with exponential-backoff retry on transient errors.
+
+    *max_retries* additional attempts are made after the initial call
+    (so the function is invoked at most ``max_retries + 1`` times).
+    """
+    last_exc: Exception | None = None
+    for attempt in range(max_retries + 1):
+        try:
+            return await fn()
+        except Exception as exc:
+            last_exc = exc
+            if attempt == max_retries:
+                raise
+            if not _is_retryable(exc):
+                raise
+            delay: float = min(backoff_base**attempt, 30.0)
+            jitter: float = delay * 0.5 * random.random()  # noqa: S311
+            await asyncio.sleep(delay - jitter)
+
+    # Unreachable — satisfy the type checker.
+    assert last_exc is not None  # noqa: S101
+    raise last_exc
 
 # ── Text extraction ────────────────────────────────────────────────
 
@@ -150,10 +205,10 @@ async def call_llm(text: str) -> dict[str, Any]:
 
         response = cast(
             httpx.Response,
-            await acall_with_retry(
+            await _retry_async(
                 _do_chat,
-                config=_LLM_RETRY_CONFIG,
-                what="LLM chat completion",
+                max_retries=_LLM_MAX_RETRIES,
+                backoff_base=_LLM_BACKOFF_BASE,
             ),
         )
         data = response.json()
@@ -212,10 +267,10 @@ async def generate_embedding(text: str) -> list[float] | None:
 
             response = cast(
                 httpx.Response,
-                await acall_with_retry(
+                await _retry_async(
                     _do_embed,
-                    config=_LLM_RETRY_CONFIG,
-                    what="embedding generation",
+                    max_retries=_LLM_MAX_RETRIES,
+                    backoff_base=_LLM_BACKOFF_BASE,
                 ),
             )
             data = response.json()
