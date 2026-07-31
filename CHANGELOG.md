@@ -2,6 +2,7 @@
 
 ## 0.0.0 (unreleased)
 
+- Remove five dead `api.ts` exports (`uploadFileWithProgress`, `uploadFiles`, `downloadFile`, `setAuthToken`, `clearAuthToken`) — each superseded by a used sibling helper already wired into the UI.
 - Reindex button and live progress indicator added to the Files page, wiring the existing `POST /files/reindex` and `GET /files/reindex/progress` backend endpoints to the UI.
 - Wire delete-file UI: add Delete buttons to FilesPage table rows, FilePreview modal header, and FileDetailPage, backed by `deleteFile` with `X-Confirm-Delete` header and `window.confirm` guard.
 - Fix broken hot-reload in `docker-compose.yml`: corrected uvicorn import target from `src.robotsix_file_hub.main:app` to `robotsix_file_hub.main:app`, bind mount from `./src:/app/src` to `./src:/home/app/src`, and added `PYTHONPATH: /home/app/src` so the mounted source takes precedence over the installed package.
