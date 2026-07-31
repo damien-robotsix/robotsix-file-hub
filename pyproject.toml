@@ -55,8 +55,7 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 
 [tool.deptry]
-extras = ["dev"]
-known_first_party_modules = ["robotsix_file_hub"]
+known_first_party = ["robotsix_file_hub"]
 
 [tool.deptry.package_module_name_map]
 "python-docx" = "docx"
