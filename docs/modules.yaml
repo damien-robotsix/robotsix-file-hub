@@ -44,6 +44,7 @@ modules:
       - vulture_whitelist.py
       - tests/__init__.py
       - tests/conftest.py
+      - tests/test_auth.py
       - tests/test_delete.py
       - tests/test_deploy_spec.py
       - tests/test_download.py
