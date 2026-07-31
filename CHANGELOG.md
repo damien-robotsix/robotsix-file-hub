@@ -2,6 +2,7 @@
 
 ## 0.0.0 (unreleased)
 
+- Fix missing favicon: add `frontend/public/vite.svg` so the link in `index.html` resolves.
 - Add MIT LICENSE file at repo root and declare `license = {text = "MIT"}` in pyproject.toml.
 - Add `GET /deploy-spec` endpoint that serves `deploy/docker-compose.yml` with the `central-deploy-contract-version: 1` response header, enabling central-deploy component registration.
 - Remove duplicate `DELETE /{file_id}` handler; consolidate into single guarded handler with correct DB-first ordering (404 check before confirmation, storage delete after DB commit)
