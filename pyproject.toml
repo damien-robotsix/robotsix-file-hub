@@ -20,6 +20,7 @@ dependencies = [
     "httpx>=0.28.0",
     "openpyxl>=3.1.0",
     "pgvector>=0.4.0",
+    "pydantic>=2.13.0",
     "pydantic-settings>=2.7.0",
     "pypdf>=5.0.0",
     "python-docx>=1.1.0",
@@ -52,6 +53,24 @@ python_version = "3.14"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+
+[tool.deptry]
+extras = ["dev"]
+known_first_party_modules = ["robotsix_file_hub"]
+
+[tool.deptry.package_module_name_map]
+"python-docx" = "docx"
+
+[tool.deptry.per_rule_ignores]
+DEP002 = [
+    "aiosqlite",
+    "asyncpg",
+    "uvicorn",
+    "python-multipart",
+    "ruff",
+    "mypy",
+    "pytest-asyncio",
+]
 
 [dependency-groups]
 dev = [
