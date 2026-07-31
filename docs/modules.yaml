@@ -26,6 +26,7 @@ modules:
       - migrations/versions/0001_initial_create_file_records.py
       - migrations/versions/0002_pgvector_embedding.py
       - pyproject.toml
+      - uv.lock
       - src/robotsix_file_hub/__init__.py
       - src/robotsix_file_hub/auth.py
       - src/robotsix_file_hub/config.py
