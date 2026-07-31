@@ -97,59 +97,6 @@ export async function uploadFile(file: File): Promise<UploadResponse> {
 }
 
 /**
- * Upload a single file with progress tracking via XMLHttpRequest.
- * Calls `onProgress` with a value between 0 and 1.
- * Returns the FileMetadata for the uploaded file.
- */
-export function uploadFileWithProgress(
-  file: File,
-  onProgress: (progress: number) => void,
-): Promise<FileMetadata> {
-  return new Promise((resolve, reject) => {
-    const form = new FormData();
-    form.append("file", file);
-
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", `${API_BASE}/files`);
-
-    xhr.upload.addEventListener("progress", (e) => {
-      if (e.lengthComputable) {
-        onProgress(e.loaded / e.total);
-      }
-    });
-
-    xhr.addEventListener("load", () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const raw = JSON.parse(xhr.responseText);
-          resolve({
-            id: raw.id,
-            filename: raw.filename,
-            content_type: raw.content_type ?? null,
-            size: raw.size,
-            created_at: raw.created_at,
-          });
-        } catch {
-          reject(new Error("Invalid JSON response"));
-        }
-      } else {
-        reject(new Error(`${xhr.status} ${xhr.statusText}: ${xhr.responseText}`));
-      }
-    });
-
-    xhr.addEventListener("error", () => {
-      reject(new Error("Network error during upload"));
-    });
-
-    xhr.addEventListener("abort", () => {
-      reject(new Error("Upload aborted"));
-    });
-
-    xhr.send(form);
-  });
-}
-
-/**
  * Upload multiple files in a single batch POST /files/batch with per-file
  * progress estimation.  Calls `onFileProgress(index, progress)` for each
  * file with a value between 0 and 1, estimated from the overall upload
@@ -239,14 +186,6 @@ export function uploadFilesBatchWithProgress(
   });
 }
 
-export async function uploadFiles(files: File[]): Promise<{ files: FileMetadata[] }> {
-  const form = new FormData();
-  for (const f of files) {
-    form.append("files", f);
-  }
-  return request<{ files: FileMetadata[] }>("/files/batch", { method: "POST", body: form });
-}
-
 export interface ListFilesParams {
   offset?: number;
   limit?: number;
@@ -288,16 +227,6 @@ export function downloadFileUrl(fileId: string): string {
   return `${API_BASE}/files/${fileId}`;
 }
 
-export async function downloadFile(fileId: string): Promise<Blob> {
-  const res = await fetch(`${API_BASE}/files/${fileId}`, {
-    headers: getAuthHeaders(),
-  });
-  if (!res.ok) {
-    throw new Error(`${res.status} ${res.statusText}`);
-  }
-  return res.blob();
-}
-
 export async function search(
   query: string,
   params?: {
@@ -335,26 +264,6 @@ export async function getReindexProgress(): Promise<ReindexProgress> {
 
 export async function healthCheck(): Promise<{ status: string }> {
   return request<{ status: string }>("/health");
-}
-
-// ---------------------------------------------------------------------------
-// Auth helpers
-// ---------------------------------------------------------------------------
-
-export function setAuthToken(token: string): void {
-  try {
-    localStorage.setItem(TOKEN_KEY, token);
-  } catch {
-    // localStorage unavailable (SSR / test), skip
-  }
-}
-
-export function clearAuthToken(): void {
-  try {
-    localStorage.removeItem(TOKEN_KEY);
-  } catch {
-    // localStorage unavailable (SSR / test), skip
-  }
 }
 
 // ---------------------------------------------------------------------------
