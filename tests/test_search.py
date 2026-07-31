@@ -91,38 +91,6 @@ async def test_cosine_similarity_zero_magnitude() -> None:
     assert _cosine_similarity([0.0, 0.0], [1.0, 2.0]) == 0.0
 
 
-# ── Embedding parsing unit tests ───────────────────────────────────
-
-
-async def test_parse_embedding_valid() -> None:
-    """_parse_embedding returns a float list for valid JSON."""
-    from src.robotsix_file_hub.search import _parse_embedding
-
-    result = _parse_embedding("[1.0, 2.0, 3.0]")
-    assert result == [1.0, 2.0, 3.0]
-
-
-async def test_parse_embedding_none() -> None:
-    """_parse_embedding returns None for None input."""
-    from src.robotsix_file_hub.search import _parse_embedding
-
-    assert _parse_embedding(None) is None
-
-
-async def test_parse_embedding_invalid_json() -> None:
-    """_parse_embedding returns None for invalid JSON."""
-    from src.robotsix_file_hub.search import _parse_embedding
-
-    assert _parse_embedding("not-json") is None
-
-
-async def test_parse_embedding_empty_list() -> None:
-    """_parse_embedding returns None for an empty list."""
-    from src.robotsix_file_hub.search import _parse_embedding
-
-    assert _parse_embedding("[]") is None
-
-
 # ── Hybrid score unit tests ────────────────────────────────────────
 
 

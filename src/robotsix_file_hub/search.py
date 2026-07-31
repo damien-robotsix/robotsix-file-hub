@@ -11,7 +11,6 @@ to ``search_files`` when the database backend does not support it.
 
 from __future__ import annotations
 
-import json
 import logging
 import math
 from datetime import datetime
@@ -37,28 +36,6 @@ _KW_TAGS_WEIGHT = 3.0
 def _tokenize(text: str) -> list[str]:
     """Lowercase and split into tokens."""
     return text.lower().split()
-
-
-def _parse_embedding(raw: str | None) -> list[float] | None:
-    """Parse a JSON-serialised embedding string into a list of floats.
-
-    Returns ``None`` when *raw* is ``None``, invalid JSON, or parses
-    to an empty list.  Used for backward-compatibility with embeddings
-    stored as JSON strings before the pgvector migration.
-    """
-    if raw is None:
-        return None
-    try:
-        parsed = json.loads(raw)
-    except json.JSONDecodeError, TypeError:
-        return None
-    if not isinstance(parsed, list) or len(parsed) == 0:
-        return None
-    try:
-        return [float(x) for x in parsed]
-    except TypeError, ValueError:
-        return None
-
 
 def _keyword_score(record: FileRecord, query_tokens: list[str]) -> float:
     """Compute a simple keyword-match relevance score for a file record.
