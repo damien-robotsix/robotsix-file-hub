@@ -36,6 +36,9 @@ dev = [
     "mypy>=1.14.0",
 ]
 
+[tool.uv.sources]
+robotsix-http = { git = "https://github.com/damien-robotsix/robotsix-http.git", tag = "v0.1.0" }
+
 [tool.ruff]
 line-length = 100
 target-version = "py314"
