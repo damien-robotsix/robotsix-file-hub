@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { getFileMetadata, downloadFileUrl, type FileMetadata } from "../api.ts";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { deleteFile, getFileMetadata, downloadFileUrl, type FileMetadata } from "../api.ts";
 import { formatSize } from "../lib/format.ts";
 
 type PreviewKind = "image" | "pdf" | "text" | "unsupported";
@@ -30,9 +30,24 @@ function escapeHtml(text: string): string {
 
 export default function FileDetailPage() {
   const { fileId } = useParams<{ fileId: string }>();
+  const navigate = useNavigate();
   const [metadata, setMetadata] = useState<FileMetadata | null>(null);
   const [textContent, setTextContent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!fileId || !metadata) return;
+    if (!window.confirm(`Delete "${metadata.filename}"? This cannot be undone.`)) return;
+    setDeleting(true);
+    try {
+      await deleteFile(fileId);
+      navigate("/", { replace: true });
+    } catch (e: unknown) {
+      setError(String(e));
+      setDeleting(false);
+    }
+  };
 
   useEffect(() => {
     if (!fileId) return;
@@ -96,9 +111,19 @@ export default function FileDetailPage() {
 
       <div className="detail-header">
         <h1>{metadata.filename}</h1>
-        <a href={fileUrl} className="download-btn" download={metadata.filename}>
-          ⬇ Download
-        </a>
+        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+          <a href={fileUrl} className="download-btn" download={metadata.filename}>
+            ⬇ Download
+          </a>
+          <button
+            className="delete-btn"
+            onClick={handleDelete}
+            disabled={deleting}
+            type="button"
+          >
+            {deleting ? "Deleting…" : "🗑 Delete"}
+          </button>
+        </div>
       </div>
 
       <div className="detail-meta">

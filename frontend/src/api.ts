@@ -362,5 +362,8 @@ export function clearAuthToken(): void {
 // ---------------------------------------------------------------------------
 
 export async function deleteFile(fileId: string): Promise<void> {
-  await request<void>(`/files/${fileId}`, { method: "DELETE" });
+  await request<void>(`/files/${fileId}`, {
+    method: "DELETE",
+    headers: { "X-Confirm-Delete": "true" },
+  });
 }
