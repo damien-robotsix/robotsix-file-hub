@@ -12,15 +12,21 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any
+from typing import Any, cast
 
 import httpx
+from robotsix_http.retry import RetryConfig, acall_with_retry
 
 from .config import Settings
 
 logger = logging.getLogger(__name__)
 
 settings = Settings()
+
+# Retry configuration for upstream LLM API calls.
+# Transient errors (429, 5xx, timeouts, transport errors) are retried
+# with exponential backoff + jitter via robotsix_http.acall_with_retry.
+_LLM_RETRY_CONFIG = RetryConfig(max_retries=3, backoff_base=2.0)
 
 # ── Text extraction ────────────────────────────────────────────────
 
@@ -128,15 +134,22 @@ async def call_llm(text: str) -> dict[str, Any]:
         headers["Authorization"] = f"Bearer {settings.enrichment_llm_api_key}"
 
     async with httpx.AsyncClient(timeout=settings.enrichment_llm_timeout) as client:
-        response = await client.post(
-            f"{settings.enrichment_llm_api_base}/chat/completions",
-            headers=headers,
-            json={
-                "model": settings.enrichment_llm_model,
-                "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": settings.enrichment_llm_max_tokens,
-                "temperature": 0.3,
-            },
+        response = cast(
+            httpx.Response,
+            await acall_with_retry(
+                lambda: client.post(
+                    f"{settings.enrichment_llm_api_base}/chat/completions",
+                    headers=headers,
+                    json={
+                        "model": settings.enrichment_llm_model,
+                        "messages": [{"role": "user", "content": prompt}],
+                        "max_tokens": settings.enrichment_llm_max_tokens,
+                        "temperature": 0.3,
+                    },
+                ),
+                config=_LLM_RETRY_CONFIG,
+                what="LLM chat completion",
+            ),
         )
         response.raise_for_status()
         data = response.json()
@@ -184,10 +197,17 @@ async def generate_embedding(text: str) -> list[float] | None:
 
     try:
         async with httpx.AsyncClient(timeout=settings.enrichment_llm_timeout) as client:
-            response = await client.post(
-                f"{settings.enrichment_llm_api_base}/embeddings",
-                headers=headers,
-                json={"model": model, "input": text[:8000]},
+            response = cast(
+                httpx.Response,
+                await acall_with_retry(
+                    lambda: client.post(
+                        f"{settings.enrichment_llm_api_base}/embeddings",
+                        headers=headers,
+                        json={"model": model, "input": text[:8000]},
+                    ),
+                    config=_LLM_RETRY_CONFIG,
+                    what="embedding generation",
+                ),
             )
             response.raise_for_status()
             data = response.json()
