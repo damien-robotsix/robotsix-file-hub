@@ -1,6 +1,7 @@
 """Tests for embedding generation and storage."""
 
 import os
+import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import numpy as np
@@ -140,6 +141,7 @@ async def test_embedding_stored_during_enrichment(embedding_test_env) -> None:
                 file_id=file_id,
                 storage_key=storage_key,
                 content_type="text/plain",
+                task_id=str(uuid.uuid4()),
             )
             success = await tasks_module._process_enrichment(job)
             assert success is True
@@ -201,6 +203,7 @@ async def test_embedding_null_on_generation_failure(embedding_test_env) -> None:
                 file_id=file_id,
                 storage_key=storage_key,
                 content_type="application/octet-stream",
+                task_id=str(uuid.uuid4()),
             )
             success = await tasks_module._process_enrichment(job)
             assert success is True
@@ -264,6 +267,7 @@ async def test_embedding_updated_on_reindex(embedding_test_env) -> None:
                 file_id=file_id,
                 storage_key=storage_key,
                 content_type="text/plain",
+                task_id=str(uuid.uuid4()),
             )
             success = await tasks_module._process_enrichment(job)
             assert success is True
