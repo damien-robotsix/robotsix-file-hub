@@ -6,6 +6,8 @@ modules:
     paths:
       - .dockerignore
       - .env.example
+      - .github/dependabot.yml
+      - .github/workflows/ci.yml
       - .github/workflows/docker-publish.yml
       - .gitignore
       - .robotsix-mill/periodic/*.yaml
