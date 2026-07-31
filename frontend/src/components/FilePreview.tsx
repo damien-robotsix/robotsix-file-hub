@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getFileMetadata, downloadFileUrl, type FileMetadata } from "../api.ts";
+import { deleteFile, getFileMetadata, downloadFileUrl, type FileMetadata } from "../api.ts";
 import { formatSize } from "../lib/format.ts";
 
 type PreviewKind = "image" | "pdf" | "text" | "unsupported";
@@ -36,6 +36,20 @@ export default function FilePreview({ fileId, onClose }: FilePreviewProps) {
   const [metadata, setMetadata] = useState<FileMetadata | null>(null);
   const [textContent, setTextContent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!metadata) return;
+    if (!window.confirm(`Delete "${metadata.filename}"? This cannot be undone.`)) return;
+    setDeleting(true);
+    try {
+      await deleteFile(fileId);
+      onClose();
+    } catch (e: unknown) {
+      setError(String(e));
+      setDeleting(false);
+    }
+  };
 
   useEffect(() => {
     setTextContent(null);
@@ -111,6 +125,14 @@ export default function FilePreview({ fileId, onClose }: FilePreviewProps) {
           <a href={fileUrl} className="download-btn" download={metadata.filename}>
             ⬇ Download
           </a>
+          <button
+            className="delete-btn"
+            onClick={handleDelete}
+            disabled={deleting}
+            type="button"
+          >
+            {deleting ? "Deleting…" : "🗑 Delete"}
+          </button>
           <button onClick={onClose} className="file-preview-close" type="button">
             ✕ Close
           </button>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { listFiles, listCategories, type FileMetadata, type ListFilesParams } from "../api.ts";
+import { deleteFile, listFiles, listCategories, type FileMetadata, type ListFilesParams } from "../api.ts";
 import FilePreview from "../components/FilePreview.tsx";
 import UploadDialog from "../components/UploadDialog.tsx";
 
@@ -78,6 +78,17 @@ export default function FilesPage() {
       .then((res) => setCategories(res.categories))
       .catch(() => setCategories([]));
   }, []);
+
+  const handleDelete = async (fileId: string, filename: string) => {
+    if (!window.confirm(`Delete "${filename}"? This cannot be undone.`)) return;
+    setError(null);
+    try {
+      await deleteFile(fileId);
+      await fetchFiles();
+    } catch (e: unknown) {
+      setError(String(e));
+    }
+  };
 
   const fetchFiles = useCallback(async () => {
     setLoading(true);
@@ -244,6 +255,7 @@ export default function FilesPage() {
               <th>Uploaded</th>
               <th>Category</th>
               <th>Tags</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -273,6 +285,15 @@ export default function FilesPage() {
                         </span>
                       ))
                     : "—"}
+                </td>
+                <td>
+                  <button
+                    className="delete-btn"
+                    onClick={() => handleDelete(f.id, f.filename)}
+                    title="Delete file"
+                  >
+                    🗑 Delete
+                  </button>
                 </td>
               </tr>
             ))}

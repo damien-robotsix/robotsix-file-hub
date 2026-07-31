@@ -457,6 +457,27 @@
   background: #0b5ed7;
 }
 
+.delete-btn {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: #dc3545;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.delete-btn:hover:not(:disabled) {
+  background: #bb2d3b;
+}
+
+.delete-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .detail-meta {
   display: flex;
   flex-wrap: wrap;
