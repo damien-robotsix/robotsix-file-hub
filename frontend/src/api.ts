@@ -21,7 +21,7 @@ export interface FileMetadata {
   size: number;
   content_type: string;
   checksum: string;
-  storage_path: string;
+  storage_key: string;
   created_at: string;
   category: string | null;
   tags: string | null;
@@ -158,7 +158,7 @@ export function uploadFilesBatchWithProgress(
             size: f.size as number,
             content_type: (f.content_type as string) ?? "application/octet-stream",
             checksum: f.checksum as string,
-            storage_path: "",
+            storage_key: (f.storage_key as string) ?? "",
             created_at: f.created_at as string,
             category: null,
             tags: null,
