@@ -22,7 +22,12 @@ jobs:
         run: uv sync --frozen
 
       - name: Audit dependencies
-        run: uv audit --frozen
+        run: uv audit --frozen --output-format sarif --preview > uv-audit-results.sarif
+
+      - name: Upload audit SARIF
+        uses: github/codeql-action/upload-sarif@a2983b8bed1923f44751c5c43237f479442827b3  # v3
+        with:
+          sarif_file: uv-audit-results.sarif
 
       - name: Check dependency hygiene
         run: uv run --frozen deptry src/
