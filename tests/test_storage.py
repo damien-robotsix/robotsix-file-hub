@@ -279,7 +279,7 @@ class TestS3StorageBackend:
     """Tests for S3StorageBackend with a mocked boto3 client."""
 
     @pytest.fixture
-    def mock_boto3(self) -> Generator[MagicMock, None, None]:
+    def mock_boto3(self) -> Generator[MagicMock]:
         """Patch boto3.client and return the mock client."""
         with patch("src.robotsix_file_hub.storage.boto3.client") as mock_client_factory:
             mock_client = MagicMock()
