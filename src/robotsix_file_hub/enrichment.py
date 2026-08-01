@@ -10,12 +10,14 @@ failing the upload.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
+import random
+from collections.abc import Callable, Coroutine
 from typing import Any, cast
 
 import httpx
-from robotsix_http.retry import RetryConfig, acall_with_retry
 
 from .config import Settings
 
@@ -25,8 +27,50 @@ settings = Settings()
 
 # Retry configuration for upstream LLM API calls.
 # Transient errors (429, 5xx, timeouts, transport errors) are retried
-# with exponential backoff + jitter via robotsix_http.acall_with_retry.
-_LLM_RETRY_CONFIG = RetryConfig(max_retries=3, backoff_base=2.0)
+# with exponential backoff + jitter.
+_LLM_MAX_RETRIES = 3
+_LLM_BACKOFF_BASE = 2.0
+
+
+def _is_retryable(exc: Exception) -> bool:
+    """Return True if *exc* represents a transient failure worth retrying."""
+    if isinstance(exc, httpx.HTTPStatusError):
+        status = exc.response.status_code
+        return status == 429 or status >= 500
+    return isinstance(exc, (httpx.TimeoutException, httpx.TransportError))
+
+
+async def _retry_async(
+    coro_fn: Callable[[], Coroutine[Any, Any, Any]],
+    *,
+    max_retries: int,
+    backoff_base: float,
+    what: str,
+) -> Any:
+    """Call *coro_fn* with retry and exponential backoff + jitter."""
+    last_exc: Exception | None = None
+    for attempt in range(max_retries + 1):
+        try:
+            return await coro_fn()
+        except Exception as exc:
+            last_exc = exc
+            if not _is_retryable(exc):
+                raise
+            if attempt < max_retries:
+                delay: float = backoff_base**attempt + random.uniform(0, 1)
+                logger.warning(
+                    "%s failed on attempt %d/%d (retrying in %.1fs): %s",
+                    what,
+                    attempt + 1,
+                    max_retries + 1,
+                    delay,
+                    exc,
+                )
+                await asyncio.sleep(delay)
+    # Should be unreachable — the final attempt raises inside the loop.
+    assert last_exc is not None
+    raise last_exc
+
 
 # ── Text extraction ────────────────────────────────────────────────
 
@@ -134,6 +178,7 @@ async def call_llm(text: str) -> dict[str, Any]:
         headers["Authorization"] = f"Bearer {settings.enrichment_llm_api_key}"
 
     async with httpx.AsyncClient(timeout=settings.enrichment_llm_timeout) as client:
+
         async def _do_chat() -> httpx.Response:
             response = await client.post(
                 f"{settings.enrichment_llm_api_base}/chat/completions",
@@ -150,9 +195,10 @@ async def call_llm(text: str) -> dict[str, Any]:
 
         response = cast(
             httpx.Response,
-            await acall_with_retry(
+            await _retry_async(
                 _do_chat,
-                config=_LLM_RETRY_CONFIG,
+                max_retries=_LLM_MAX_RETRIES,
+                backoff_base=_LLM_BACKOFF_BASE,
                 what="LLM chat completion",
             ),
         )
@@ -201,6 +247,7 @@ async def generate_embedding(text: str) -> list[float] | None:
 
     try:
         async with httpx.AsyncClient(timeout=settings.enrichment_llm_timeout) as client:
+
             async def _do_embed() -> httpx.Response:
                 response = await client.post(
                     f"{settings.enrichment_llm_api_base}/embeddings",
@@ -212,9 +259,10 @@ async def generate_embedding(text: str) -> list[float] | None:
 
             response = cast(
                 httpx.Response,
-                await acall_with_retry(
+                await _retry_async(
                     _do_embed,
-                    config=_LLM_RETRY_CONFIG,
+                    max_retries=_LLM_MAX_RETRIES,
+                    backoff_base=_LLM_BACKOFF_BASE,
                     what="embedding generation",
                 ),
             )

@@ -37,6 +37,7 @@ def _tokenize(text: str) -> list[str]:
     """Lowercase and split into tokens."""
     return text.lower().split()
 
+
 def _keyword_score(record: FileRecord, query_tokens: list[str]) -> float:
     """Compute a simple keyword-match relevance score for a file record.
 
