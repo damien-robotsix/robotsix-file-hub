@@ -52,6 +52,7 @@ modules:
       - tests/test_deploy_spec.py
       - tests/test_download.py
       - tests/test_embeddings.py
+      - tests/test_enrichment.py
       - tests/test_health.py
       - tests/test_search.py
       - tests/test_storage.py
