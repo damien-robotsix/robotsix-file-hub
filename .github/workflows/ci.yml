@@ -66,7 +66,10 @@ jobs:
           sarif_file: uv-audit-results.sarif
 
       - name: Check dependency hygiene
-        run: uv tool run --from deptry deptry src/
+        run: uv run deptry src/
+
+      - name: Validate module registration
+        run: uv run robotsix-modules check-registration docs/modules.yaml --root .
 
   frontend-tests:
     runs-on: ubuntu-latest
