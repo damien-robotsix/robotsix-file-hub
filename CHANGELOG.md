@@ -5,6 +5,7 @@
 - Switch Dependabot ecosystem from `pip` to `uv` so it understands the `uv.lock` file, and add `github-actions` ecosystem with grouping to reduce PR noise.
 - Remove `robotsix-http` dependency and inline retry-with-backoff logic into `enrichment.py`.
 - CI: fix pre-existing deptry supply-chain failures by adding `pydantic` to direct dependencies and configuring `[tool.deptry]` with per-rule ignores for implicit dependencies (`aiosqlite`, `asyncpg`, `uvicorn`, `python-multipart`, `ruff`, `mypy`, `pytest-asyncio`) and a package-module name mapping for `python-docx` → `docx`.
+- Add `FILE_HUB_LOG_LEVEL` to the README configuration table and create `docs/configuration.md` consolidating all settings with types, defaults, and descriptions.
 - Remove dead `_parse_embedding` legacy shim from `search.py` — a JSON-string fallback that predated the pgvector migration and was unreachable at runtime.
 - Add supply-chain security scanning to CI: `uv audit --frozen` vulnerability check, `deptry` dependency hygiene, `UV_MALWARE_CHECK=1` during install, and Dependabot configuration for pip and npm ecosystems.
 - Rename `storage_path` → `storage_key` in the frontend `FileMetadata` interface and fix the batch-upload response mapping to pass through the actual backend field value instead of hardcoding an empty string.
