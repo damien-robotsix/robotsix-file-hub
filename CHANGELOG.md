@@ -2,6 +2,7 @@
 
 ## 0.0.0 (unreleased)
 
+- Replace hand-rolled HTTP retry logic with `robotsix-http.acall_with_retry` and `RetryConfig` in `enrichment.py`.
 - Resolve deptry DEP002/DEP003 findings: consolidate dev dependencies into `[dependency-groups].dev`, remove legacy `[project.optional-dependencies]`, and shrink `per_rule_ignores` to only legitimate no-import runtime packages.
 - Enable mypy_baseline periodic workflow to track mypy baseline errors across builds.
 - Switch Dependabot ecosystem from `pip` to `uv` so it understands the `uv.lock` file, and add `github-actions` ecosystem with grouping to reduce PR noise.

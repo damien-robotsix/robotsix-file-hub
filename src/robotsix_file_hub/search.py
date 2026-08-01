@@ -15,7 +15,7 @@ import logging
 import math
 from datetime import datetime
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import ColumnElement, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .config import Settings
@@ -267,7 +267,7 @@ async def search_files_pg(
     vector_weight = settings.search_vector_weight
 
     # Collect where conditions
-    conditions: list = []
+    conditions: list[ColumnElement[bool]] = []
 
     # Keyword pre-filter
     kw_cond = func.to_tsvector(

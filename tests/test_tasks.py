@@ -12,7 +12,6 @@ from src.robotsix_file_hub.models import FileRecord
 from src.robotsix_file_hub.storage import StorageBackend
 from src.robotsix_file_hub.tasks import enqueue_enrichment, start_workers, stop_workers
 
-
 # ── Enrichment worker tests ────────────────────────────────────────
 
 

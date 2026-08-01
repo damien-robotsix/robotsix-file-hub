@@ -11,7 +11,6 @@ import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
-import pytest
 
 from src.robotsix_file_hub.enrichment import (
     _embedding_input_text,
@@ -20,7 +19,6 @@ from src.robotsix_file_hub.enrichment import (
     extract_text,
     generate_embedding,
 )
-
 
 # ── call_llm tests ────────────────────────────────────────────────
 
@@ -59,7 +57,7 @@ async def test_call_llm_returns_parsed_fields() -> None:
 async def test_call_llm_handles_json_code_fence() -> None:
     """call_llm strips ```json ... ``` fences before parsing."""
     raw_content = (
-        '```json\n'
+        "```json\n"
         + json.dumps(
             {
                 "summary": "Fenced response.",
@@ -70,9 +68,7 @@ async def test_call_llm_handles_json_code_fence() -> None:
         + "\n```"
     )
     mock_response = MagicMock(spec=httpx.Response)
-    mock_response.json.return_value = {
-        "choices": [{"message": {"content": raw_content}}]
-    }
+    mock_response.json.return_value = {"choices": [{"message": {"content": raw_content}}]}
     mock_response.raise_for_status = MagicMock()
 
     async def fake_post(*args, **kwargs):
@@ -100,9 +96,7 @@ async def test_call_llm_handles_plain_code_fence() -> None:
         + "\n```"
     )
     mock_response = MagicMock(spec=httpx.Response)
-    mock_response.json.return_value = {
-        "choices": [{"message": {"content": raw_content}}]
-    }
+    mock_response.json.return_value = {"choices": [{"message": {"content": raw_content}}]}
     mock_response.raise_for_status = MagicMock()
 
     async def fake_post(*args, **kwargs):
@@ -195,9 +189,7 @@ async def test_call_llm_retries_on_transient_error() -> None:
 async def test_generate_embedding_returns_vector() -> None:
     """generate_embedding returns a list of floats from the embeddings API."""
     mock_response = MagicMock(spec=httpx.Response)
-    mock_response.json.return_value = {
-        "data": [{"embedding": [0.1, 0.2, 0.3, 0.4]}]
-    }
+    mock_response.json.return_value = {"data": [{"embedding": [0.1, 0.2, 0.3, 0.4]}]}
     mock_response.raise_for_status = MagicMock()
 
     async def fake_post(*args, **kwargs):
@@ -211,6 +203,7 @@ async def test_generate_embedding_returns_vector() -> None:
 
 async def test_generate_embedding_returns_none_on_failure() -> None:
     """generate_embedding returns None when the API call fails (best-effort)."""
+
     async def fake_post(*args, **kwargs):
         raise httpx.ConnectError("connection refused")
 
@@ -225,9 +218,7 @@ async def test_generate_embedding_truncates_input_to_8000_chars() -> None:
     captured_inputs: list[str] = []
 
     mock_response = MagicMock(spec=httpx.Response)
-    mock_response.json.return_value = {
-        "data": [{"embedding": [0.0]}]
-    }
+    mock_response.json.return_value = {"data": [{"embedding": [0.0]}]}
     mock_response.raise_for_status = MagicMock()
 
     async def fake_post(url, **kwargs):
@@ -252,9 +243,7 @@ async def test_generate_embedding_uses_dedicated_model_when_set() -> None:
     captured_model: str | None = None
 
     mock_response = MagicMock(spec=httpx.Response)
-    mock_response.json.return_value = {
-        "data": [{"embedding": [0.0]}]
-    }
+    mock_response.json.return_value = {"data": [{"embedding": [0.0]}]}
     mock_response.raise_for_status = MagicMock()
 
     async def fake_post(url, **kwargs):
