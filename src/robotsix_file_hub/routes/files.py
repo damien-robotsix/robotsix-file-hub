@@ -32,10 +32,8 @@ from ..schemas import (
     FileListResponse,
     FileMetadataResponse,
     FileUploadResponse,
-    SearchRequest,
-    SearchResponse,
 )
-from ..search import search_files
+
 from ..storage import StorageBackend, StorageError, compute_checksum, create_storage_backend
 from ..tasks import enqueue_enrichment, enqueue_reindex_all, get_reindex_progress
 
@@ -382,29 +380,6 @@ async def reindex_progress() -> dict[str, int | bool | str | None]:
     being processed.
     """
     return get_reindex_progress()
-
-
-@router.post(
-    "/search",
-    response_model=SearchResponse,
-    responses={500: {"model": ErrorResponse}},
-)
-async def search(
-    body: Annotated[SearchRequest, Body()],
-    db: Annotated[AsyncSession, Depends(get_db)],
-) -> SearchResponse:
-    """Hybrid NL search: keyword matching + optional vector similarity.
-
-    Accepts a natural-language query and returns ranked, paginated
-    results.  Falls back to keyword-only ranking when embeddings are
-    unavailable.
-    """
-    return await search_files(
-        db=db,
-        query=body.query,
-        offset=body.offset,
-        limit=body.limit,
-    )
 
 
 @router.get(

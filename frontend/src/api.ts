@@ -234,7 +234,7 @@ export async function search(
     offset?: number;
   },
 ): Promise<SearchResponse> {
-  return request<SearchResponse>("/files/search", {
+  return request<SearchResponse>("/search", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
