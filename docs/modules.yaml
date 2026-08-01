@@ -12,6 +12,7 @@ modules:
       - .github/workflows/release-please.yml
       - .gitignore
       - .release-please-manifest.json
+      - .pre-commit-config.yaml
       - .robotsix-mill/periodic/*.yaml
       - Dockerfile
       - LICENSE

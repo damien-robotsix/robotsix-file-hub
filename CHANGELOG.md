@@ -123,6 +123,7 @@
 - Resolve deptry DEP002/DEP003 findings: consolidate dev dependencies into `[dependency-groups].dev`, remove legacy `[project.optional-dependencies]`, and shrink `per_rule_ignores` to only legitimate no-import runtime packages.
 - Enable mypy_baseline periodic workflow to track mypy baseline errors across builds.
 - Switch Dependabot ecosystem from `pip` to `uv` so it understands the `uv.lock` file, and add `github-actions` ecosystem with grouping to reduce PR noise.
+- Add `robotsix-modules` dev dependency and CI step to validate module registration (`docs/modules.yaml`). Also add `.pre-commit-config.yaml` with the same check.
 - Remove `robotsix-http` dependency and inline retry-with-backoff logic into `enrichment.py`.
 - CI: fix pre-existing deptry supply-chain failures by adding `pydantic` to direct dependencies and configuring `[tool.deptry]` with per-rule ignores for implicit dependencies (`aiosqlite`, `asyncpg`, `uvicorn`, `python-multipart`, `ruff`, `mypy`, `pytest-asyncio`) and a package-module name mapping for `python-docx` → `docx`.
 - Add `FILE_HUB_LOG_LEVEL` to the README configuration table and create `docs/configuration.md` consolidating all settings with types, defaults, and descriptions.
