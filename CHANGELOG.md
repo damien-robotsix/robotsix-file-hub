@@ -2,6 +2,7 @@
 
 ## 0.0.0 (unreleased)
 
+- Enable mypy_baseline periodic workflow to track mypy baseline errors across builds.
 - Switch Dependabot ecosystem from `pip` to `uv` so it understands the `uv.lock` file, and add `github-actions` ecosystem with grouping to reduce PR noise.
 - Remove `robotsix-http` dependency and inline retry-with-backoff logic into `enrichment.py`.
 - CI: fix pre-existing deptry supply-chain failures by adding `pydantic` to direct dependencies and configuring `[tool.deptry]` with per-rule ignores for implicit dependencies (`aiosqlite`, `asyncpg`, `uvicorn`, `python-multipart`, `ruff`, `mypy`, `pytest-asyncio`) and a package-module name mapping for `python-docx` → `docx`.
