@@ -30,4 +30,4 @@ jobs:
           sarif_file: uv-audit-results.sarif
 
       - name: Check dependency hygiene
-        run: uv run --frozen deptry src/
+        run: uv tool run --from deptry deptry src/
