@@ -2,6 +2,7 @@
 
 ## 0.0.0 (unreleased)
 
+- Resolve deptry DEP002/DEP003 findings: consolidate dev dependencies into `[dependency-groups].dev`, remove legacy `[project.optional-dependencies]`, and shrink `per_rule_ignores` to only legitimate no-import runtime packages.
 - Enable mypy_baseline periodic workflow to track mypy baseline errors across builds.
 - Switch Dependabot ecosystem from `pip` to `uv` so it understands the `uv.lock` file, and add `github-actions` ecosystem with grouping to reduce PR noise.
 - Remove `robotsix-http` dependency and inline retry-with-backoff logic into `enrichment.py`.
