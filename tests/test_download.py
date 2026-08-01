@@ -4,14 +4,12 @@ import io
 import os
 from datetime import UTC, datetime
 
-from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.robotsix_file_hub.config import Settings
-from src.robotsix_file_hub.database import get_db
 from src.robotsix_file_hub.main import app
-from src.robotsix_file_hub.models import Base, FileRecord
-from src.robotsix_file_hub.storage import LocalStorageBackend
+from src.robotsix_file_hub.models import FileRecord
 
 
 async def test_download_file(test_client: AsyncClient) -> None:
@@ -163,19 +161,18 @@ async def test_list_files_content_type_filter(test_client: AsyncClient) -> None:
 # Helper: create dummy files and populate the DB with given FileRecord list
 # ---------------------------------------------------------------------------
 async def _seed_records(
-    tmp_upload_dir: str,
-    session_factory: async_sessionmaker[AsyncSession],
+    base_path: str,
+    session: AsyncSession,
     records: list[FileRecord],
 ) -> None:
     """Create placeholder files on disk and insert FileRecords into the DB."""
     for rec in records:
-        p = os.path.join(tmp_upload_dir, rec.filename)
+        p = os.path.join(base_path, rec.filename)
         with open(p, "wb") as f:
             f.write(b"x")
         rec.storage_key = p
-    async with session_factory() as session:
-        session.add_all(records)
-        await session.commit()
+    session.add_all(records)
+    await session.commit()
 
 
 # ---------------------------------------------------------------------------
@@ -183,24 +180,16 @@ async def _seed_records(
 # ---------------------------------------------------------------------------
 
 
-async def test_list_files_category_filter(tmp_upload_dir: str) -> None:
+async def test_list_files_category_filter(
+    test_client: AsyncClient,
+    test_db_session: AsyncSession,
+    tmp_upload_dir: str,
+) -> None:
     """GET /files?category=... filters by exact category match."""
-    import src.robotsix_file_hub.routes.files as routes_module
-
-    storage = LocalStorageBackend(base_path=tmp_upload_dir)
-    routes_module._storage = storage
-
-    db_path = os.path.join(tmp_upload_dir, "test.db")
-    database_url = f"sqlite+aiosqlite:///{db_path}"
-    engine = create_async_engine(database_url, echo=False)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    session_factory = async_sessionmaker(engine, expire_on_commit=False)
-
     now = datetime.now(UTC)
     await _seed_records(
         tmp_upload_dir,
-        session_factory,
+        test_db_session,
         [
             FileRecord(
                 filename="doc_a.txt",
@@ -232,20 +221,7 @@ async def test_list_files_category_filter(tmp_upload_dir: str) -> None:
         ],
     )
 
-    async def override_get_db() -> AsyncSession:  # type: ignore[misc]
-        async with session_factory() as session:
-            yield session
-
-    original_deps = app.dependency_overrides.copy()
-    app.dependency_overrides[get_db] = override_get_db
-
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/files", params={"category": "documents"})
-
-    app.dependency_overrides = original_deps
-    routes_module._storage = None
-    await engine.dispose()
+    response = await test_client.get("/files", params={"category": "documents"})
 
     assert response.status_code == 200
     data = response.json()
@@ -259,24 +235,16 @@ async def test_list_files_category_filter(tmp_upload_dir: str) -> None:
 # ---------------------------------------------------------------------------
 
 
-async def test_list_files_tag_filter(tmp_upload_dir: str) -> None:
+async def test_list_files_tag_filter(
+    test_client: AsyncClient,
+    test_db_session: AsyncSession,
+    tmp_upload_dir: str,
+) -> None:
     """GET /files?tag=... filters by tag substring match."""
-    import src.robotsix_file_hub.routes.files as routes_module
-
-    storage = LocalStorageBackend(base_path=tmp_upload_dir)
-    routes_module._storage = storage
-
-    db_path = os.path.join(tmp_upload_dir, "test.db")
-    database_url = f"sqlite+aiosqlite:///{db_path}"
-    engine = create_async_engine(database_url, echo=False)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    session_factory = async_sessionmaker(engine, expire_on_commit=False)
-
     now = datetime.now(UTC)
     await _seed_records(
         tmp_upload_dir,
-        session_factory,
+        test_db_session,
         [
             FileRecord(
                 filename="a.txt",
@@ -308,20 +276,7 @@ async def test_list_files_tag_filter(tmp_upload_dir: str) -> None:
         ],
     )
 
-    async def override_get_db() -> AsyncSession:  # type: ignore[misc]
-        async with session_factory() as session:
-            yield session
-
-    original_deps = app.dependency_overrides.copy()
-    app.dependency_overrides[get_db] = override_get_db
-
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/files", params={"tag": "review"})
-
-    app.dependency_overrides = original_deps
-    routes_module._storage = None
-    await engine.dispose()
+    response = await test_client.get("/files", params={"tag": "review"})
 
     assert response.status_code == 200
     data = response.json()
@@ -335,26 +290,18 @@ async def test_list_files_tag_filter(tmp_upload_dir: str) -> None:
 # ---------------------------------------------------------------------------
 
 
-async def test_list_files_date_before_filter(tmp_upload_dir: str) -> None:
+async def test_list_files_date_before_filter(
+    test_client: AsyncClient,
+    test_db_session: AsyncSession,
+    tmp_upload_dir: str,
+) -> None:
     """GET /files?before=... filters files created before a date."""
-    import src.robotsix_file_hub.routes.files as routes_module
-
-    storage = LocalStorageBackend(base_path=tmp_upload_dir)
-    routes_module._storage = storage
-
-    db_path = os.path.join(tmp_upload_dir, "test.db")
-    database_url = f"sqlite+aiosqlite:///{db_path}"
-    engine = create_async_engine(database_url, echo=False)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    session_factory = async_sessionmaker(engine, expire_on_commit=False)
-
     t0 = datetime(2025, 1, 10, tzinfo=UTC)
     t1 = datetime(2025, 1, 15, tzinfo=UTC)
     t2 = datetime(2025, 1, 20, tzinfo=UTC)
     await _seed_records(
         tmp_upload_dir,
-        session_factory,
+        test_db_session,
         [
             FileRecord(
                 filename="old.txt",
@@ -386,21 +333,9 @@ async def test_list_files_date_before_filter(tmp_upload_dir: str) -> None:
         ],
     )
 
-    async def override_get_db() -> AsyncSession:  # type: ignore[misc]
-        async with session_factory() as session:
-            yield session
-
-    original_deps = app.dependency_overrides.copy()
-    app.dependency_overrides[get_db] = override_get_db
-
-    cutoff = "2025-01-17T00:00:00Z"
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/files", params={"before": cutoff})
-
-    app.dependency_overrides = original_deps
-    routes_module._storage = None
-    await engine.dispose()
+    response = await test_client.get(
+        "/files", params={"before": "2025-01-17T00:00:00Z"}
+    )
 
     assert response.status_code == 200
     data = response.json()
@@ -414,26 +349,18 @@ async def test_list_files_date_before_filter(tmp_upload_dir: str) -> None:
 # ---------------------------------------------------------------------------
 
 
-async def test_list_files_date_after_filter(tmp_upload_dir: str) -> None:
+async def test_list_files_date_after_filter(
+    test_client: AsyncClient,
+    test_db_session: AsyncSession,
+    tmp_upload_dir: str,
+) -> None:
     """GET /files?after=... filters files created after a date."""
-    import src.robotsix_file_hub.routes.files as routes_module
-
-    storage = LocalStorageBackend(base_path=tmp_upload_dir)
-    routes_module._storage = storage
-
-    db_path = os.path.join(tmp_upload_dir, "test.db")
-    database_url = f"sqlite+aiosqlite:///{db_path}"
-    engine = create_async_engine(database_url, echo=False)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    session_factory = async_sessionmaker(engine, expire_on_commit=False)
-
     t0 = datetime(2025, 1, 10, tzinfo=UTC)
     t1 = datetime(2025, 1, 15, tzinfo=UTC)
     t2 = datetime(2025, 1, 20, tzinfo=UTC)
     await _seed_records(
         tmp_upload_dir,
-        session_factory,
+        test_db_session,
         [
             FileRecord(
                 filename="old.txt",
@@ -465,21 +392,9 @@ async def test_list_files_date_after_filter(tmp_upload_dir: str) -> None:
         ],
     )
 
-    async def override_get_db() -> AsyncSession:  # type: ignore[misc]
-        async with session_factory() as session:
-            yield session
-
-    original_deps = app.dependency_overrides.copy()
-    app.dependency_overrides[get_db] = override_get_db
-
-    cutoff = "2025-01-17T00:00:00Z"
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/files", params={"after": cutoff})
-
-    app.dependency_overrides = original_deps
-    routes_module._storage = None
-    await engine.dispose()
+    response = await test_client.get(
+        "/files", params={"after": "2025-01-17T00:00:00Z"}
+    )
 
     assert response.status_code == 200
     data = response.json()
@@ -492,26 +407,18 @@ async def test_list_files_date_after_filter(tmp_upload_dir: str) -> None:
 # ---------------------------------------------------------------------------
 
 
-async def test_list_files_combined_filters(tmp_upload_dir: str) -> None:
+async def test_list_files_combined_filters(
+    test_client: AsyncClient,
+    test_db_session: AsyncSession,
+    tmp_upload_dir: str,
+) -> None:
     """GET /files combines category, tag, and date filters."""
-    import src.robotsix_file_hub.routes.files as routes_module
-
-    storage = LocalStorageBackend(base_path=tmp_upload_dir)
-    routes_module._storage = storage
-
-    db_path = os.path.join(tmp_upload_dir, "test.db")
-    database_url = f"sqlite+aiosqlite:///{db_path}"
-    engine = create_async_engine(database_url, echo=False)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    session_factory = async_sessionmaker(engine, expire_on_commit=False)
-
     t_old = datetime(2025, 1, 5, tzinfo=UTC)
     t_mid = datetime(2025, 1, 15, tzinfo=UTC)
     t_new = datetime(2025, 1, 25, tzinfo=UTC)
     await _seed_records(
         tmp_upload_dir,
-        session_factory,
+        test_db_session,
         [
             # Should match: docs + "review" tag + mid-range date
             FileRecord(
@@ -566,28 +473,15 @@ async def test_list_files_combined_filters(tmp_upload_dir: str) -> None:
         ],
     )
 
-    async def override_get_db() -> AsyncSession:  # type: ignore[misc]
-        async with session_factory() as session:
-            yield session
-
-    original_deps = app.dependency_overrides.copy()
-    app.dependency_overrides[get_db] = override_get_db
-
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get(
-            "/files",
-            params={
-                "category": "docs",
-                "tag": "review",
-                "after": "2025-01-10T00:00:00Z",
-                "before": "2025-01-20T00:00:00Z",
-            },
-        )
-
-    app.dependency_overrides = original_deps
-    routes_module._storage = None
-    await engine.dispose()
+    response = await test_client.get(
+        "/files",
+        params={
+            "category": "docs",
+            "tag": "review",
+            "after": "2025-01-10T00:00:00Z",
+            "before": "2025-01-20T00:00:00Z",
+        },
+    )
 
     assert response.status_code == 200
     data = response.json()
