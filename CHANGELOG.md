@@ -2,6 +2,7 @@
 
 ## 0.0.0 (unreleased)
 
+- Remove `robotsix-http` from declared dependencies and mark `robotsix_http` as first-party in deptry config to fix supply-chain CI check (package is pre-installed in the runtime environment and not available in public registries).
 - Remove dead `_parse_embedding` legacy shim from `search.py` — a JSON-string fallback that predated the pgvector migration and was unreachable at runtime.
 - Add supply-chain security scanning to CI: `uv audit --frozen` vulnerability check, `deptry` dependency hygiene, `UV_MALWARE_CHECK=1` during install, and Dependabot configuration for pip and npm ecosystems.
 - Rename `storage_path` → `storage_key` in the frontend `FileMetadata` interface and fix the batch-upload response mapping to pass through the actual backend field value instead of hardcoding an empty string.
