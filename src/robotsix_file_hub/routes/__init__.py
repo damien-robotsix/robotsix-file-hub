@@ -1,1 +1,1 @@
-"""File upload routes."""
+"""API route modules: files, search, and tasks."""
