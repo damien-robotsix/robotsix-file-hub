@@ -6,8 +6,10 @@
   - devDependencies: vitest, @testing-library/react, @testing-library/jest-dom,
     @testing-library/user-event, jsdom, @vitest/coverage-v8
   - Test scripts: `npm test`, `npm run test:watch`, `npm run test:coverage`
-  - Initial tests for `formatSize`, `classifyPreview`, `escapeHtml`,
-    `tokenStorage`, and `AuthContext`
+  - Tests for `formatSize`, `classifyPreview`, `escapeHtml`,
+    `tokenStorage`, `AuthContext`, `api` client (smoke tests covering
+    auth injection, error handling, and key endpoints), and
+    `FilesPage` (basic component render with router context)
 - Updated `src/robotsix_file_hub/routes/__init__.py` docstring to accurately describe all route modules (files, search, and tasks) instead of only "File upload routes."
 - Split `tests/test_search.py` (1532 lines) into three focused modules: `test_search_keyword.py` (keyword/cosine/hybrid scoring unit tests), `test_search_pg.py` (search orchestration tests covering the `search_files_pg` fallback path), and `test_search.py` (integration/endpoint tests). Extracted `_metadata_filter_conditions` helper in `search.py` to deduplicate repeated filter-application blocks.
 - Add "Frontend conventions" section to README documenting the `formatSize` helper rule (centralize file-size display through `frontend/src/lib/format.ts`)
