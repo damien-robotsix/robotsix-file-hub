@@ -8,6 +8,3 @@ export function readToken(): string | null {
   }
 }
 
-export function getStoredToken(): string | null {
-  return readToken();
-}
