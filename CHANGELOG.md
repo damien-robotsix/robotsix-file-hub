@@ -3,6 +3,7 @@
 ## 0.0.0 (unreleased)
 
 - Updated `src/robotsix_file_hub/routes/__init__.py` docstring to accurately describe all route modules (files, search, and tasks) instead of only "File upload routes."
+- Split `tests/test_search.py` (1532 lines) into three focused modules: `test_search_keyword.py` (keyword/cosine/hybrid scoring unit tests), `test_search_pg.py` (search orchestration tests covering the `search_files_pg` fallback path), and `test_search.py` (integration/endpoint tests). Extracted `_metadata_filter_conditions` helper in `search.py` to deduplicate repeated filter-application blocks.
 - Add "Frontend conventions" section to README documenting the `formatSize` helper rule (centralize file-size display through `frontend/src/lib/format.ts`)
 - Removed dead `getStoredToken` export from `frontend/src/tokenStorage.ts` (it was never imported or used)
 - Eliminate duplicate `formatBytes` function in `FilesPage.tsx` and inline KB formatting in `HomePage.tsx` — both now use the shared `formatSize` from `frontend/src/lib/format.ts`
