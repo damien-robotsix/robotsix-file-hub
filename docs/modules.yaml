@@ -55,6 +55,8 @@ modules:
       - tests/test_enrichment.py
       - tests/test_health.py
       - tests/test_search.py
+      - tests/test_search_keyword.py
+      - tests/test_search_pg.py
       - tests/test_storage.py
       - tests/test_tasks.py
       - tests/test_upload.py

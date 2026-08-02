@@ -33,6 +33,29 @@ _KW_SUMMARY_WEIGHT = 5.0
 _KW_TAGS_WEIGHT = 3.0
 
 
+def _metadata_filter_conditions(
+    category: str | None = None,
+    tags: str | None = None,
+    created_after: datetime | None = None,
+    created_before: datetime | None = None,
+) -> list[ColumnElement[bool]]:
+    """Return filter conditions for optional metadata parameters.
+
+    Returns a list of SQLAlchemy ``ColumnElement`` conditions that can be
+    applied via ``stmt.where()`` or appended to a conditions list.
+    """
+    conditions: list[ColumnElement[bool]] = []
+    if category is not None:
+        conditions.append(FileRecord.category == category)
+    if tags is not None:
+        conditions.append(FileRecord.tags.contains(tags))
+    if created_after is not None:
+        conditions.append(FileRecord.created_at >= created_after)
+    if created_before is not None:
+        conditions.append(FileRecord.created_at <= created_before)
+    return conditions
+
+
 def _tokenize(text: str) -> list[str]:
     """Lowercase and split into tokens."""
     return text.lower().split()
@@ -152,15 +175,8 @@ async def search_files(
 
     if conditions:
         stmt = select(FileRecord).where(or_(*conditions))
-        # Apply optional metadata filters
-        if category is not None:
-            stmt = stmt.where(FileRecord.category == category)
-        if tags is not None:
-            stmt = stmt.where(FileRecord.tags.contains(tags))
-        if created_after is not None:
-            stmt = stmt.where(FileRecord.created_at >= created_after)
-        if created_before is not None:
-            stmt = stmt.where(FileRecord.created_at <= created_before)
+        for cond in _metadata_filter_conditions(category, tags, created_after, created_before):
+            stmt = stmt.where(cond)
         result = await db.execute(stmt)
         for rec in result.scalars().all():
             candidate_ids.add(rec.id)
@@ -168,15 +184,8 @@ async def search_files(
     # When vector search is active, also pull in files with embeddings
     if query_embedding is not None:
         stmt = select(FileRecord).where(FileRecord.embedding.isnot(None))
-        # Apply optional metadata filters
-        if category is not None:
-            stmt = stmt.where(FileRecord.category == category)
-        if tags is not None:
-            stmt = stmt.where(FileRecord.tags.contains(tags))
-        if created_after is not None:
-            stmt = stmt.where(FileRecord.created_at >= created_after)
-        if created_before is not None:
-            stmt = stmt.where(FileRecord.created_at <= created_before)
+        for cond in _metadata_filter_conditions(category, tags, created_after, created_before):
+            stmt = stmt.where(cond)
         result = await db.execute(stmt)
         for rec in result.scalars().all():
             candidate_ids.add(rec.id)
@@ -285,14 +294,9 @@ async def search_files_pg(
         conditions.append(kw_cond)
 
     # Optional metadata filters
-    if category is not None:
-        conditions.append(FileRecord.category == category)
-    if tags is not None:
-        conditions.append(FileRecord.tags.contains(tags))
-    if created_after is not None:
-        conditions.append(FileRecord.created_at >= created_after)
-    if created_before is not None:
-        conditions.append(FileRecord.created_at <= created_before)
+    conditions.extend(
+        _metadata_filter_conditions(category, tags, created_after, created_before)
+    )
 
     # Count total before pagination
     count_stmt = select(func.count()).select_from(FileRecord).where(*conditions)
