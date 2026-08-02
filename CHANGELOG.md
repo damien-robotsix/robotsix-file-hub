@@ -2,6 +2,7 @@
 
 ## 0.0.0 (unreleased)
 
+- Eliminate duplicate `formatBytes` function in `FilesPage.tsx` and inline KB formatting in `HomePage.tsx` — both now use the shared `formatSize` from `frontend/src/lib/format.ts`
 - Replace hand-rolled HTTP retry logic with `robotsix-http.acall_with_retry` and `RetryConfig` in `enrichment.py`.
 - Resolve deptry DEP002/DEP003 findings: consolidate dev dependencies into `[dependency-groups].dev`, remove legacy `[project.optional-dependencies]`, and shrink `per_rule_ignores` to only legitimate no-import runtime packages.
 - Enable mypy_baseline periodic workflow to track mypy baseline errors across builds.

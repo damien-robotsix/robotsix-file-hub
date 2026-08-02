@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { healthCheck, listFiles, type FileMetadata } from "../api.ts";
 import UploadDialog from "../components/UploadDialog.tsx";
+import { formatSize } from "../lib/format.ts";
 
 export default function HomePage() {
   const [status, setStatus] = useState<string | null>(null);
@@ -56,7 +57,7 @@ export default function HomePage() {
       <ul>
         {files.map((f) => (
           <li key={f.id}>
-            {f.filename} ({(f.size / 1024).toFixed(1)} KB)
+            {f.filename} ({formatSize(f.size)})
           </li>
         ))}
       </ul>
