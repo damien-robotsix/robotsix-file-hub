@@ -215,6 +215,13 @@ The Vite dev server proxies `/api` (stripping the prefix) and `/files` to
 └── README.md
 ```
 
+## Frontend conventions
+
+> **Rule:** Display file sizes through the shared `formatSize` helper in
+> `frontend/src/lib/format.ts` (which handles B/KB/MB dynamically); never
+> define local byte-formatting functions or inline `(n/1024).toFixed(1)`"KB"
+> expressions.
+
 ## Testing conventions
 
 All test files must use the shared fixtures from [`tests/conftest.py`](tests/conftest.py)
