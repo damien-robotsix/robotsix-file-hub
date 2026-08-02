@@ -12,6 +12,7 @@ import {
 } from "../api.ts";
 import FilePreview from "../components/FilePreview.tsx";
 import UploadDialog from "../components/UploadDialog.tsx";
+import { formatSize } from "../lib/format.ts";
 
 const PAGE_SIZE = 20;
 const MAX_PAGE_BUTTONS = 7;
@@ -41,12 +42,6 @@ const CONTENT_TYPE_ICONS: Record<string, string> = {
 function contentTypeIcon(contentType: string): string {
   const key = contentType.split(";")[0].trim();
   return CONTENT_TYPE_ICONS[key] ?? "📁";
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function formatDate(iso: string): string {
@@ -375,7 +370,7 @@ export default function FilesPage() {
                   </Link>
                 </td>
                 <td className="cell-mono">{f.content_type}</td>
-                <td>{formatBytes(f.size)}</td>
+                <td>{formatSize(f.size)}</td>
                 <td>{formatDate(f.created_at)}</td>
                 <td>{f.category ? <span className="badge badge-category">{f.category}</span> : "—"}</td>
                 <td>
