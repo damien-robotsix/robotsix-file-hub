@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import UploadDialog from "./UploadDialog";
 import * as api from "../api";
@@ -213,13 +213,10 @@ describe("UploadDialog", () => {
     const dropZone = document.querySelector(".upload-drop-zone")!;
     const file = new File(["hello"], "drop.txt", { type: "text/plain" });
 
-    // Simulate a drop event carrying files via dataTransfer
-    const event = new Event("drop", { bubbles: true }) as DragEvent;
-    Object.defineProperty(event, "dataTransfer", {
-      value: { files: [file] },
-      configurable: true,
-    });
-    dropZone.dispatchEvent(event);
+    // Simulate a drop event carrying files via DataTransfer
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    fireEvent.drop(dropZone, { dataTransfer: dt });
 
     expect(screen.getByText("drop.txt")).toBeInTheDocument();
   });

@@ -162,7 +162,7 @@ describe("API client", () => {
     await triggerReindex({ file_ids: ["a", "b"], category: "reports" });
 
     const [url] = fetch.mock.calls[0] as [string];
-    expect(url).toContain("file_ids=a,b");
+    expect(url).toContain("file_ids=a%2Cb");
     expect(url).toContain("category=reports");
   });
 
