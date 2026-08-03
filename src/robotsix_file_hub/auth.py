@@ -41,14 +41,14 @@ def _validate_token(
     return token
 
 
-def _get_settings() -> Settings:
+def get_settings() -> Settings:
     """Return the application settings (factory for Depends)."""
     return Settings()
 
 
 async def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer_scheme)],
-    settings: Annotated[Settings, Depends(_get_settings)],
+    settings: Annotated[Settings, Depends(get_settings)],
     x_api_key: Annotated[str | None, Header()] = None,
 ) -> str:
     """Dependency that extracts and validates a bearer token or API key.
