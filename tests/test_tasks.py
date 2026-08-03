@@ -21,6 +21,7 @@ async def test_enrichment_worker_updates_record(tasks_test_env) -> None:
     The enrichment module is mocked to return canned values so we
     don't need a real LLM or file content.
     """
+    import src.robotsix_file_hub.storage as storage_module
     import src.robotsix_file_hub.tasks as tasks_module
 
     session_factory, storage = tasks_test_env
@@ -47,7 +48,7 @@ async def test_enrichment_worker_updates_record(tasks_test_env) -> None:
         canned = {"category": "document", "tags": "pdf,report", "summary": "A report file."}
 
         with patch.object(tasks_module, "enrich_file", new=AsyncMock(return_value=canned)):
-            tasks_module._storage = storage
+            storage_module._storage = storage
 
             # Start one worker
             await start_workers(count=1)
@@ -81,11 +82,12 @@ async def test_enrichment_worker_updates_record(tasks_test_env) -> None:
 
     finally:
         await stop_workers()
-        tasks_module._storage = None
+        storage_module._storage = None
 
 
 async def test_enrichment_worker_null_on_llm_failure(tasks_test_env) -> None:
     """When enrich_file returns None fields, the DB record is updated with nulls."""
+    import src.robotsix_file_hub.storage as storage_module
     import src.robotsix_file_hub.tasks as tasks_module
 
     session_factory, storage = tasks_test_env
@@ -110,7 +112,7 @@ async def test_enrichment_worker_null_on_llm_failure(tasks_test_env) -> None:
         canned = {"category": None, "tags": None, "summary": None}
 
         with patch.object(tasks_module, "enrich_file", new=AsyncMock(return_value=canned)):
-            tasks_module._storage = storage
+            storage_module._storage = storage
 
             await start_workers(count=1)
 
@@ -140,7 +142,7 @@ async def test_enrichment_worker_null_on_llm_failure(tasks_test_env) -> None:
 
     finally:
         await stop_workers()
-        tasks_module._storage = None
+        storage_module._storage = None
 
 
 # ── Upload-enqueues-enrichment test ─────────────────────────────────
@@ -407,6 +409,7 @@ async def test_reindex_progress_tracking(tasks_test_env) -> None:
     rather than through the worker loop, avoiding event-loop interaction
     issues with module-level state across tests.
     """
+    import src.robotsix_file_hub.storage as storage_module
     import src.robotsix_file_hub.tasks as tasks_module
 
     session_factory, storage = tasks_test_env
@@ -436,7 +439,7 @@ async def test_reindex_progress_tracking(tasks_test_env) -> None:
         canned = {"category": "document", "tags": "pdf,report", "summary": "A report file."}
 
         with patch.object(tasks_module, "enrich_file", new=AsyncMock(return_value=canned)):
-            tasks_module._storage = storage
+            storage_module._storage = storage
 
             # Simulate a reindex batch: set counters then call _process_enrichment
             tasks_module._reindex_total = 1
@@ -481,7 +484,7 @@ async def test_reindex_progress_tracking(tasks_test_env) -> None:
             assert progress["active"] is False
 
     finally:
-        tasks_module._storage = None
+        storage_module._storage = None
 
 
 # ── Reindex endpoint tests ─────────────────────────────────────────
@@ -663,6 +666,7 @@ async def test_task_status_transitions(
     tasks_test_env,
 ) -> None:
     """Task status transitions pending → running → completed during enrichment."""
+    import src.robotsix_file_hub.storage as storage_module
     import src.robotsix_file_hub.tasks as tasks_module
 
     session_factory, storage = tasks_test_env
@@ -686,7 +690,7 @@ async def test_task_status_transitions(
         canned = {"category": "doc", "tags": "txt", "summary": "A text file."}
 
         with patch.object(tasks_module, "enrich_file", new=AsyncMock(return_value=canned)):
-            tasks_module._storage = storage
+            storage_module._storage = storage
 
             await start_workers(count=1)
 
@@ -718,7 +722,7 @@ async def test_task_status_transitions(
 
     finally:
         await stop_workers()
-        tasks_module._storage = None
+        storage_module._storage = None
 
 
 # ── Text extraction unit tests ─────────────────────────────────────

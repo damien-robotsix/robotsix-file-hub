@@ -32,23 +32,13 @@ from ..schemas import (
     FileMetadataResponse,
     FileUploadResponse,
 )
-from ..storage import StorageBackend, StorageError, compute_checksum, create_storage_backend
+from ..storage import StorageBackend, StorageError, _get_storage, compute_checksum
 from ..tasks import enqueue_enrichment, enqueue_reindex_all, get_reindex_progress
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/files", tags=["files"], dependencies=[Depends(get_current_user)])
 MAX_FILE_SIZE = Settings().max_file_size
-
-_storage: StorageBackend | None = None
-
-
-def _get_storage() -> StorageBackend:
-    global _storage
-    if _storage is None:
-        _storage = create_storage_backend()
-    return _storage
-
 
 async def _process_upload(
     file: UploadFile,
