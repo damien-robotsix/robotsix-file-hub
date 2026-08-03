@@ -35,4 +35,4 @@ jobs:
           sarif_file: uv-audit-results.sarif
 
       - name: Check dependency hygiene
-        run: uv tool run --from deptry deptry src/ --python-version 3.14
+        run: uv tool run --from deptry deptry src/
