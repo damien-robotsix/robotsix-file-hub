@@ -624,7 +624,7 @@ async def test_auth_missing_token_returns_401(test_client: AsyncClient) -> None:
     try:
         response = await test_client.get("/files")
     finally:
-        app.dependency_overrides.pop(Settings, None)
+        app.dependency_overrides.pop(get_settings, None)
 
     assert response.status_code == 401
     assert "detail" in response.json()
@@ -636,7 +636,7 @@ async def test_auth_wrong_token_returns_401(test_client: AsyncClient) -> None:
     try:
         response = await test_client.get("/files", headers={"Authorization": "Bearer wrong"})
     finally:
-        app.dependency_overrides.pop(Settings, None)
+        app.dependency_overrides.pop(get_settings, None)
 
     assert response.status_code == 401
     assert "detail" in response.json()
@@ -648,7 +648,7 @@ async def test_auth_api_key_succeeds(test_client: AsyncClient) -> None:
     try:
         response = await test_client.get("/files", headers={"X-API-Key": "secret"})
     finally:
-        app.dependency_overrides.pop(Settings, None)
+        app.dependency_overrides.pop(get_settings, None)
 
     assert response.status_code == 200
 
@@ -659,7 +659,7 @@ async def test_auth_api_key_wrong_returns_401(test_client: AsyncClient) -> None:
     try:
         response = await test_client.get("/files", headers={"X-API-Key": "wrong"})
     finally:
-        app.dependency_overrides.pop(Settings, None)
+        app.dependency_overrides.pop(get_settings, None)
 
     assert response.status_code == 401
     assert "detail" in response.json()
@@ -671,7 +671,7 @@ async def test_auth_correct_token_succeeds(test_client: AsyncClient) -> None:
     try:
         response = await test_client.get("/files", headers={"Authorization": "Bearer secret"})
     finally:
-        app.dependency_overrides.pop(Settings, None)
+        app.dependency_overrides.pop(get_settings, None)
 
     assert response.status_code == 200
 
@@ -682,7 +682,7 @@ async def test_auth_required_on_download_endpoint(test_client: AsyncClient) -> N
     try:
         response = await test_client.get("/files/some-id")
     finally:
-        app.dependency_overrides.pop(Settings, None)
+        app.dependency_overrides.pop(get_settings, None)
 
     assert response.status_code == 401
 
@@ -693,7 +693,7 @@ async def test_auth_required_on_metadata_endpoint(test_client: AsyncClient) -> N
     try:
         response = await test_client.get("/files/some-id/metadata")
     finally:
-        app.dependency_overrides.pop(Settings, None)
+        app.dependency_overrides.pop(get_settings, None)
 
     assert response.status_code == 401
 
@@ -715,7 +715,7 @@ async def test_auth_correct_token_on_download(test_client: AsyncClient) -> None:
             headers={"Authorization": "Bearer secret"},
         )
     finally:
-        app.dependency_overrides.pop(Settings, None)
+        app.dependency_overrides.pop(get_settings, None)
 
     assert response.status_code == 200
     assert response.content == content
@@ -727,6 +727,6 @@ async def test_auth_correct_token_on_list(test_client: AsyncClient) -> None:
     try:
         response = await test_client.get("/files", headers={"Authorization": "Bearer secret"})
     finally:
-        app.dependency_overrides.pop(Settings, None)
+        app.dependency_overrides.pop(get_settings, None)
 
     assert response.status_code == 200
