@@ -5,15 +5,14 @@ from typing import Annotated
 from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from .config import Settings, get_settings
+from .config import Settings
 
 _bearer_scheme = HTTPBearer(auto_error=False)
 
 
-# ``get_settings`` is re-exported for use as a FastAPI dependency. It used to
-# be a local wrapper hiding ``BaseSettings.__init__`` from FastAPI's signature
-# analysis; ConfigModel has no such parameters, so the real accessor is used
-# directly and its cache is shared with the rest of the process.
+def _get_settings() -> Settings:
+    """Return the application settings (factory for Depends)."""
+    return Settings()
 
 
 def _validate_token(
@@ -49,7 +48,7 @@ def _validate_token(
 
 async def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer_scheme)],
-    settings: Annotated[Settings, Depends(get_settings)],
+    settings: Annotated[Settings, Depends(_get_settings)],
     x_api_key: Annotated[str | None, Header()] = None,
 ) -> str:
     """Dependency that extracts and validates a bearer token or API key.
