@@ -7,12 +7,10 @@ stack (test client + test database session).
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.robotsix_file_hub.models import FileRecord
-
 
 # ── POST /files/search endpoint tests ──────────────────────────────
 
