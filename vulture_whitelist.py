@@ -19,3 +19,4 @@ _.get_task_status  # FastAPI route
 _.detail  # Pydantic schema field
 _.relevance  # Pydantic schema field
 _.get_current_user  # auth dependency — consumed by external consumers and tests
+_.get_settings  # FastAPI Depends callable — not traced by vulture

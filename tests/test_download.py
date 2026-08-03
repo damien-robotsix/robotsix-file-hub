@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.robotsix_file_hub.auth import get_settings
 from src.robotsix_file_hub.config import Settings
 from src.robotsix_file_hub.main import app
 from src.robotsix_file_hub.models import FileRecord
@@ -619,11 +620,11 @@ async def test_auth_disabled_when_token_empty(test_client: AsyncClient) -> None:
 
 async def test_auth_missing_token_returns_401(test_client: AsyncClient) -> None:
     """When auth_token is set, unauthenticated requests return 401."""
-    app.dependency_overrides[Settings] = lambda: Settings(auth_token="secret")
+    app.dependency_overrides[get_settings] = lambda: Settings(auth_token="secret")
     try:
         response = await test_client.get("/files")
     finally:
-        app.dependency_overrides.pop(Settings, None)
+        app.dependency_overrides.pop(get_settings, None)
 
     assert response.status_code == 401
     assert "detail" in response.json()
@@ -631,11 +632,11 @@ async def test_auth_missing_token_returns_401(test_client: AsyncClient) -> None:
 
 async def test_auth_wrong_token_returns_401(test_client: AsyncClient) -> None:
     """When auth_token is set, requests with wrong bearer token return 401."""
-    app.dependency_overrides[Settings] = lambda: Settings(auth_token="secret")
+    app.dependency_overrides[get_settings] = lambda: Settings(auth_token="secret")
     try:
         response = await test_client.get("/files", headers={"Authorization": "Bearer wrong"})
     finally:
-        app.dependency_overrides.pop(Settings, None)
+        app.dependency_overrides.pop(get_settings, None)
 
     assert response.status_code == 401
     assert "detail" in response.json()
@@ -643,22 +644,22 @@ async def test_auth_wrong_token_returns_401(test_client: AsyncClient) -> None:
 
 async def test_auth_api_key_succeeds(test_client: AsyncClient) -> None:
     """When auth_token is set, requests with correct X-API-Key header succeed."""
-    app.dependency_overrides[Settings] = lambda: Settings(auth_token="secret")
+    app.dependency_overrides[get_settings] = lambda: Settings(auth_token="secret")
     try:
         response = await test_client.get("/files", headers={"X-API-Key": "secret"})
     finally:
-        app.dependency_overrides.pop(Settings, None)
+        app.dependency_overrides.pop(get_settings, None)
 
     assert response.status_code == 200
 
 
 async def test_auth_api_key_wrong_returns_401(test_client: AsyncClient) -> None:
     """When auth_token is set, requests with wrong X-API-Key header return 401."""
-    app.dependency_overrides[Settings] = lambda: Settings(auth_token="secret")
+    app.dependency_overrides[get_settings] = lambda: Settings(auth_token="secret")
     try:
         response = await test_client.get("/files", headers={"X-API-Key": "wrong"})
     finally:
-        app.dependency_overrides.pop(Settings, None)
+        app.dependency_overrides.pop(get_settings, None)
 
     assert response.status_code == 401
     assert "detail" in response.json()
@@ -666,33 +667,33 @@ async def test_auth_api_key_wrong_returns_401(test_client: AsyncClient) -> None:
 
 async def test_auth_correct_token_succeeds(test_client: AsyncClient) -> None:
     """When auth_token is set, requests with correct token succeed."""
-    app.dependency_overrides[Settings] = lambda: Settings(auth_token="secret")
+    app.dependency_overrides[get_settings] = lambda: Settings(auth_token="secret")
     try:
         response = await test_client.get("/files", headers={"Authorization": "Bearer secret"})
     finally:
-        app.dependency_overrides.pop(Settings, None)
+        app.dependency_overrides.pop(get_settings, None)
 
     assert response.status_code == 200
 
 
 async def test_auth_required_on_download_endpoint(test_client: AsyncClient) -> None:
     """Auth is enforced on GET /files/{id}."""
-    app.dependency_overrides[Settings] = lambda: Settings(auth_token="secret")
+    app.dependency_overrides[get_settings] = lambda: Settings(auth_token="secret")
     try:
         response = await test_client.get("/files/some-id")
     finally:
-        app.dependency_overrides.pop(Settings, None)
+        app.dependency_overrides.pop(get_settings, None)
 
     assert response.status_code == 401
 
 
 async def test_auth_required_on_metadata_endpoint(test_client: AsyncClient) -> None:
     """Auth is enforced on GET /files/{id}/metadata."""
-    app.dependency_overrides[Settings] = lambda: Settings(auth_token="secret")
+    app.dependency_overrides[get_settings] = lambda: Settings(auth_token="secret")
     try:
         response = await test_client.get("/files/some-id/metadata")
     finally:
-        app.dependency_overrides.pop(Settings, None)
+        app.dependency_overrides.pop(get_settings, None)
 
     assert response.status_code == 401
 
@@ -707,14 +708,14 @@ async def test_auth_correct_token_on_download(test_client: AsyncClient) -> None:
     assert upload_resp.status_code == 200
     file_id = upload_resp.json()["id"]
 
-    app.dependency_overrides[Settings] = lambda: Settings(auth_token="secret")
+    app.dependency_overrides[get_settings] = lambda: Settings(auth_token="secret")
     try:
         response = await test_client.get(
             f"/files/{file_id}",
             headers={"Authorization": "Bearer secret"},
         )
     finally:
-        app.dependency_overrides.pop(Settings, None)
+        app.dependency_overrides.pop(get_settings, None)
 
     assert response.status_code == 200
     assert response.content == content
@@ -722,10 +723,10 @@ async def test_auth_correct_token_on_download(test_client: AsyncClient) -> None:
 
 async def test_auth_correct_token_on_list(test_client: AsyncClient) -> None:
     """Correct auth token allows access to list endpoint."""
-    app.dependency_overrides[Settings] = lambda: Settings(auth_token="secret")
+    app.dependency_overrides[get_settings] = lambda: Settings(auth_token="secret")
     try:
         response = await test_client.get("/files", headers={"Authorization": "Bearer secret"})
     finally:
-        app.dependency_overrides.pop(Settings, None)
+        app.dependency_overrides.pop(get_settings, None)
 
     assert response.status_code == 200
