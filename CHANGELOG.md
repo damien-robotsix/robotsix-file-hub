@@ -12,6 +12,7 @@
 - Add unit tests for `uploadFilesBatchWithProgress` (XHR-based batch upload with per-file progress estimation, Authorization header, response coercion, and error paths) and `UploadDialog` component (drag-and-drop, progress/success/error rendering, batch-failure fallback).
 - Deduplicate `_get_storage()` lazy-singleton: moved from `routes/files.py` and `tasks.py` into `storage.py` as a single shared definition. Both modules now import `_get_storage` from `.storage`.
 - Refactor `FileMetadataResponse` and `SearchResult` to share a common base class `_FileMetadataBase`, eliminating 10 duplicate field definitions. Replace manual `SearchResult(...)` construction in `search.py` with `SearchResult.model_validate(rec)`.
+- Add frontend test scaffolding: switched from jsdom to happy-dom, added UploadDialog unit tests (file selection, upload success/failure, loading state, drag-and-drop), and added missing api.ts test coverage for `uploadFilesBatchWithProgress`, `listCategories`, `triggerReindex`, and `getReindexProgress`.
 - Fix pydantic `NameError` caused by `BaseSettings.__init__` underscore-prefixed
   parameters being treated as body-model fields.  Replace `Depends(Settings)` with
   a wrapper factory `get_settings()` so FastAPI analyses the factory signature
