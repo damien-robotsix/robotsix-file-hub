@@ -7,7 +7,6 @@ import {
   healthCheck,
   deleteFile,
   downloadFileUrl,
-  type FileListResponse,
   type FileMetadata,
   type SearchResponse,
 } from "./api";
