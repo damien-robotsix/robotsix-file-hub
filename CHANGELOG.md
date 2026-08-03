@@ -2,6 +2,7 @@
 
 ## 0.0.0 (unreleased)
 
+- Consolidate duplicate search endpoints: frontend now calls `POST /search` instead of the removed `POST /files/search`, and the duplicate handler in `routes/files.py` has been removed with its docstring updated accordingly.
 - Add frontend test infrastructure with Vitest, Testing Library, and jsdom
   - devDependencies: vitest, @testing-library/react, @testing-library/jest-dom,
     @testing-library/user-event, jsdom, @vitest/coverage-v8

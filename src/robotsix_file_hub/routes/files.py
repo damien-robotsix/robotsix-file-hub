@@ -1,4 +1,4 @@
-"""File endpoints: upload, download, metadata, listing, and search."""
+"""File endpoints: upload, download, metadata, and listing."""
 
 import contextlib
 import logging
@@ -8,7 +8,6 @@ from typing import Annotated
 
 from fastapi import (
     APIRouter,
-    Body,
     Depends,
     File,
     Header,
@@ -33,7 +32,6 @@ from ..schemas import (
     FileMetadataResponse,
     FileUploadResponse,
 )
-
 from ..storage import StorageBackend, StorageError, compute_checksum, create_storage_backend
 from ..tasks import enqueue_enrichment, enqueue_reindex_all, get_reindex_progress
 
