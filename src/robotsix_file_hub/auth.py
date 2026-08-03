@@ -10,6 +10,18 @@ from .config import Settings
 _bearer_scheme = HTTPBearer(auto_error=False)
 
 
+def get_settings() -> Settings:
+    """Return a Settings instance for FastAPI dependency injection.
+
+    Wraps ``Settings()`` in a factory function so that FastAPI
+    analyses the factory signature (no parameters) instead of the
+    ``BaseSettings.__init__`` signature, which contains private
+    underscore-prefixed parameters such as ``_cli_parse_args`` that
+    pydantic v2 rejects as body-model field names.
+    """
+    return Settings()
+
+
 def _validate_token(
     credentials: HTTPAuthorizationCredentials | None,
     x_api_key: str | None,
@@ -43,7 +55,7 @@ def _validate_token(
 
 async def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer_scheme)],
-    settings: Annotated[Settings, Depends(Settings)],
+    settings: Annotated[Settings, Depends(get_settings)],
     x_api_key: Annotated[str | None, Header()] = None,
 ) -> str:
     """Dependency that extracts and validates a bearer token or API key.

@@ -2,6 +2,10 @@
 
 ## 0.0.0 (unreleased)
 
+- Fix pydantic `NameError` caused by `BaseSettings.__init__` underscore-prefixed
+  parameters being treated as body-model fields.  Replace `Depends(Settings)` with
+  a wrapper factory `get_settings()` so FastAPI analyses the factory signature
+  (no parameters) instead of the pydantic-settings `__init__` signature.
 - Consolidate duplicate search endpoints: frontend now calls `POST /search` instead of the removed `POST /files/search`, and the duplicate handler in `routes/files.py` has been removed with its docstring updated accordingly.
 - Add frontend test infrastructure with Vitest, Testing Library, and jsdom
   - devDependencies: vitest, @testing-library/react, @testing-library/jest-dom,
