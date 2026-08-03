@@ -47,7 +47,7 @@ asyncio_mode = "auto"
 
 [tool.uv.sources]
 robotsix-http = { git = "https://github.com/damien-robotsix/robotsix-http.git", rev = "ba90d55ea2bcbd02f605f392e837cea7b485d73d" }
-robotsix-modules = { git = "https://github.com/damien-robotsix/robotsix-modules.git", tag = "v0.1.0" }
+robotsix-modules = { git = "https://github.com/damien-robotsix/robotsix-modules.git", branch = "main" }
 
 [tool.deptry]
 known_first_party = ["robotsix_file_hub"]
