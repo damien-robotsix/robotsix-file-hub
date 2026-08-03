@@ -283,7 +283,9 @@ async def search_files_pg(
         conditions.append(kw_cond)
 
     # Optional metadata filters
-    conditions.extend(_metadata_filter_conditions(category, tags, created_after, created_before))
+    conditions.extend(
+        _metadata_filter_conditions(category, tags, created_after, created_before)
+    )
 
     # Count total before pagination
     count_stmt = select(func.count()).select_from(FileRecord).where(*conditions)
