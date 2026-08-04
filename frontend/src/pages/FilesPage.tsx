@@ -11,6 +11,7 @@ import {
   type ReindexProgress,
 } from "../api.ts";
 import FilePreview from "../components/FilePreview.tsx";
+import UploadButton from "../components/UploadButton.tsx";
 import UploadDialog from "../components/UploadDialog.tsx";
 import { formatSize } from "../lib/format.ts";
 
@@ -218,20 +219,7 @@ export default function FilesPage() {
           >
             {reindexing ? "Reindexing…" : "Reindex"}
           </button>
-          <button
-          onClick={() => setUploadOpen(true)}
-          style={{
-            padding: "0.4rem 0.9rem",
-            fontSize: "0.9rem",
-            cursor: "pointer",
-            background: "#0d6efd",
-            color: "#fff",
-            border: "none",
-            borderRadius: "4px",
-          }}
-        >
-          + Upload
-          </button>
+          <UploadButton onClick={() => setUploadOpen(true)} />
         </div>
       </div>
 
