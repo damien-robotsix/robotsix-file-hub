@@ -209,22 +209,11 @@ async def search_files(
     total = len(scored)
     page = scored[offset : offset + limit]
 
-    results = [
-        SearchResult(
-            id=rec.id,
-            filename=rec.filename,
-            size=rec.size,
-            content_type=rec.content_type,
-            checksum=rec.checksum,
-            created_at=rec.created_at,
-            category=rec.category,
-            tags=rec.tags,
-            summary=rec.summary,
-            source=rec.source,
-            relevance=round(score, 4),
-        )
-        for score, rec in page
-    ]
+    results: list[SearchResult] = []
+    for score, rec in page:
+        sr = SearchResult.model_validate(rec)
+        sr.relevance = round(score, 4)
+        results.append(sr)
 
     return SearchResponse(
         results=results,
@@ -343,22 +332,11 @@ async def search_files_pg(
     result = await db.execute(stmt, exec_params)
     rows = result.all()
 
-    results = [
-        SearchResult(
-            id=rec.id,
-            filename=rec.filename,
-            size=rec.size,
-            content_type=rec.content_type,
-            checksum=rec.checksum,
-            created_at=rec.created_at,
-            category=rec.category,
-            tags=rec.tags,
-            summary=rec.summary,
-            source=rec.source,
-            relevance=round(float(hybrid), 4),
-        )
-        for rec, hybrid in rows
-    ]
+    results: list[SearchResult] = []
+    for rec, hybrid in rows:
+        sr = SearchResult.model_validate(rec)
+        sr.relevance = round(float(hybrid), 4)
+        results.append(sr)
 
     return SearchResponse(
         results=results,

@@ -47,23 +47,28 @@ class BatchUploadResponse(BaseModel):
     files: list[FileUploadResponse]
 
 
-class FileMetadataResponse(BaseModel):
-    """Full file metadata including optional enrichment fields."""
+class _FileMetadataBase(BaseModel):
+    """Shared base for file metadata responses and search results."""
 
     id: str
     filename: str
     size: int
     content_type: str
     checksum: str
-    storage_key: str
     created_at: datetime
-    updated_at: datetime
     category: str | None = None
     tags: str | None = None
     summary: str | None = None
     source: str | None = None
 
     model_config = {"from_attributes": True}
+
+
+class FileMetadataResponse(_FileMetadataBase):
+    """Full file metadata including optional enrichment fields."""
+
+    storage_key: str
+    updated_at: datetime
 
 
 class FileListResponse(BaseModel):
@@ -91,20 +96,8 @@ class SearchRequest(BaseModel):
     created_before: datetime | None = None
 
 
-class SearchResult(BaseModel):
-    id: str
-    filename: str
-    size: int
-    content_type: str
-    checksum: str
-    created_at: datetime
-    category: str | None = None
-    tags: str | None = None
-    summary: str | None = None
-    source: str | None = None
-    relevance: float
-
-    model_config = {"from_attributes": True}
+class SearchResult(_FileMetadataBase):
+    relevance: float = 0.0
 
 
 class SearchResponse(BaseModel):
