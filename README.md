@@ -31,6 +31,8 @@ with AI-generated metadata and vector-powered hybrid search.
   (defaults to Ollama at `http://localhost:11434/v1`). Generates embeddings
   locally with `sentence-transformers/all-MiniLM-L6-v2` (384-dim).
 
+For a deeper dive into the internal design, see **[ARCHITECTURE.md](ARCHITECTURE.md)**.
+
 ## Quick Start
 
 ### Prerequisites
@@ -235,6 +237,11 @@ maintenance duplication.
 
 See [`docs/deployment.md`](docs/deployment.md) for production deployment
 considerations (S3 storage, database migration, reverse proxy setup).
+
+## Contributing
+
+See **[CONTRIBUTING.md](CONTRIBUTING.md)** for developer setup, coding
+conventions, and the pull request process.
 
 ## License
 
