@@ -22,7 +22,7 @@ from .embeddings import build_embedding_text, generate_embedding
 from .enrichment import enrich_file
 from .models import FileRecord
 from .schemas import TaskStatus, TaskType
-from .storage import StorageBackend, StorageError, create_storage_backend
+from .storage import StorageError, _get_storage
 
 logger = logging.getLogger(__name__)
 
@@ -55,8 +55,6 @@ _queue: asyncio.Queue[EnrichmentJob] = asyncio.Queue()
 _workers: list[asyncio.Task[None]] = []
 _worker_count: int = 2
 
-_storage: StorageBackend | None = None
-
 # ── Per-task status tracking ───────────────────────────────────────
 
 _tasks: dict[str, TaskInfo] = {}
@@ -68,13 +66,6 @@ _reindex_completed: int = 0
 _reindex_failed: int = 0
 _reindex_active: bool = False
 _reindex_task_id: str | None = None
-
-
-def _get_storage() -> StorageBackend:
-    global _storage
-    if _storage is None:
-        _storage = create_storage_backend()
-    return _storage
 
 
 def _update_task(task_id: str, *, status: TaskStatus, error: str | None = None) -> None:

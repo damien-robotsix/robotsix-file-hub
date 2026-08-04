@@ -66,6 +66,7 @@ async def test_generate_embedding_returns_floats() -> None:
 
 async def test_embedding_stored_during_enrichment(tasks_test_env) -> None:
     """_process_enrichment stores the embedding on the DB record."""
+    import src.robotsix_file_hub.storage as storage_module
     import src.robotsix_file_hub.tasks as tasks_module
 
     session_factory, storage = tasks_test_env
@@ -99,7 +100,7 @@ async def test_embedding_stored_during_enrichment(tasks_test_env) -> None:
             ),
             patch.object(tasks_module, "generate_embedding", return_value=fake_embedding),
         ):
-            tasks_module._storage = storage
+            storage_module._storage = storage
 
             from src.robotsix_file_hub.tasks import EnrichmentJob
 
@@ -120,11 +121,12 @@ async def test_embedding_stored_during_enrichment(tasks_test_env) -> None:
             assert r.category == "document"
 
     finally:
-        tasks_module._storage = None
+        storage_module._storage = None
 
 
 async def test_embedding_null_on_generation_failure(tasks_test_env) -> None:
     """When embedding generation raises, embedding is set to None (best-effort)."""
+    import src.robotsix_file_hub.storage as storage_module
     import src.robotsix_file_hub.tasks as tasks_module
 
     session_factory, storage = tasks_test_env
@@ -161,7 +163,7 @@ async def test_embedding_null_on_generation_failure(tasks_test_env) -> None:
                 side_effect=RuntimeError("model not loaded"),
             ),
         ):
-            tasks_module._storage = storage
+            storage_module._storage = storage
 
             from src.robotsix_file_hub.tasks import EnrichmentJob
 
@@ -183,11 +185,12 @@ async def test_embedding_null_on_generation_failure(tasks_test_env) -> None:
             assert r.embedding is None
 
     finally:
-        tasks_module._storage = None
+        storage_module._storage = None
 
 
 async def test_embedding_updated_on_reindex(tasks_test_env) -> None:
     """Re-indexing a file regenerates its embedding."""
+    import src.robotsix_file_hub.storage as storage_module
     import src.robotsix_file_hub.tasks as tasks_module
 
     session_factory, storage = tasks_test_env
@@ -225,7 +228,7 @@ async def test_embedding_updated_on_reindex(tasks_test_env) -> None:
             ),
             patch.object(tasks_module, "generate_embedding", return_value=new_embedding),
         ):
-            tasks_module._storage = storage
+            storage_module._storage = storage
 
             from src.robotsix_file_hub.tasks import EnrichmentJob
 
@@ -247,4 +250,4 @@ async def test_embedding_updated_on_reindex(tasks_test_env) -> None:
             assert r.tags == "new_tag"
 
     finally:
-        tasks_module._storage = None
+        storage_module._storage = None

@@ -2,6 +2,7 @@
 
 ## 0.0.0 (unreleased)
 
+- Deduplicate `_get_storage()` lazy-singleton: moved from `routes/files.py` and `tasks.py` into `storage.py` as a single shared definition. Both modules now import `_get_storage` from `.storage`.
 - Fix pydantic `NameError` caused by `BaseSettings.__init__` underscore-prefixed
   parameters being treated as body-model fields.  Replace `Depends(Settings)` with
   a wrapper factory `get_settings()` so FastAPI analyses the factory signature

@@ -53,14 +53,14 @@ def test_storage(tmp_upload_dir: str) -> StorageBackend:
     Also patches the routes module's module-level ``_storage`` so
     endpoint handlers pick it up without a real S3/MinIO backend.
     """
-    import src.robotsix_file_hub.routes.files as routes_module
+    import src.robotsix_file_hub.storage as storage_module
 
     storage = LocalStorageBackend(base_path=tmp_upload_dir)
-    routes_module._storage = storage
+    storage_module._storage = storage
     try:
         yield storage
     finally:
-        routes_module._storage = None
+        storage_module._storage = None
 
 
 @pytest.fixture
@@ -147,8 +147,9 @@ async def tasks_test_env(
 
     Yields ``(session_factory, storage)``.  Teardown restores the original
     ``async_session_factory``, clears module-level reindex state, and
-    nulls out ``tasks._storage``.
+    nulls out ``storage._storage``.
     """
+    import src.robotsix_file_hub.storage as storage_module
     import src.robotsix_file_hub.tasks as tasks_module
 
     original_session_factory = tasks_module.async_session_factory
@@ -157,7 +158,7 @@ async def tasks_test_env(
     try:
         yield test_session_factory, test_storage
     finally:
-        tasks_module._storage = None
+        storage_module._storage = None
         tasks_module.async_session_factory = original_session_factory
         tasks_module._reindex_total = 0
         tasks_module._reindex_completed = 0

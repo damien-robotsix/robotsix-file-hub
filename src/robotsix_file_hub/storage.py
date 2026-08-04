@@ -143,6 +143,17 @@ def create_storage_backend() -> StorageBackend:
     return LocalStorageBackend(base_path=settings.local_storage_path)
 
 
+_storage: StorageBackend | None = None
+
+
+def _get_storage() -> StorageBackend:
+    """Return the singleton storage backend, creating it on first call."""
+    global _storage
+    if _storage is None:
+        _storage = create_storage_backend()
+    return _storage
+
+
 def compute_checksum(content: bytes) -> str:
     """Compute the SHA-256 hex digest of *content*."""
     return hashlib.sha256(content).hexdigest()
