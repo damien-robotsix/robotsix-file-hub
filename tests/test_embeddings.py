@@ -1,9 +1,7 @@
 """Tests for embedding generation and storage."""
 
 import uuid
-from unittest.mock import AsyncMock, MagicMock, patch
-
-import numpy as np
+from unittest.mock import AsyncMock, patch
 
 from src.robotsix_file_hub.models import FileRecord
 
@@ -39,26 +37,39 @@ async def test_build_embedding_text_null_fields() -> None:
     assert result == "notes.txt"
 
 
-async def test_generate_embedding_returns_floats() -> None:
-    """generate_embedding returns a list of floats with correct dimensionality."""
+async def test_generate_embedding_delegates_to_api() -> None:
+    """generate_embedding forwards to the OpenAI-compatible endpoint
+    rather than loading a model in-process."""
     import src.robotsix_file_hub.embeddings as emb_module
-    from src.robotsix_file_hub.embeddings import generate_embedding
 
-    original_model = emb_module._model
+    vector = [0.1, 0.2, 0.3]
+    with patch.object(
+        emb_module, "_api_generate_embedding", new=AsyncMock(return_value=vector)
+    ) as api:
+        result = await emb_module.generate_embedding("test text")
 
-    mock_model = MagicMock()
-    mock_embedding = np.random.rand(384).astype(np.float32)
-    mock_model.encode.return_value = mock_embedding
-    emb_module._model = mock_model
+    assert result == vector
+    api.assert_awaited_once_with("test text")
 
-    try:
-        result = generate_embedding("test text")
-        assert isinstance(result, list)
-        assert len(result) == 384
-        assert all(isinstance(v, float) for v in result)
-        mock_model.encode.assert_called_once_with("test text", normalize_embeddings=True)
-    finally:
-        emb_module._model = original_model
+
+async def test_generate_embedding_returns_none_when_backend_unreachable() -> None:
+    """A None from the endpoint propagates unchanged: callers degrade to
+    keyword-only search rather than failing the request."""
+    import src.robotsix_file_hub.embeddings as emb_module
+
+    with patch.object(emb_module, "_api_generate_embedding", new=AsyncMock(return_value=None)):
+        assert await emb_module.generate_embedding("text") is None
+
+
+async def test_embedding_dimensions_match_configured_model() -> None:
+    """The pgvector column width and the configured model must agree —
+    a mismatch fails every insert at runtime, not at import."""
+    from src.robotsix_file_hub.config import Settings
+    from src.robotsix_file_hub.models import EMBEDDING_DIMENSIONS
+
+    # bge-m3 emits 1024-dim vectors.
+    assert Settings().enrichment_llm_embedding_model == "bge-m3"
+    assert EMBEDDING_DIMENSIONS == 1024
 
 
 # ── Integration tests ──────────────────────────────────────────────
@@ -98,7 +109,9 @@ async def test_embedding_stored_during_enrichment(tasks_test_env) -> None:
             patch.object(
                 tasks_module, "enrich_file", new=AsyncMock(return_value=canned_enrichment)
             ),
-            patch.object(tasks_module, "generate_embedding", return_value=fake_embedding),
+            patch.object(
+                tasks_module, "generate_embedding", new=AsyncMock(return_value=fake_embedding)
+            ),
         ):
             storage_module._storage = storage
 
@@ -160,7 +173,7 @@ async def test_embedding_null_on_generation_failure(tasks_test_env) -> None:
             patch.object(
                 tasks_module,
                 "generate_embedding",
-                side_effect=RuntimeError("model not loaded"),
+                new=AsyncMock(side_effect=RuntimeError("embedding backend unreachable")),
             ),
         ):
             storage_module._storage = storage
@@ -226,7 +239,9 @@ async def test_embedding_updated_on_reindex(tasks_test_env) -> None:
             patch.object(
                 tasks_module, "enrich_file", new=AsyncMock(return_value=canned_enrichment)
             ),
-            patch.object(tasks_module, "generate_embedding", return_value=new_embedding),
+            patch.object(
+                tasks_module, "generate_embedding", new=AsyncMock(return_value=new_embedding)
+            ),
         ):
             storage_module._storage = storage
 

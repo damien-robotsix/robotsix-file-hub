@@ -47,7 +47,15 @@ async def test_enrichment_worker_updates_record(tasks_test_env) -> None:
         # Mock enrich_file to return canned enrichment
         canned = {"category": "document", "tags": "pdf,report", "summary": "A report file."}
 
-        with patch.object(tasks_module, "enrich_file", new=AsyncMock(return_value=canned)):
+        # Embedding is mocked too: it is an outbound HTTP call to the
+        # configured endpoint, and these tests assert on the enrichment
+        # worker, not on a live embedding backend.
+        with (
+            patch.object(tasks_module, "enrich_file", new=AsyncMock(return_value=canned)),
+            patch.object(
+                tasks_module, "generate_embedding", new=AsyncMock(return_value=[0.1, 0.2])
+            ),
+        ):
             storage_module._storage = storage
 
             # Start one worker
@@ -111,7 +119,15 @@ async def test_enrichment_worker_null_on_llm_failure(tasks_test_env) -> None:
         # enrich_file returns all None (no text extracted)
         canned = {"category": None, "tags": None, "summary": None}
 
-        with patch.object(tasks_module, "enrich_file", new=AsyncMock(return_value=canned)):
+        # Embedding is mocked too: it is an outbound HTTP call to the
+        # configured endpoint, and these tests assert on the enrichment
+        # worker, not on a live embedding backend.
+        with (
+            patch.object(tasks_module, "enrich_file", new=AsyncMock(return_value=canned)),
+            patch.object(
+                tasks_module, "generate_embedding", new=AsyncMock(return_value=[0.1, 0.2])
+            ),
+        ):
             storage_module._storage = storage
 
             await start_workers(count=1)
@@ -438,7 +454,15 @@ async def test_reindex_progress_tracking(tasks_test_env) -> None:
 
         canned = {"category": "document", "tags": "pdf,report", "summary": "A report file."}
 
-        with patch.object(tasks_module, "enrich_file", new=AsyncMock(return_value=canned)):
+        # Embedding is mocked too: it is an outbound HTTP call to the
+        # configured endpoint, and these tests assert on the enrichment
+        # worker, not on a live embedding backend.
+        with (
+            patch.object(tasks_module, "enrich_file", new=AsyncMock(return_value=canned)),
+            patch.object(
+                tasks_module, "generate_embedding", new=AsyncMock(return_value=[0.1, 0.2])
+            ),
+        ):
             storage_module._storage = storage
 
             # Simulate a reindex batch: set counters then call _process_enrichment
@@ -689,7 +713,15 @@ async def test_task_status_transitions(
 
         canned = {"category": "doc", "tags": "txt", "summary": "A text file."}
 
-        with patch.object(tasks_module, "enrich_file", new=AsyncMock(return_value=canned)):
+        # Embedding is mocked too: it is an outbound HTTP call to the
+        # configured endpoint, and these tests assert on the enrichment
+        # worker, not on a live embedding backend.
+        with (
+            patch.object(tasks_module, "enrich_file", new=AsyncMock(return_value=canned)),
+            patch.object(
+                tasks_module, "generate_embedding", new=AsyncMock(return_value=[0.1, 0.2])
+            ),
+        ):
             storage_module._storage = storage
 
             await start_workers(count=1)

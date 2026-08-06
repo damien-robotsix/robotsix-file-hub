@@ -24,16 +24,15 @@ class Settings(BaseSettings):
     enrichment_llm_timeout: float = 30.0
     enrichment_llm_max_tokens: int = 256
 
-    # Embedding model (defaults to enrichment model if not set)
-    enrichment_llm_embedding_model: str = ""
+    # Embedding model served by enrichment_llm_api_base. bge-m3 is what
+    # the Ollama box already has pulled; it emits 1024-dim vectors, which
+    # must match EMBEDDING_DIMENSIONS below and the pgvector column.
+    enrichment_llm_embedding_model: str = "bge-m3"
 
     # Hybrid search weighting (0.0 = keyword-only, 1.0 = vector-only)
     search_vector_weight: float = 0.7
 
     # Logging
     log_level: str = "INFO"
-
-    # Embedding model settings
-    embedding_model_name: str = "sentence-transformers/all-MiniLM-L6-v2"
 
     model_config = {"env_prefix": "FILE_HUB_"}

@@ -1,39 +1,28 @@
 """Embedding generation for hybrid search.
 
-Uses sentence-transformers to produce vector embeddings from
-concatenated file metadata (filename + summary + tags + category).
-The model is loaded lazily on first use so startup is not blocked.
+Embeddings come from the configured OpenAI-compatible embeddings
+endpoint (``enrichment_llm_api_base``, which already defaults to a local
+Ollama). This module owns only the *input* shaping — concatenating the
+file-metadata fields that carry semantic meaning — and delegates the
+call itself to :func:`robotsix_file_hub.enrichment.generate_embedding`.
+
+Previously this ran ``sentence-transformers`` in-process. That pulls
+torch, and on Linux torch means the CUDA build: 2.7 GB of ``nvidia/``
+wheels plus 689 MB of ``triton``, for a model this service only ever ran
+on CPU (see the ``asyncio.to_thread`` the old code needed). Installed
+once per CI run and once per agent workspace it reached 42 GB on the
+build host — the single largest consumer on a volume that hit 100% full.
+The endpoint was already configured and already OpenAI-compatible, so no
+local model was ever needed.
 """
 
 from __future__ import annotations
 
-import asyncio
 import logging
-from typing import TYPE_CHECKING, cast
 
-if TYPE_CHECKING:
-    from sentence_transformers import SentenceTransformer
+from .enrichment import generate_embedding as _api_generate_embedding
 
 logger = logging.getLogger(__name__)
-
-_model: SentenceTransformer | None = None
-
-
-def _load_model() -> SentenceTransformer:
-    """Lazy-load the sentence-transformers model.
-
-    Returns the cached model instance, loading it on the first call.
-    """
-    global _model
-    if _model is None:
-        from sentence_transformers import SentenceTransformer
-
-        from .config import Settings
-
-        settings = Settings()
-        _model = SentenceTransformer(settings.embedding_model_name)
-        logger.info("Loaded embedding model: %s", settings.embedding_model_name)
-    return _model
 
 
 def build_embedding_text(
@@ -57,22 +46,12 @@ def build_embedding_text(
     return " ".join(parts)
 
 
-def generate_embedding(text: str) -> list[float]:
-    """Generate a unit-normalized vector embedding for *text*.
+async def generate_embedding(text: str) -> list[float] | None:
+    """Return a vector embedding for *text*, or ``None`` on failure.
 
-    Returns a list of floats (384 dimensions for all-MiniLM-L6-v2).
-    The embedding is L2-normalized so cosine similarity reduces to a
-    dot product.
+    Best-effort by design, and both callers already treat a missing
+    vector that way: search falls back to keyword-only ranking and
+    enrichment stores a null embedding. A search request must not 500
+    because an embedding backend is unreachable.
     """
-    model = _load_model()
-    result = model.encode(text, normalize_embeddings=True)
-    return cast("list[float]", result.tolist())
-
-
-async def generate_embedding_async(text: str) -> list[float]:
-    """Async wrapper around ``generate_embedding`` for use in async contexts.
-
-    Runs the CPU-bound embedding generation in a thread so the event
-    loop is not blocked.
-    """
-    return await asyncio.to_thread(generate_embedding, text)
+    return await _api_generate_embedding(text)
