@@ -2,6 +2,7 @@
 
 ## 0.0.0 (unreleased)
 
+- Add `frontend/node_modules/` and `frontend/dist/` to `.dockerignore` to prevent accidental large Docker build context transfers.
 - Extract shared `.btn-outline` CSS utility class from duplicated button styles in `.files-pagination button` and `.file-preview-close`, eliminating ~15 lines of duplicated CSS.
 - Deduplicate `_get_storage()` lazy-singleton: moved from `routes/files.py` and `tasks.py` into `storage.py` as a single shared definition. Both modules now import `_get_storage` from `.storage`.
 - Fix pydantic `NameError` caused by `BaseSettings.__init__` underscore-prefixed
