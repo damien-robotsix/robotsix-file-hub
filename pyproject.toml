@@ -13,7 +13,7 @@ dependencies = [
     "asyncpg>=0.30.0",
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.34.0",
-    "robotsix-http>=0.1",
+
     "sqlalchemy>=2.0.36",
     "alembic>=1.14.0",
     "boto3>=1.36.0",
@@ -45,8 +45,6 @@ python_version = "3.14"
 testpaths = ["tests"]
 asyncio_mode = "auto"
 
-[tool.uv.sources]
-robotsix-http = { git = "https://github.com/damien-robotsix/robotsix-http.git", rev = "ba90d55ea2bcbd02f605f392e837cea7b485d73d" }
 
 [tool.deptry]
 known_first_party = ["robotsix_file_hub"]
