@@ -220,12 +220,24 @@
   margin-top: 1.5rem;
 }
 
-.files-pagination button {
+/* Shared outline button — use .btn-outline in markup or compose via selector grouping */
+.btn-outline,
+.files-pagination button,
+.file-preview-close {
   padding: 0.35rem 0.75rem;
   border: 1px solid #ced4da;
   border-radius: 4px;
   background: #fff;
   cursor: pointer;
+}
+
+.btn-outline:hover:not(:disabled),
+.files-pagination button:hover:not(:disabled),
+.file-preview-close:hover {
+  background: #e9ecef;
+}
+
+.files-pagination button {
   font-size: 0.9rem;
   min-width: 2.2rem;
 }
@@ -233,10 +245,6 @@
 .files-pagination button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-}
-
-.files-pagination button:hover:not(:disabled) {
-  background: #e9ecef;
 }
 
 .pagination-active {
@@ -600,17 +608,8 @@
 }
 
 .file-preview-close {
-  padding: 0.35rem 0.75rem;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
-  background: #fff;
-  cursor: pointer;
   font-size: 0.85rem;
   white-space: nowrap;
-}
-
-.file-preview-close:hover {
-  background: #e9ecef;
 }
 
 .file-preview-meta {
