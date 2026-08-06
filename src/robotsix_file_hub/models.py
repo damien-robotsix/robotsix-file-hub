@@ -7,6 +7,13 @@ from pgvector.sqlalchemy import Vector
 from sqlalchemy import DateTime, Integer, String, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
+# Width of the stored embedding vector. Must match the model named by
+# ``enrichment_llm_embedding_model``: bge-m3 emits 1024 dimensions, the
+# retired local all-MiniLM-L6-v2 emitted 384. Changing the model without
+# a matching migration makes every insert fail on a dimension mismatch,
+# so this constant and migration 0003 move together.
+EMBEDDING_DIMENSIONS = 1024
+
 
 class Base(DeclarativeBase):
     pass
@@ -25,7 +32,9 @@ class FileRecord(Base):
     tags: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     summary: Mapped[str | None] = mapped_column(String(4096), nullable=True)
     source: Mapped[str | None] = mapped_column(String(256), nullable=True)
-    embedding: Mapped[list[float] | None] = mapped_column(Vector(384), nullable=True)
+    embedding: Mapped[list[float] | None] = mapped_column(
+        Vector(EMBEDDING_DIMENSIONS), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

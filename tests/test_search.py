@@ -7,7 +7,6 @@ Covers POST /search with the full application stack
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -67,9 +66,9 @@ async def test_search_endpoint_fallback_when_embedding_fails(
     )
     await test_db_session.commit()
 
-    # Mock generate_embedding_async to return None (simulating API failure)
+    # Mock generate_embedding to return None (simulating API failure)
     with patch(
-        "src.robotsix_file_hub.search.generate_embedding_async",
+        "src.robotsix_file_hub.search.generate_embedding",
         new=AsyncMock(return_value=None),
     ):
         response = await test_client.post(
@@ -441,10 +440,10 @@ async def test_search_endpoint_hybrid_scoring(
     canned_query_embedding = [0.1, 0.9, 0.0]
 
     # NOTE: the new /search endpoint imports from search.search_files_pg
-    # which in turn imports generate_embedding_async — patch at the search
+    # which in turn imports generate_embedding — patch at the search
     # module level to cover both paths.
     with patch(
-        "src.robotsix_file_hub.search.generate_embedding_async",
+        "src.robotsix_file_hub.search.generate_embedding",
         new=AsyncMock(return_value=canned_query_embedding),
     ):
         response = await test_client.post(

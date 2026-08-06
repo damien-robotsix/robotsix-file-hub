@@ -83,7 +83,7 @@ async def test_search_files_keyword_basic(
     await _search_db_session.commit()
 
     with patch(
-        "src.robotsix_file_hub.search.generate_embedding_async",
+        "src.robotsix_file_hub.search.generate_embedding",
         new=AsyncMock(return_value=None),
     ):
         response = await search_files(_search_db_session, "budget report")
@@ -144,7 +144,7 @@ async def test_search_files_hybrid_ranking(
     canned_query_embedding = [0.1, 0.9, 0.0]
 
     with patch(
-        "src.robotsix_file_hub.search.generate_embedding_async",
+        "src.robotsix_file_hub.search.generate_embedding",
         new=AsyncMock(return_value=canned_query_embedding),
     ):
         response = await search_files(_search_db_session, "financial report")
@@ -179,7 +179,7 @@ async def test_search_files_no_results(
     await _search_db_session.commit()
 
     with patch(
-        "src.robotsix_file_hub.search.generate_embedding_async",
+        "src.robotsix_file_hub.search.generate_embedding",
         new=AsyncMock(return_value=None),
     ):
         response = await search_files(_search_db_session, "budget spreadsheet")
@@ -212,7 +212,7 @@ async def test_search_files_pagination(
     await _search_db_session.commit()
 
     with patch(
-        "src.robotsix_file_hub.search.generate_embedding_async",
+        "src.robotsix_file_hub.search.generate_embedding",
         new=AsyncMock(return_value=None),
     ):
         p1 = await search_files(_search_db_session, "report", offset=0, limit=2)
@@ -255,7 +255,7 @@ async def test_search_files_default_pagination(
     await _search_db_session.commit()
 
     with patch(
-        "src.robotsix_file_hub.search.generate_embedding_async",
+        "src.robotsix_file_hub.search.generate_embedding",
         new=AsyncMock(return_value=None),
     ):
         response = await search_files(_search_db_session, "document")
@@ -288,7 +288,7 @@ async def test_search_files_keyword_fallback_none(
     await _search_db_session.commit()
 
     with patch(
-        "src.robotsix_file_hub.search.generate_embedding_async",
+        "src.robotsix_file_hub.search.generate_embedding",
         new=AsyncMock(return_value=None),
     ):
         response = await search_files(_search_db_session, "budget")
@@ -322,7 +322,7 @@ async def test_search_files_keyword_fallback_exception(
     await _search_db_session.commit()
 
     with patch(
-        "src.robotsix_file_hub.search.generate_embedding_async",
+        "src.robotsix_file_hub.search.generate_embedding",
         new=AsyncMock(side_effect=RuntimeError("model offline")),
     ):
         response = await search_files(_search_db_session, "budget")
@@ -368,7 +368,7 @@ async def test_search_files_category_filter(
     await _search_db_session.commit()
 
     with patch(
-        "src.robotsix_file_hub.search.generate_embedding_async",
+        "src.robotsix_file_hub.search.generate_embedding",
         new=AsyncMock(return_value=None),
     ):
         response = await search_files(_search_db_session, "report", category="hr")
@@ -412,7 +412,7 @@ async def test_search_files_tags_filter(
     await _search_db_session.commit()
 
     with patch(
-        "src.robotsix_file_hub.search.generate_embedding_async",
+        "src.robotsix_file_hub.search.generate_embedding",
         new=AsyncMock(return_value=None),
     ):
         response = await search_files(_search_db_session, "photo", tags="vacation")
@@ -460,7 +460,7 @@ async def test_search_files_date_range_filter(
     await _search_db_session.commit()
 
     with patch(
-        "src.robotsix_file_hub.search.generate_embedding_async",
+        "src.robotsix_file_hub.search.generate_embedding",
         new=AsyncMock(return_value=None),
     ):
         response = await search_files(
@@ -527,7 +527,7 @@ async def test_search_files_multiple_filters(
     await _search_db_session.commit()
 
     with patch(
-        "src.robotsix_file_hub.search.generate_embedding_async",
+        "src.robotsix_file_hub.search.generate_embedding",
         new=AsyncMock(return_value=None),
     ):
         response = await search_files(
@@ -572,7 +572,7 @@ async def test_search_files_weight_constants(
     with (
         patch.object(search_module.settings, "search_vector_weight", 0.0),
         patch(
-            "src.robotsix_file_hub.search.generate_embedding_async",
+            "src.robotsix_file_hub.search.generate_embedding",
             new=AsyncMock(return_value=canned_query),
         ),
     ):
@@ -586,7 +586,7 @@ async def test_search_files_weight_constants(
     with (
         patch.object(search_module.settings, "search_vector_weight", 1.0),
         patch(
-            "src.robotsix_file_hub.search.generate_embedding_async",
+            "src.robotsix_file_hub.search.generate_embedding",
             new=AsyncMock(return_value=canned_query),
         ),
     ):
@@ -636,7 +636,7 @@ async def test_search_files_semantic_match_no_keyword_overlap(
     canned_query = [1.0, 0.0]  # close to f1
 
     with patch(
-        "src.robotsix_file_hub.search.generate_embedding_async",
+        "src.robotsix_file_hub.search.generate_embedding",
         new=AsyncMock(return_value=canned_query),
     ):
         response = await search_files(_search_db_session, "zyxwv abcde")

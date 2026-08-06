@@ -150,7 +150,7 @@ async def _process_enrichment(job: EnrichmentJob) -> bool:
             category=enrichment["category"],
         )
         try:
-            record.embedding = generate_embedding(embedding_text)
+            record.embedding = await generate_embedding(embedding_text)
         except Exception:
             logger.warning("Embedding generation failed for file_id=%s", job.file_id, exc_info=True)
             record.embedding = None

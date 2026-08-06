@@ -19,7 +19,7 @@ from sqlalchemy import ColumnElement, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .config import Settings
-from .embeddings import generate_embedding_async
+from .embeddings import generate_embedding
 from .models import FileRecord
 from .schemas import SearchResponse, SearchResult
 
@@ -159,7 +159,7 @@ async def search_files(
     # Generate query embedding (best-effort)
     query_embedding: list[float] | None = None
     try:
-        query_embedding = await generate_embedding_async(query)
+        query_embedding = await generate_embedding(query)
     except Exception:
         logger.warning("Query embedding generation failed, using keyword-only", exc_info=True)
 
@@ -269,7 +269,7 @@ async def search_files_pg(
     # Generate query embedding (best-effort)
     query_embedding: list[float] | None = None
     try:
-        query_embedding = await generate_embedding_async(query)
+        query_embedding = await generate_embedding(query)
     except Exception:
         logger.warning("Query embedding generation failed, using keyword-only", exc_info=True)
 
@@ -294,9 +294,7 @@ async def search_files_pg(
         conditions.append(kw_cond)
 
     # Optional metadata filters
-    conditions.extend(
-        _metadata_filter_conditions(category, tags, created_after, created_before)
-    )
+    conditions.extend(_metadata_filter_conditions(category, tags, created_after, created_before))
 
     # Count total before pagination
     count_stmt = select(func.count()).select_from(FileRecord).where(*conditions)
