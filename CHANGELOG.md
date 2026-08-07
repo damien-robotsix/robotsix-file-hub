@@ -9,6 +9,7 @@
   contributors can discover the new architecture and contributing docs.
 - Extract duplicate inline "+ Upload" button into a shared `UploadButton` component.
 - Deduplicate `_get_storage()` lazy-singleton: moved from `routes/files.py` and `tasks.py` into `storage.py` as a single shared definition. Both modules now import `_get_storage` from `.storage`.
+- Refactor `FileMetadataResponse` and `SearchResult` to share a common base class `_FileMetadataBase`, eliminating 10 duplicate field definitions. Replace manual `SearchResult(...)` construction in `search.py` with `SearchResult.model_validate(rec)`.
 - Fix pydantic `NameError` caused by `BaseSettings.__init__` underscore-prefixed
   parameters being treated as body-model fields.  Replace `Depends(Settings)` with
   a wrapper factory `get_settings()` so FastAPI analyses the factory signature
