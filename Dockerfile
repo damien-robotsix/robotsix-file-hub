@@ -8,6 +8,16 @@ RUN npm run build
 
 # Stage 2: Build Python dependencies
 FROM python:3.14-slim AS builder
+# git is required at BUILD time only: robotsix-http is a git dependency
+# (pyproject.toml [tool.uv.sources]), and uv shells out to git to fetch it.
+# python:*-slim ships without git, so `uv sync` fails with "Git executable not
+# found" — which is what broke every Docker publish from 2026-08-01, 35 minutes
+# after that dependency was added. It stays out of the runtime stage below,
+# where nothing needs it.
+# hadolint ignore=DL3008
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
