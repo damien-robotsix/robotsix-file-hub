@@ -2,15 +2,19 @@ import { TOKEN_KEY } from "./tokenStorage";
 
 const API_BASE = "/api";
 
+function getAuthToken(): string | null {
+  try {
+    return localStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
 function getAuthHeaders(): Record<string, string> {
   const headers: Record<string, string> = {};
-  try {
-    const token = localStorage.getItem(TOKEN_KEY);
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-  } catch {
-    // localStorage unavailable (SSR / test), skip
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
   }
   return headers;
 }
@@ -127,13 +131,9 @@ export function uploadFilesBatchWithProgress(
     xhr.open("POST", `${API_BASE}/files/batch`);
 
     // Set auth header (XHR does not go through the request() helper)
-    try {
-      const token = localStorage.getItem(TOKEN_KEY);
-      if (token) {
-        xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-      }
-    } catch {
-      // localStorage unavailable
+    const token = getAuthToken();
+    if (token) {
+      xhr.setRequestHeader("Authorization", `Bearer ${token}`);
     }
 
     xhr.upload.addEventListener("progress", (e) => {
