@@ -100,6 +100,7 @@ describe("API client", () => {
     const res: SearchResponse = { results: [], total: 0, offset: 0, limit: 50, query: "hi" };
     const f = mockFetch(200, res);
     vi.stubGlobal("fetch", f);
+    await search("hi");
     const [, init] = f.mock.calls[0] as [string, RequestInit];
     expect((init.headers as Record<string, string>)["Content-Type"]).toBe("application/json");
   });
