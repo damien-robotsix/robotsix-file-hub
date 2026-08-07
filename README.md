@@ -173,6 +173,9 @@ npm run typecheck  # TypeScript type-check only (tsc -b)
 npm run preview   # Preview production build
 npm run lint      # ESLint
 npm run format    # Prettier
+npm test          # Run Vitest test suite
+npm run test:watch  # Vitest in watch mode
+npm run test:coverage  # Vitest with coverage report
 ```
 
 The Vite dev server proxies `/api` (stripping the prefix) and `/files` to

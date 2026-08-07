@@ -7,10 +7,15 @@ import {
   healthCheck,
   deleteFile,
   downloadFileUrl,
+  listCategories,
+  triggerReindex,
+  getReindexProgress,
   uploadFilesBatchWithProgress,
   type FileListResponse,
   type FileMetadata,
   type SearchResponse,
+  type CategoriesResponse,
+  type ReindexProgress,
 } from "./api";
 import { TOKEN_KEY } from "./tokenStorage";
 
@@ -95,6 +100,7 @@ describe("API client", () => {
     const res: SearchResponse = { results: [], total: 0, offset: 0, limit: 50, query: "hi" };
     const f = mockFetch(200, res);
     vi.stubGlobal("fetch", f);
+    await search("hi");
     const [, init] = f.mock.calls[0] as [string, RequestInit];
     expect((init.headers as Record<string, string>)["Content-Type"]).toBe("application/json");
   });
@@ -124,6 +130,244 @@ describe("API client", () => {
     const [, init] = f.mock.calls[0] as [string, RequestInit];
     expect(init.method).toBe("DELETE");
     expect((init.headers as Record<string, string>)["X-Confirm-Delete"]).toBe("true");
+  });
+
+  // -- listCategories -------------------------------------------------------
+
+  it("listCategories returns the categories array", async () => {
+    const resp: CategoriesResponse = { categories: ["reports", "images"] };
+    const fetch = mockFetch(200, resp);
+    vi.stubGlobal("fetch", fetch);
+
+    const result = await listCategories();
+    expect(result).toEqual(resp);
+    expect(fetch).toHaveBeenCalledWith("/api/files/categories", expect.anything());
+  });
+
+  // -- triggerReindex -------------------------------------------------------
+
+  it("triggerReindex posts to the reindex endpoint", async () => {
+    const fetch = mockFetch(200, { status: "reindex started" });
+    vi.stubGlobal("fetch", fetch);
+
+    const result = await triggerReindex();
+    const [, init] = fetch.mock.calls[0] as [string, RequestInit];
+    expect(init.method).toBe("POST");
+    expect(result.status).toBe("reindex started");
+  });
+
+  it("triggerReindex accepts optional params", async () => {
+    const fetch = mockFetch(200, { status: "ok" });
+    vi.stubGlobal("fetch", fetch);
+
+    await triggerReindex({ file_ids: ["a", "b"], category: "reports" });
+
+    const [url] = fetch.mock.calls[0] as [string];
+    expect(url).toContain("file_ids=a%2Cb");
+    expect(url).toContain("category=reports");
+  });
+
+  // -- getReindexProgress ---------------------------------------------------
+
+  it("getReindexProgress returns progress data", async () => {
+    const progress: ReindexProgress = {
+      total: 10,
+      completed: 3,
+      failed: 1,
+      active: true,
+    };
+    const fetch = mockFetch(200, progress);
+    vi.stubGlobal("fetch", fetch);
+
+    const result = await getReindexProgress();
+    expect(result).toEqual(progress);
+    expect(fetch).toHaveBeenCalledWith("/api/files/reindex/progress", expect.anything());
+  });
+
+  // -- uploadFilesBatchWithProgress -----------------------------------------
+
+  describe("uploadFilesBatchWithProgress", () => {
+    it("resolves with file metadata on successful XHR upload", async () => {
+      const meta = fakeFile;
+      // Mock XMLHttpRequest
+      const mockXHR = {
+        open: vi.fn(),
+        send: vi.fn(),
+        setRequestHeader: vi.fn(),
+        upload: { addEventListener: vi.fn() },
+        addEventListener: vi.fn(),
+        status: 200,
+        statusText: "OK",
+        responseText: JSON.stringify({ files: [meta] }),
+      };
+
+      // The constructor returns our mock; we also need to trigger the 'load' handler
+      const OriginalXHR = globalThis.XMLHttpRequest;
+      globalThis.XMLHttpRequest = vi.fn(() => mockXHR) as unknown as typeof XMLHttpRequest;
+
+      // Capture the 'load' handler so we can fire it synchronously
+      let loadHandler: (() => void) | undefined;
+      mockXHR.addEventListener.mockImplementation(
+        (event: string, handler: () => void) => {
+          if (event === "load") loadHandler = handler;
+        },
+      );
+
+      localStorage.setItem(TOKEN_KEY, "tok");
+
+      const file = new File(["content"], "up.txt", { type: "text/plain" });
+      const promise = uploadFilesBatchWithProgress([file], vi.fn());
+      // Fire the load handler so the promise resolves
+      loadHandler!();
+      const result = await promise;
+
+      expect(mockXHR.open).toHaveBeenCalledWith("POST", "/api/files/batch");
+      expect(mockXHR.send).toHaveBeenCalled();
+      expect(result).toEqual([meta]);
+
+      globalThis.XMLHttpRequest = OriginalXHR;
+    });
+
+    it("rejects on non-OK XHR status", async () => {
+      const mockXHR = {
+        open: vi.fn(),
+        send: vi.fn(),
+        setRequestHeader: vi.fn(),
+        upload: { addEventListener: vi.fn() },
+        addEventListener: vi.fn(),
+        status: 500,
+        statusText: "Internal Server Error",
+        responseText: "boom",
+      };
+
+      const OriginalXHR = globalThis.XMLHttpRequest;
+      globalThis.XMLHttpRequest = vi.fn(() => mockXHR) as unknown as typeof XMLHttpRequest;
+
+      let loadHandler: (() => void) | undefined;
+      mockXHR.addEventListener.mockImplementation(
+        (event: string, handler: () => void) => {
+          if (event === "load") loadHandler = handler;
+        },
+      );
+
+      const file = new File(["x"], "f.txt", { type: "text/plain" });
+      const promise = uploadFilesBatchWithProgress([file], vi.fn());
+      loadHandler!();
+
+      await expect(promise).rejects.toThrow("500 Internal Server Error: boom");
+
+      globalThis.XMLHttpRequest = OriginalXHR;
+    });
+
+    it("rejects on XHR network error", async () => {
+      const mockXHR = {
+        open: vi.fn(),
+        send: vi.fn(),
+        setRequestHeader: vi.fn(),
+        upload: { addEventListener: vi.fn() },
+        addEventListener: vi.fn(),
+        status: 0,
+      };
+
+      const OriginalXHR = globalThis.XMLHttpRequest;
+      globalThis.XMLHttpRequest = vi.fn(() => mockXHR) as unknown as typeof XMLHttpRequest;
+
+      let errorHandler: (() => void) | undefined;
+      mockXHR.addEventListener.mockImplementation(
+        (event: string, handler: () => void) => {
+          if (event === "error") errorHandler = handler;
+        },
+      );
+
+      const file = new File(["x"], "f.txt", { type: "text/plain" });
+      const promise = uploadFilesBatchWithProgress([file], vi.fn());
+      errorHandler!();
+
+      await expect(promise).rejects.toThrow("Network error during upload");
+
+      globalThis.XMLHttpRequest = OriginalXHR;
+    });
+
+    it("rejects on XHR abort", async () => {
+      const mockXHR = {
+        open: vi.fn(),
+        send: vi.fn(),
+        setRequestHeader: vi.fn(),
+        upload: { addEventListener: vi.fn() },
+        addEventListener: vi.fn(),
+        status: 0,
+      };
+
+      const OriginalXHR = globalThis.XMLHttpRequest;
+      globalThis.XMLHttpRequest = vi.fn(() => mockXHR) as unknown as typeof XMLHttpRequest;
+
+      let abortHandler: (() => void) | undefined;
+      mockXHR.addEventListener.mockImplementation(
+        (event: string, handler: () => void) => {
+          if (event === "abort") abortHandler = handler;
+        },
+      );
+
+      const file = new File(["x"], "f.txt", { type: "text/plain" });
+      const promise = uploadFilesBatchWithProgress([file], vi.fn());
+      abortHandler!();
+
+      await expect(promise).rejects.toThrow("Upload aborted");
+
+      globalThis.XMLHttpRequest = OriginalXHR;
+    });
+
+    it("fires progress callback with per-file progress", async () => {
+      const mockXHR = {
+        open: vi.fn(),
+        send: vi.fn(),
+        setRequestHeader: vi.fn(),
+        upload: { addEventListener: vi.fn() },
+        addEventListener: vi.fn(),
+        status: 200,
+        statusText: "OK",
+        responseText: JSON.stringify({ files: [fakeFile, fakeFile] }),
+      };
+
+      const OriginalXHR = globalThis.XMLHttpRequest;
+      globalThis.XMLHttpRequest = vi.fn(() => mockXHR) as unknown as typeof XMLHttpRequest;
+
+      let progressHandler: ((e: { loaded: number; total: number; lengthComputable: boolean }) => void) | undefined;
+      let loadHandler: (() => void) | undefined;
+
+      mockXHR.upload.addEventListener.mockImplementation(
+        (event: string, handler: () => void) => {
+          if (event === "progress") progressHandler = handler;
+        },
+      );
+      mockXHR.addEventListener.mockImplementation(
+        (event: string, handler: () => void) => {
+          if (event === "load") loadHandler = handler;
+        },
+      );
+
+      const onProgress = vi.fn();
+      const fileA = new File(["1234"], "a.txt"); // 4 bytes
+      const fileB = new File(["567890"], "b.txt"); // 6 bytes, total = 10
+
+      const promise = uploadFilesBatchWithProgress([fileA, fileB], onProgress);
+
+      // Simulate progress: 5 bytes loaded out of 10
+      progressHandler!({ loaded: 5, total: 10, lengthComputable: true });
+
+      // Fire load to resolve
+      loadHandler!();
+      await promise;
+
+      // onProgress should have been called twice (once per file)
+      expect(onProgress).toHaveBeenCalledTimes(2);
+      // fileA (index 0): bytes 0-4, so loaded = min(4, 5-0) = 4, progress = 4/4 = 1
+      expect(onProgress).toHaveBeenCalledWith(0, 1);
+      // fileB (index 1): bytes 4-10, so loaded = min(6, 5-4) = 1, progress = 1/6
+      expect(onProgress).toHaveBeenCalledWith(1, 1 / 6);
+
+      globalThis.XMLHttpRequest = OriginalXHR;
+    });
   });
 });
 
