@@ -80,6 +80,7 @@ modules:
       - frontend/src/components/FilePreview.tsx
       - frontend/src/components/UploadButton.tsx
       - frontend/src/components/UploadDialog.css
+      - frontend/src/components/UploadDialog.test.tsx
       - frontend/src/components/UploadDialog.tsx
       - frontend/src/index.css
       - frontend/src/lib/format.test.ts
