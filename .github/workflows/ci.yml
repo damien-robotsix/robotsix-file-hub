@@ -9,6 +9,37 @@ on:
 permissions: {}
 
 jobs:
+  # The repo has 13 test files, 168 tests, a mypy-strict-clean source tree and
+  # a ruff config — and until now CI ran none of it. Every PR was structurally
+  # green regardless of whether the code worked, which is the quietest possible
+  # failure mode: it produces no red main and no blocked tickets, so nothing in
+  # the fleet ever surfaces it.
+  #
+  # Audit and deptry stay in the supply-chain job below rather than being
+  # enabled here, so this addition is purely additive — the existing SARIF
+  # upload keeps working unchanged.
+  tests:
+    name: Python CI
+    permissions:
+      contents: read
+      security-events: write  # SARIF upload from the reusable workflow
+    uses: damien-robotsix/robotsix-github-workflows/.github/workflows/python-ci.yml@e94a9aad6c4d6753c860520ba49b6a94a59ceb55  # main
+    with:
+      python-version: "3.14"
+      # The tests import through `src.robotsix_file_hub...` rather than the
+      # installed package, so a bare package name collects nothing ("Module
+      # robotsix_file_hub was never imported"). Measured this way: 85%.
+      cov-package: src/robotsix_file_hub
+      coverage-threshold: "80"
+      install-extras: ""
+      # Already covered by the supply-chain job below; running them twice would
+      # double the CI time and duplicate the SARIF upload.
+      run-deptry: false
+      run-audit: false
+      # mypy --strict is clean on this repo today, so it goes in as a real gate
+      # rather than a baseline ratchet.
+      mypy-advisory: false
+
   supply-chain:
     runs-on: ubuntu-latest
     permissions:

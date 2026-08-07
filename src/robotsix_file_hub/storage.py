@@ -126,7 +126,12 @@ class S3StorageBackend(StorageBackend):
         try:
             await asyncio.to_thread(_remove)
         except Exception as exc:
-            raise StorageError(f"Failed to delete from S3: {exc}") from exc
+            # nosec B608 — not SQL. Bandit's hardcoded-SQL heuristic matches the
+            # words "delete … from" inside this f-string; it is an error message
+            # about an S3 object, and this module issues no queries at all.
+            # Flagged Medium/LOW-confidence, which is the shape of a regex hit
+            # rather than a finding.
+            raise StorageError(f"Failed to delete from S3: {exc}") from exc  # nosec B608
 
 
 def create_storage_backend() -> StorageBackend:
