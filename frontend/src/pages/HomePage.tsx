@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { healthCheck, listFiles, type FileMetadata } from "../api.ts";
+import UploadButton from "../components/UploadButton.tsx";
 import UploadDialog from "../components/UploadDialog.tsx";
 import { formatSize } from "../lib/format.ts";
 
@@ -37,20 +38,7 @@ export default function HomePage() {
         }}
       >
         <h2 style={{ margin: 0 }}>Recent Files</h2>
-        <button
-          onClick={() => setUploadOpen(true)}
-          style={{
-            padding: "0.4rem 0.9rem",
-            fontSize: "0.9rem",
-            cursor: "pointer",
-            background: "#0d6efd",
-            color: "#fff",
-            border: "none",
-            borderRadius: "4px",
-          }}
-        >
-          + Upload
-        </button>
+        <UploadButton onClick={() => setUploadOpen(true)} />
       </div>
 
       {files.length === 0 && <p>No files uploaded yet.</p>}
