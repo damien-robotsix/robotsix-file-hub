@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.2.0](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.1.0...v0.2.0) (2026-08-08)
+
+
+### ⚠ BREAKING CHANGES
+
+* **config:** FILE_HUB_* environment variables are no longer read. Configuration comes from the file at ROBOTSIX_CONFIG_FILE (default config/config.json). Nothing currently deploys this component.
+
+### Features
+
+* **config:** align with the fleet config standard ([#145](https://github.com/damien-robotsix/robotsix-file-hub/issues/145)) ([a3b1bc3](https://github.com/damien-robotsix/robotsix-file-hub/commit/a3b1bc34a089d407bced2520132f8c1faaeaef33))
+* **mill:** enable the credit_balance periodic pass ([#148](https://github.com/damien-robotsix/robotsix-file-hub/issues/148)) ([e5089e8](https://github.com/damien-robotsix/robotsix-file-hub/commit/e5089e8beca8b7077ed61891131ccd83bbbb07b4))
+
+
+### Bug Fixes
+
+* **ci:** grant security-events: write so the audit SARIF upload succeeds ([#124](https://github.com/damien-robotsix/robotsix-file-hub/issues/124)) ([acdeae3](https://github.com/damien-robotsix/robotsix-file-hub/commit/acdeae3143f813c9e0b374bbe7af756dccefa1e4))
+* **ci:** make release-please conform to the standard ([#149](https://github.com/damien-robotsix/robotsix-file-hub/issues/149)) ([ee7b038](https://github.com/damien-robotsix/robotsix-file-hub/commit/ee7b038f01fc0f78de76a59f0b236d7bc230ccb9))
+* **deps:** bump pypdf to 6.15.0 for two DoS advisories ([#146](https://github.com/damien-robotsix/robotsix-file-hub/issues/146)) ([85c5a8a](https://github.com/damien-robotsix/robotsix-file-hub/commit/85c5a8a1fee59131d36247775c0492dd40621b11))
+* **docker:** install git in the builder stage for the git dependency ([#140](https://github.com/damien-robotsix/robotsix-file-hub/issues/140)) ([1ea4f25](https://github.com/damien-robotsix/robotsix-file-hub/commit/1ea4f25468b5fdf8d4fc0b6785148ba024dafa0a))
+* drop torch, embed via the configured OpenAI-compatible endpoint ([#137](https://github.com/damien-robotsix/robotsix-file-hub/issues/137)) ([54601f0](https://github.com/damien-robotsix/robotsix-file-hub/commit/54601f07688218ad804eecb64262c175ca236fdf))
+* **release:** keep release-please inside the 0.x line ([#151](https://github.com/damien-robotsix/robotsix-file-hub/issues/151)) ([d9ead1c](https://github.com/damien-robotsix/robotsix-file-hub/commit/d9ead1c78b3ba302a18325163c3f3288adf0624f))
+
 ## 0.0.0 (unreleased)
 
 - Enable `pin_bump` periodic workflow for automated dependency pin bumping.
