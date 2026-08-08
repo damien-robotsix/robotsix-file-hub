@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.2.0...v0.2.1) (2026-08-08)
+
+
+### Bug Fixes
+
+* **release:** mint an App token so release PRs get CI ([#153](https://github.com/damien-robotsix/robotsix-file-hub/issues/153)) ([6b3f6c7](https://github.com/damien-robotsix/robotsix-file-hub/commit/6b3f6c71724b2805469f9ed981f3d4bd161714f5))
+* **release:** regenerate uv.lock on the release branch ([#155](https://github.com/damien-robotsix/robotsix-file-hub/issues/155)) ([a10b922](https://github.com/damien-robotsix/robotsix-file-hub/commit/a10b922f7243fc624881799313ee30541e3bb4b2))
+
 ## [0.2.0](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.1.0...v0.2.0) (2026-08-08)
 
 
