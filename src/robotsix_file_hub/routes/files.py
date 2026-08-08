@@ -40,14 +40,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/files", tags=["files"], dependencies=[Depends(get_current_user)])
 MAX_FILE_SIZE = get_settings().max_file_size
 
-_storage: StorageBackend | None = None
 
-
-def _get_storage() -> StorageBackend:
-    global _storage
-    if _storage is None:
-        _storage = _get_storage()
-    return _storage
 async def _process_upload(
     file: UploadFile,
     storage: StorageBackend,
