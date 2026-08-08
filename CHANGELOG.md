@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.1.0 (2026-08-08)
+
+
+### ⚠ BREAKING CHANGES
+
+* **config:** FILE_HUB_* environment variables are no longer read. Configuration comes from the file at ROBOTSIX_CONFIG_FILE (default config/config.json). Nothing currently deploys this component.
+
+### Features
+
+* **config:** align with the fleet config standard ([#145](https://github.com/damien-robotsix/robotsix-file-hub/issues/145)) ([a3b1bc3](https://github.com/damien-robotsix/robotsix-file-hub/commit/a3b1bc34a089d407bced2520132f8c1faaeaef33))
+
+
+### Bug Fixes
+
+* **ci:** grant security-events: write so the audit SARIF upload succeeds ([#124](https://github.com/damien-robotsix/robotsix-file-hub/issues/124)) ([acdeae3](https://github.com/damien-robotsix/robotsix-file-hub/commit/acdeae3143f813c9e0b374bbe7af756dccefa1e4))
+* **deps:** bump pypdf to 6.15.0 for two DoS advisories ([#146](https://github.com/damien-robotsix/robotsix-file-hub/issues/146)) ([85c5a8a](https://github.com/damien-robotsix/robotsix-file-hub/commit/85c5a8a1fee59131d36247775c0492dd40621b11))
+* **docker:** install git in the builder stage for the git dependency ([#140](https://github.com/damien-robotsix/robotsix-file-hub/issues/140)) ([1ea4f25](https://github.com/damien-robotsix/robotsix-file-hub/commit/1ea4f25468b5fdf8d4fc0b6785148ba024dafa0a))
+* drop torch, embed via the configured OpenAI-compatible endpoint ([#137](https://github.com/damien-robotsix/robotsix-file-hub/issues/137)) ([54601f0](https://github.com/damien-robotsix/robotsix-file-hub/commit/54601f07688218ad804eecb64262c175ca236fdf))
+
 ## 0.0.0 (unreleased)
 
 - Enable `pin_bump` periodic workflow for automated dependency pin bumping.
