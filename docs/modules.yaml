@@ -4,6 +4,7 @@ modules:
   - id: core
     description: Core application package
     paths:
+      - .coverage
       - .dockerignore
       - .env.example
       - .github/dependabot.yml
@@ -33,6 +34,7 @@ modules:
       - migrations/versions/0002_pgvector_embedding.py
       - config/config.json
       - config/config.schema.json
+      - migrations/versions/0003_embedding_dim_1024.py
       - pyproject.toml
       - release-please-config.json
       - uv.lock
