@@ -7,9 +7,9 @@ from pathlib import Path
 
 import boto3  # type: ignore[import-untyped]
 
-from .config import Settings
+from .config import get_settings
 
-settings = Settings()
+settings = get_settings()
 
 
 class StorageError(Exception):
@@ -142,7 +142,7 @@ def create_storage_backend() -> StorageBackend:
             endpoint=settings.s3_endpoint,
             bucket=settings.s3_bucket,
             access_key=settings.s3_access_key,
-            secret_key=settings.s3_secret_key,
+            secret_key=settings.s3_secret_key.get_secret_value(),
             region=settings.s3_region,
         )
     return LocalStorageBackend(base_path=settings.local_storage_path)

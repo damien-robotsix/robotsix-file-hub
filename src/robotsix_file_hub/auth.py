@@ -5,21 +5,15 @@ from typing import Annotated
 from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from .config import Settings
+from .config import Settings, get_settings
 
 _bearer_scheme = HTTPBearer(auto_error=False)
 
 
-def get_settings() -> Settings:
-    """Return a Settings instance for FastAPI dependency injection.
-
-    Wraps ``Settings()`` in a factory function so that FastAPI
-    analyses the factory signature (no parameters) instead of the
-    ``BaseSettings.__init__`` signature, which contains private
-    underscore-prefixed parameters such as ``_cli_parse_args`` that
-    pydantic v2 rejects as body-model field names.
-    """
-    return Settings()
+# ``get_settings`` is re-exported for use as a FastAPI dependency. It used to
+# be a local wrapper hiding ``BaseSettings.__init__`` from FastAPI's signature
+# analysis; ConfigModel has no such parameters, so the real accessor is used
+# directly and its cache is shared with the rest of the process.
 
 
 def _validate_token(
@@ -44,7 +38,7 @@ def _validate_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    if token != settings.auth_token:
+    if token != settings.auth_token.get_secret_value():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
@@ -65,6 +59,6 @@ async def get_current_user(
 
     When ``auth_token`` is empty auth is disabled — returns ``"anonymous"``.
     """
-    if not settings.auth_token:
+    if not settings.auth_token.get_secret_value():
         return "anonymous"
     return _validate_token(credentials, x_api_key, settings)

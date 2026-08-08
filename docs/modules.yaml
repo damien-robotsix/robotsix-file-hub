@@ -28,6 +28,8 @@ modules:
       - migrations/script.py.mako
       - migrations/versions/0001_initial_create_file_records.py
       - migrations/versions/0002_pgvector_embedding.py
+      - config/config.json
+      - config/config.schema.json
       - pyproject.toml
       - release-please-config.json
       - uv.lock
@@ -40,6 +42,7 @@ modules:
       - src/robotsix_file_hub/main.py
       - src/robotsix_file_hub/models.py
       - src/robotsix_file_hub/routes/__init__.py
+      - src/robotsix_file_hub/routes/config.py
       - src/robotsix_file_hub/routes/files.py
       - src/robotsix_file_hub/routes/search.py
       - src/robotsix_file_hub/routes/tasks.py
@@ -51,6 +54,7 @@ modules:
       - tests/__init__.py
       - tests/conftest.py
       - tests/test_auth.py
+      - tests/test_config_routes.py
       - tests/test_delete.py
       - tests/test_deploy_spec.py
       - tests/test_download.py

@@ -18,14 +18,14 @@ from datetime import datetime
 from sqlalchemy import ColumnElement, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .config import Settings
+from .config import get_settings
 from .embeddings import generate_embedding
 from .models import FileRecord
 from .schemas import SearchResponse, SearchResult
 
 logger = logging.getLogger(__name__)
 
-settings = Settings()
+settings = get_settings()
 
 # Scoring weights for keyword relevance
 _KW_FILENAME_WEIGHT = 10.0
