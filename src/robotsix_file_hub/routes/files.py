@@ -248,6 +248,7 @@ async def download_file(
     file_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
     storage: Annotated[StorageBackend, Depends(_get_storage)],
+    user: Annotated[str, Depends(get_current_user)],
 ) -> Response:
     """Stream the raw file bytes for a stored file."""
     record = await db.get(FileRecord, file_id)
@@ -331,6 +332,7 @@ async def delete_file(
 async def get_file_metadata(
     file_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[str, Depends(get_current_user)],
 ) -> FileMetadataResponse:
     """Return the full DB record for a stored file."""
     record = await db.get(FileRecord, file_id)
@@ -413,6 +415,7 @@ async def search(
 )
 async def list_files(
     db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[str, Depends(get_current_user)],
     category: Annotated[str | None, Query(description="Filter by category")] = None,
     tag: Annotated[str | None, Query(description="Filter by tag (substring match)")] = None,
     content_type: Annotated[str | None, Query(description="Filter by MIME content type")] = None,
