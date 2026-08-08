@@ -9,9 +9,10 @@ from pathlib import Path
 from fastapi import FastAPI, Response
 from sqlalchemy import text
 
-from .config import Settings
+from .config import get_settings
 from .database import engine
 from .models import Base
+from .routes.config import router as config_router
 from .routes.files import router as files_router
 from .routes.search import router as search_router
 from .routes.tasks import router as tasks_router
@@ -30,7 +31,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         await stop_workers()
 
 
-settings = Settings()
+settings = get_settings()
 
 # Configure logging: UTC ISO-8601 timestamps to stdout
 logging.Formatter.converter = time.gmtime
@@ -50,6 +51,7 @@ app = FastAPI(
 app.include_router(files_router)
 app.include_router(search_router)
 app.include_router(tasks_router)
+app.include_router(config_router)
 
 
 @app.get("/health")

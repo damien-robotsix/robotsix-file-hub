@@ -5,6 +5,7 @@ from collections.abc import Generator
 from unittest.mock import MagicMock, patch
 
 import pytest
+from pydantic import SecretStr
 
 from src.robotsix_file_hub.config import Settings
 from src.robotsix_file_hub.storage import (
@@ -75,7 +76,8 @@ def test_create_storage_backend_s3() -> None:
         mock_settings.s3_endpoint = "http://minio:9000"
         mock_settings.s3_bucket = "my-bucket"
         mock_settings.s3_access_key = "ak"
-        mock_settings.s3_secret_key = "sk"
+        # s3_secret_key is a SecretStr on the real model
+        mock_settings.s3_secret_key = SecretStr("sk")
         mock_settings.s3_region = "us-east-1"
         mock_boto3_client.return_value = MagicMock()
 

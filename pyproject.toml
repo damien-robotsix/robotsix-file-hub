@@ -9,6 +9,7 @@ description = "LLM-powered file organization hub"
 license = {text = "MIT"}
 requires-python = ">=3.14"
 dependencies = [
+    "robotsix-config @ git+https://github.com/damien-robotsix/robotsix-config.git@feabed320883760ec0f449469870d45f73d87194",
     "aiosqlite>=0.20.0",
     "asyncpg>=0.30.0",
     "fastapi>=0.115.0",
@@ -73,3 +74,8 @@ dev = [
     "ruff>=0.16.0",
     "vulture>=2.16",
 ]
+
+[tool.hatch.metadata]
+# robotsix-config is a git dependency (PEP 508 direct reference); hatchling
+# rejects those unless explicitly allowed.
+allow-direct-references = true

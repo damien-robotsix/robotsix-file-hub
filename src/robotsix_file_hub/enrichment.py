@@ -17,11 +17,11 @@ from typing import Any, cast
 import httpx
 from robotsix_http import RetryConfig, acall_with_retry
 
-from .config import Settings
+from .config import get_settings
 
 logger = logging.getLogger(__name__)
 
-settings = Settings()
+settings = get_settings()
 
 _RETRY_CONFIG = RetryConfig(max_retries=3, backoff_base=2.0)
 
@@ -128,8 +128,9 @@ async def call_llm(text: str) -> dict[str, Any]:
     )
 
     headers: dict[str, str] = {"Content-Type": "application/json"}
-    if settings.enrichment_llm_api_key:
-        headers["Authorization"] = f"Bearer {settings.enrichment_llm_api_key}"
+    api_key = settings.enrichment_llm_api_key.get_secret_value()
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
 
     async with httpx.AsyncClient(timeout=settings.enrichment_llm_timeout) as client:
 
@@ -195,8 +196,9 @@ async def generate_embedding(text: str) -> list[float] | None:
     model = settings.enrichment_llm_embedding_model or settings.enrichment_llm_model
 
     headers: dict[str, str] = {"Content-Type": "application/json"}
-    if settings.enrichment_llm_api_key:
-        headers["Authorization"] = f"Bearer {settings.enrichment_llm_api_key}"
+    api_key = settings.enrichment_llm_api_key.get_secret_value()
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
 
     try:
         async with httpx.AsyncClient(timeout=settings.enrichment_llm_timeout) as client:

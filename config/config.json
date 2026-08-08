@@ -1,0 +1,20 @@
+{
+  "database_url": "sqlite+aiosqlite:///./file_hub.db",
+  "storage_backend": "local",
+  "local_storage_path": "./uploads",
+  "s3_endpoint": "",
+  "s3_bucket": "file-hub",
+  "s3_access_key": "",
+  "s3_secret_key": "",
+  "s3_region": "us-east-1",
+  "max_file_size": 104857600,
+  "auth_token": "",
+  "enrichment_llm_api_base": "http://localhost:11434/v1",
+  "enrichment_llm_api_key": "",
+  "enrichment_llm_model": "llama3.1",
+  "enrichment_llm_timeout": 30.0,
+  "enrichment_llm_max_tokens": 256,
+  "enrichment_llm_embedding_model": "bge-m3",
+  "search_vector_weight": 0.7,
+  "log_level": "INFO"
+}

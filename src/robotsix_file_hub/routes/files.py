@@ -21,7 +21,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth import get_current_user
-from ..config import Settings
+from ..config import get_settings
 from ..database import get_db
 from ..models import FileRecord
 from ..schemas import (
@@ -38,7 +38,7 @@ from ..tasks import enqueue_enrichment, enqueue_reindex_all, get_reindex_progres
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/files", tags=["files"], dependencies=[Depends(get_current_user)])
-MAX_FILE_SIZE = Settings().max_file_size
+MAX_FILE_SIZE = get_settings().max_file_size
 
 
 async def _process_upload(
