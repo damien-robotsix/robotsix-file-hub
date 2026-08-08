@@ -12,8 +12,24 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.robotsix_file_hub.models import FileRecord
 
+# ── POST /files/search endpoint tests ──────────────────────────────
 
-async def test_search_endpoint_default_pagination(
+
+async def test_search_empty_db(test_client: AsyncClient) -> None:
+    """POST /search returns empty results when no files exist."""
+    response = await test_client.post(
+        "/search",
+        json={"query": "budget report"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["results"] == []
+    assert data["total"] == 0
+    assert data["query"] == "budget report"
+
+
+async def test_search_keyword_only(
     test_client: AsyncClient,
     test_db_session: AsyncSession,
 ) -> None:

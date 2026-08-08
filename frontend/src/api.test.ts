@@ -11,7 +11,6 @@ import {
   triggerReindex,
   getReindexProgress,
   uploadFilesBatchWithProgress,
-  type FileListResponse,
   type FileMetadata,
   type SearchResponse,
   type CategoriesResponse,
