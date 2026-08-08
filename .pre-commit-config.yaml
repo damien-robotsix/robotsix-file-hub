@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: robotsix-modules-check
+        name: Validate module registration
+        entry: uv run robotsix-modules check-registration docs/modules.yaml --root .
+        language: system
+        pass_filenames: false
+        always_run: true
