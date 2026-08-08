@@ -6,8 +6,7 @@ from datetime import UTC, datetime
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.robotsix_file_hub.auth import get_settings
-from src.robotsix_file_hub.config import Settings
+from src.robotsix_file_hub.config import Settings, get_settings
 from src.robotsix_file_hub.main import app
 from src.robotsix_file_hub.models import FileRecord
 
