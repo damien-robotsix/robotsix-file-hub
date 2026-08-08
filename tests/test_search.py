@@ -16,9 +16,9 @@ from src.robotsix_file_hub.models import FileRecord
 
 
 async def test_search_empty_db(test_client: AsyncClient) -> None:
-    """POST /files/search returns empty results when no files exist."""
+    """POST /search returns empty results when no files exist."""
     response = await test_client.post(
-        "/files/search",
+        "/search",
         json={"query": "budget report"},
     )
 

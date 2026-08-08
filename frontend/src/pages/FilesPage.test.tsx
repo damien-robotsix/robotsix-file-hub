@@ -52,17 +52,6 @@ const categoriesResponse: CategoriesResponse = {
 // Shared mock helpers
 // ---------------------------------------------------------------------------
 
-function mockFetchOk(body: unknown) {
-  const json = typeof body === "string" ? () => Promise.resolve(JSON.parse(body)) : () => Promise.resolve(body);
-  return vi.fn().mockResolvedValue({
-    ok: true,
-    status: 200,
-    statusText: "OK",
-    text: () => Promise.resolve(JSON.stringify(body)),
-    json,
-  });
-}
-
 function stubFetchSequence(...bodies: unknown[]) {
   const calls = bodies.map((body) =>
     vi.fn().mockResolvedValue({
