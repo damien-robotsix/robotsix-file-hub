@@ -50,6 +50,7 @@ jobs:
         id: release
         with:
           token: ${{ steps.app-token.outputs.token }}
+          skip-labeling: true
 
       # Only the lock-sync step below needs these; release-please itself needs
       # neither a checkout nor uv.
