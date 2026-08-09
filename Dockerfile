@@ -41,6 +41,11 @@ COPY --from=builder /home/app/.venv /home/app/.venv
 COPY pyproject.toml /home/app/
 COPY src/ /home/app/src/
 
+# GET /deploy-spec reads deploy/docker-compose.yml relative to WORKDIR. Without
+# this copy the endpoint raises FileNotFoundError → 500 in the container, while
+# tests keep passing because they run from the repo root.
+COPY deploy/ /home/app/deploy/
+
 # Copy frontend build output
 COPY --from=frontend-builder /app/dist /home/app/static
 
