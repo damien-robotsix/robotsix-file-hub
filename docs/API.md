@@ -10,8 +10,6 @@ docs are available at `/docs` (Swagger UI).
 
 ---
 
----
-
 ## Health
 
 ### `GET /health`
