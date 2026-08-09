@@ -57,6 +57,9 @@ jobs:
           UV_MALWARE_CHECK: "1"
         run: uv sync --frozen
 
+      - name: Audit dependencies (diagnostic)
+        run: uv audit --frozen --preview || true
+
       - name: Audit dependencies
         run: uv audit --frozen --output-format sarif --preview > uv-audit-results.sarif
 
@@ -66,7 +69,10 @@ jobs:
           sarif_file: uv-audit-results.sarif
 
       - name: Check dependency hygiene
-        run: uv tool run --from deptry deptry src/
+        run: uv run deptry src/
+
+      - name: Validate module registration
+        run: uv run robotsix-modules check-registration docs/modules.yaml --root .
 
   quality:
     runs-on: ubuntu-latest

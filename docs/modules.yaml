@@ -4,6 +4,7 @@ modules:
   - id: core
     description: Core application package
     paths:
+      - .coverage
       - .dockerignore
       - .env.example
       - .github/dependabot.yml
@@ -12,6 +13,7 @@ modules:
       - .github/workflows/release-please.yml
       - .gitignore
       - .release-please-manifest.json
+      - .pre-commit-config.yaml
       - .robotsix-mill/periodic/*.yaml
       - ARCHITECTURE.md
       - CONTRIBUTING.md
@@ -19,8 +21,6 @@ modules:
       - LICENSE
       - docker-compose.yml
       - CHANGELOG.md
-      - changelog.d/20260809T004217Z-backend-remove-app-level-auth-auth-py-co-65ca.removal.md
-      - changelog.d/20260809T004220Z-frontend-remove-auth-ui-login-page-and-t-7528.removal.md
       - README.md
       - alembic.ini
       - deploy/docker-compose.yml
@@ -34,6 +34,7 @@ modules:
       - migrations/versions/0002_pgvector_embedding.py
       - config/config.json
       - config/config.schema.json
+      - migrations/versions/0003_embedding_dim_1024.py
       - pyproject.toml
       - release-please-config.json
       - uv.lock
