@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.3.1...v0.4.0) (2026-08-09)
+
+
+### Features
+
+* Backend: Remove app-level auth (auth.py, config, routes, tests) (20260809T004217Z-backend-remove-app-level-auth-auth-py-co-65ca) ([#158](https://github.com/damien-robotsix/robotsix-file-hub/issues/158)) ([2f033c7](https://github.com/damien-robotsix/robotsix-file-hub/commit/2f033c7b6157f919498a939580257bf47264facf))
+
+
+### Bug Fixes
+
+* **release:** don't fail lock-sync when the release branch is gone ([#164](https://github.com/damien-robotsix/robotsix-file-hub/issues/164)) ([5740818](https://github.com/damien-robotsix/robotsix-file-hub/commit/574081817455c5083c69b2bc0f36df94e0caff07))
+* ship deploy/ in the runtime image so /deploy-spec returns 200 ([#166](https://github.com/damien-robotsix/robotsix-file-hub/issues/166)) ([a7353f4](https://github.com/damien-robotsix/robotsix-file-hub/commit/a7353f40576df9fbb2f133b4d257a2e20d618b0d))
+
 ## [0.3.1](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.3.0...v0.3.1) (2026-08-09)
 
 
