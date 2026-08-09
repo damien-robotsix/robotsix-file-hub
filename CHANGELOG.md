@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.3.0...v0.3.1) (2026-08-09)
+
+
+### Bug Fixes
+
+* **docker:** start uvicorn from the venv instead of `uv run` ([#161](https://github.com/damien-robotsix/robotsix-file-hub/issues/161)) ([beb0a23](https://github.com/damien-robotsix/robotsix-file-hub/commit/beb0a2337dfff35f0936ea06e7a6f84a400874ce))
+
 ## [0.3.0](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.2.1...v0.3.0) (2026-08-09)
 
 
