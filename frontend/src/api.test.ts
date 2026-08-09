@@ -16,7 +16,6 @@ import {
   type CategoriesResponse,
   type ReindexProgress,
 } from "./api";
-import { TOKEN_KEY } from "./tokenStorage";
 
 function mockFetch(status: number, body: unknown) {
   return vi.fn().mockResolvedValue({
@@ -36,31 +35,6 @@ const fakeFile: FileMetadata = {
 
 describe("API client", () => {
   beforeEach(() => { localStorage.clear(); });
-
-  it("attaches Authorization header when token is present", async () => {
-    localStorage.setItem(TOKEN_KEY, "my-jwt");
-    const f = mockFetch(200, { files: [fakeFile], total: 1, offset: 0, limit: 20 });
-    vi.stubGlobal("fetch", f);
-    await listFiles();
-    const [, init] = f.mock.calls[0] as [string, RequestInit];
-    expect((init.headers as Record<string, string>)["Authorization"]).toBe("Bearer my-jwt");
-  });
-
-  it("omits Authorization header when no token", async () => {
-    const f = mockFetch(200, { files: [fakeFile], total: 1, offset: 0, limit: 20 });
-    vi.stubGlobal("fetch", f);
-    await listFiles();
-    const [, init] = f.mock.calls[0] as [string, RequestInit];
-    expect((init.headers as Record<string, string>)["Authorization"]).toBeUndefined();
-  });
-
-  it("still works when localStorage throws", async () => {
-    const orig = localStorage.getItem;
-    localStorage.getItem = () => { throw new Error("denied"); };
-    const f = mockFetch(200, { files: [fakeFile], total: 1, offset: 0, limit: 20 });
-    vi.stubGlobal("fetch", f);
-    try { await listFiles(); } finally { localStorage.getItem = orig; }
-  });
 
   it("throws on non-OK HTTP status", async () => {
     const f = vi.fn().mockResolvedValue({ ok: false, status: 500, statusText: "ERR", text: () => Promise.resolve("boom") });
@@ -211,8 +185,6 @@ describe("API client", () => {
           if (event === "load") loadHandler = handler;
         },
       );
-
-      localStorage.setItem(TOKEN_KEY, "tok");
 
       const file = new File(["content"], "up.txt", { type: "text/plain" });
       const promise = uploadFilesBatchWithProgress([file], vi.fn());
@@ -442,23 +414,6 @@ describe("uploadFilesBatchWithProgress", () => {
     uploadFilesBatchWithProgress([mf("e", 0)], cb);
     mx._triggerUploadEvent("progress", { lengthComputable: true, loaded: 10 } as ProgressEvent);
     expect(cb).not.toHaveBeenCalled();
-  });
-
-  it("attaches Authorization header", () => {
-    localStorage.setItem(TOKEN_KEY, "jwt");
-    uploadFilesBatchWithProgress([mf("a", 10)], vi.fn());
-    expect(mx.setRequestHeader).toHaveBeenCalledWith("Authorization", "Bearer jwt");
-  });
-
-  it("omits Authorization header when no token", () => {
-    uploadFilesBatchWithProgress([mf("a", 10)], vi.fn());
-    expect(mx.setRequestHeader).not.toHaveBeenCalled();
-  });
-
-  it("survives localStorage throws", () => {
-    const orig = localStorage.getItem;
-    localStorage.getItem = () => { throw new Error("denied"); };
-    try { uploadFilesBatchWithProgress([mf("a", 10)], vi.fn()); } finally { localStorage.getItem = orig; }
   });
 
   it("rejects on non-2xx", async () => {

@@ -1,23 +1,4 @@
-import { TOKEN_KEY } from "./tokenStorage";
-
 const API_BASE = "/api";
-
-function getAuthToken(): string | null {
-  try {
-    return localStorage.getItem(TOKEN_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function getAuthHeaders(): Record<string, string> {
-  const headers: Record<string, string> = {};
-  const token = getAuthToken();
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-  return headers;
-}
 
 export interface FileMetadata {
   id: string;
@@ -73,14 +54,10 @@ export type UploadResponse = FileMetadata;
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE}${path}`;
-  const authHeaders = getAuthHeaders();
 
   const merged: RequestInit = {
     ...options,
-    headers: {
-      ...authHeaders,
-      ...(options?.headers as Record<string, string> | undefined),
-    },
+    headers: options?.headers as Record<string, string> | undefined,
   };
 
   const res = await fetch(url, merged);
@@ -129,12 +106,6 @@ export function uploadFilesBatchWithProgress(
 
     const xhr = new XMLHttpRequest();
     xhr.open("POST", `${API_BASE}/files/batch`);
-
-    // Set auth header (XHR does not go through the request() helper)
-    const token = getAuthToken();
-    if (token) {
-      xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-    }
 
     xhr.upload.addEventListener("progress", (e) => {
       if (e.lengthComputable && totalFileBytes > 0) {
