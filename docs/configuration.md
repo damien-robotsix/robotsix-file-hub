@@ -34,12 +34,6 @@ These settings are only used when `FILE_HUB_STORAGE_BACKEND=s3`.
 | `FILE_HUB_S3_SECRET_KEY` | `str` | *(empty)* | S3 secret key. |
 | `FILE_HUB_S3_REGION` | `str` | `us-east-1` | AWS / S3 region. |
 
-## Authentication
-
-| Variable | Type | Default | Description |
-|---|---|---|---|
-| `FILE_HUB_AUTH_TOKEN` | `str` | *(empty)* | Bearer token for protecting API endpoints. Leave empty for development (no authentication required). |
-
 ## Upload Limits
 
 | Variable | Type | Default | Description |
