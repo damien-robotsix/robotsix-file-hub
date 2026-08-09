@@ -13,6 +13,8 @@ modules:
       - .gitignore
       - .release-please-manifest.json
       - .robotsix-mill/periodic/*.yaml
+      - ARCHITECTURE.md
+      - CONTRIBUTING.md
       - Dockerfile
       - LICENSE
       - docker-compose.yml
