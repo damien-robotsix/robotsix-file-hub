@@ -8,7 +8,6 @@
   "s3_secret_key": "",
   "s3_region": "us-east-1",
   "max_file_size": 104857600,
-  "auth_token": "",
   "enrichment_llm_api_base": "http://localhost:11434/v1",
   "enrichment_llm_api_key": "",
   "enrichment_llm_model": "llama3.1",

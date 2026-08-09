@@ -48,13 +48,6 @@
       "title": "Max File Size",
       "type": "integer"
     },
-    "auth_token": {
-      "default": "",
-      "format": "password",
-      "title": "Auth Token",
-      "type": "string",
-      "writeOnly": true
-    },
     "enrichment_llm_api_base": {
       "default": "http://localhost:11434/v1",
       "title": "Enrichment Llm Api Base",

@@ -28,7 +28,6 @@ def _isolated_config(tmp_path, monkeypatch):
             {
                 "log_level": "INFO",
                 "s3_bucket": "seeded-bucket",
-                "auth_token": "",
                 "s3_secret_key": "real-secret",
             }
         ),
