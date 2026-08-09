@@ -99,20 +99,6 @@ npm run dev
 The Vite dev server starts on `http://localhost:5173` and proxies `/api`
 and `/files` requests to the backend at `http://localhost:8000`.
 
-## Authentication
-
-The API supports Bearer-token authentication. When `FILE_HUB_AUTH_TOKEN` is set
-to a non-empty value, every `/files/*` endpoint requires an
-`Authorization: Bearer <token>` header. Requests without a header receive a
-`401` response; requests with a wrong token receive a `403`.
-
-When `FILE_HUB_AUTH_TOKEN` is empty (the default in development), authentication
-is disabled — all requests pass through unauthenticated.
-
-The frontend stores the token in `localStorage` under the key
-`robotsix-file-hub-token` and sends it as an `Authorization: Bearer <token>`
-header on every request.
-
 ## Configuration
 
 All settings are read from environment variables prefixed with `FILE_HUB_`.
@@ -128,7 +114,6 @@ See [`.env.example`](.env.example) for a complete annotated example.
 | `FILE_HUB_S3_ACCESS_KEY` | *(empty)* | S3 access key |
 | `FILE_HUB_S3_SECRET_KEY` | *(empty)* | S3 secret key |
 | `FILE_HUB_S3_REGION` | `us-east-1` | AWS / S3 region |
-| `FILE_HUB_AUTH_TOKEN` | *(empty)* | Bearer token for API auth (empty = no auth in dev) |
 | `FILE_HUB_MAX_FILE_SIZE` | `104857600` (100 MB) | Upload size limit in bytes |
 | `FILE_HUB_ENRICHMENT_LLM_API_BASE` | `http://localhost:11434/v1` | OpenAI-compatible LLM API base URL |
 | `FILE_HUB_ENRICHMENT_LLM_API_KEY` | *(empty)* | API key for the LLM service |
@@ -204,8 +189,7 @@ The Vite dev server proxies `/api` (stripping the prefix) and `/files` to
 │   └── search.py            # Hybrid keyword + vector search
 ├── frontend/                # React SPA
 │   ├── src/
-│   │   ├── App.tsx          # Router + auth guard + nav
-│   │   ├── AuthContext.tsx  # Token-based auth (localStorage)
+│   │   ├── App.tsx          # Router + nav
 │   │   ├── api.ts           # Typed API client
 │   │   └── pages/           # HomePage, FilesPage, SearchPage, UploadPage, etc.
 │   ├── vite.config.ts       # Vite config with /api proxy
