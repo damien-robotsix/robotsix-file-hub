@@ -511,6 +511,156 @@ async def test_reindex_progress_tracking(tasks_test_env) -> None:
         storage_module._storage = None
 
 
+# ── Worker loop unit tests ─────────────────────────────────────────
+
+
+async def test_worker_handles_enrichment_exception(tasks_test_env) -> None:
+    """When _process_enrichment raises, the worker marks the task failed.
+
+    Exercises the ``except Exception`` branch inside ``_worker`` that
+    sets ``error="Worker exception"`` and increments the reindex
+    failed counter.
+    """
+    import src.robotsix_file_hub.storage as storage_module
+    import src.robotsix_file_hub.tasks as tasks_module
+
+    session_factory, storage = tasks_test_env
+
+    file_id = "exception-worker-1"
+    storage_key = await storage.save(file_id, b"test content")
+
+    try:
+        async with session_factory() as session:
+            record = tasks_module.FileRecord(
+                id=file_id,
+                filename="test.txt",
+                size=12,
+                content_type="text/plain",
+                checksum="abc",
+                storage_key=storage_key,
+            )
+            session.add(record)
+            await session.commit()
+
+        storage_module._storage = storage
+
+        # Patch _process_enrichment to raise an exception
+        with patch.object(
+            tasks_module, "_process_enrichment", new=AsyncMock(side_effect=RuntimeError("boom"))
+        ):
+            await tasks_module.start_workers(count=1)
+
+            task_id = tasks_module.enqueue_enrichment(
+                file_id=file_id,
+                storage_key=storage_key,
+                content_type="text/plain",
+            )
+
+            # Wait for task to reach failed status
+            for _ in range(20):
+                task = tasks_module.get_task(task_id)
+                if task and task.status == "failed":
+                    break
+                await asyncio.sleep(0.1)
+            else:
+                await tasks_module.stop_workers()
+                pytest.fail("Task did not reach failed status within timeout")
+
+            task = tasks_module.get_task(task_id)
+            assert task is not None
+            assert task.status == "failed"
+            assert task.error == "Worker exception"
+
+    finally:
+        await tasks_module.stop_workers()
+        storage_module._storage = None
+
+
+async def test_worker_reindex_completion_detection(tasks_test_env) -> None:
+    """The worker's finally block flips _reindex_active and completes the reindex task.
+
+    Exercises the completion-detection logic inside ``_worker``'s
+    ``finally`` block: when all jobs in a reindex batch finish,
+    ``_reindex_active`` becomes False and the parent reindex task is
+    marked ``completed``.
+    """
+    import src.robotsix_file_hub.storage as storage_module
+    import src.robotsix_file_hub.tasks as tasks_module
+
+    session_factory, storage = tasks_test_env
+
+    file_id = "reindex-worker-1"
+    storage_key = await storage.save(file_id, b"test content")
+
+    try:
+        async with session_factory() as session:
+            record = tasks_module.FileRecord(
+                id=file_id,
+                filename="test.txt",
+                size=12,
+                content_type="text/plain",
+                checksum="abc",
+                storage_key=storage_key,
+            )
+            session.add(record)
+            await session.commit()
+
+        canned = {"category": "doc", "tags": "test", "summary": "A test file."}
+
+        # Embedding is mocked too: it is an outbound HTTP call to the
+        # configured endpoint, and these tests assert on the enrichment
+        # worker, not on a live embedding backend.
+        with (
+            patch.object(tasks_module, "enrich_file", new=AsyncMock(return_value=canned)),
+            patch.object(
+                tasks_module, "generate_embedding", new=AsyncMock(return_value=[0.1, 0.2])
+            ),
+        ):
+            storage_module._storage = storage
+
+            # Set up reindex state so the worker's finally block runs
+            # completion detection
+            tasks_module._reindex_total = 1
+            tasks_module._reindex_completed = 0
+            tasks_module._reindex_failed = 0
+            tasks_module._reindex_active = True
+            tasks_module._reindex_task_id = "reindex-task-test"
+            tasks_module._tasks["reindex-task-test"] = tasks_module.TaskInfo(
+                task_id="reindex-task-test",
+                type=tasks_module.TaskType.reindex,
+                status=tasks_module.TaskStatus.running,
+            )
+
+            await tasks_module.start_workers(count=1)
+
+            tasks_module.enqueue_enrichment(
+                file_id=file_id,
+                storage_key=storage_key,
+                content_type="text/plain",
+            )
+
+            # Wait for the worker to complete the batch and flip _reindex_active
+            for _ in range(30):
+                if not tasks_module._reindex_active:
+                    break
+                await asyncio.sleep(0.1)
+            else:
+                await tasks_module.stop_workers()
+                pytest.fail("Worker did not complete reindex within timeout")
+
+            assert tasks_module._reindex_active is False
+            assert tasks_module._reindex_completed == 1
+            assert tasks_module._reindex_failed == 0
+
+            reindex_task = tasks_module.get_task("reindex-task-test")
+            assert reindex_task is not None
+            assert reindex_task.status == "completed"
+
+    finally:
+        await tasks_module.stop_workers()
+        storage_module._storage = None
+
+
 # ── Reindex endpoint tests ─────────────────────────────────────────
 
 
