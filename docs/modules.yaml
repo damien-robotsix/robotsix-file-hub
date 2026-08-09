@@ -17,6 +17,7 @@ modules:
       - LICENSE
       - docker-compose.yml
       - CHANGELOG.md
+      - changelog.d/20260809T004217Z-backend-remove-app-level-auth-auth-py-co-65ca.removal.md
       - changelog.d/20260809T004220Z-frontend-remove-auth-ui-login-page-and-t-7528.removal.md
       - README.md
       - alembic.ini
@@ -35,7 +36,6 @@ modules:
       - release-please-config.json
       - uv.lock
       - src/robotsix_file_hub/__init__.py
-      - src/robotsix_file_hub/auth.py
       - src/robotsix_file_hub/config.py
       - src/robotsix_file_hub/database.py
       - src/robotsix_file_hub/embeddings.py
@@ -54,7 +54,6 @@ modules:
       - vulture_whitelist.py
       - tests/__init__.py
       - tests/conftest.py
-      - tests/test_auth.py
       - tests/test_config_routes.py
       - tests/test_delete.py
       - tests/test_deploy_spec.py

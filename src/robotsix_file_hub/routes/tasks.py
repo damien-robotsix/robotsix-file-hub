@@ -1,12 +1,11 @@
 """Task status endpoint for background job tracking."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, HTTPException, status
 
-from ..auth import get_current_user
 from ..schemas import ErrorResponse, TaskResponse
 from ..tasks import get_task
 
-router = APIRouter(prefix="/tasks", tags=["tasks"], dependencies=[Depends(get_current_user)])
+router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 
 @router.get(

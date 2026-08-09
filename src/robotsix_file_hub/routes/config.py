@@ -18,7 +18,7 @@ from __future__ import annotations
 import json
 from typing import Any, cast
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 from robotsix_config import (
     InvalidConfigError,
     apply_update,
@@ -29,10 +29,9 @@ from robotsix_config import (
     rollback,
 )
 
-from ..auth import get_current_user
 from ..config import Settings, reload_settings
 
-router = APIRouter(tags=["config"], dependencies=[Depends(get_current_user)])
+router = APIRouter(tags=["config"])
 
 
 def _read_config_file() -> dict[str, Any]:

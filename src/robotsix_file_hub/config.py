@@ -38,9 +38,6 @@ class Settings(ConfigModel):
     s3_region: str = "us-east-1"
     max_file_size: int = 100 * 1024 * 1024  # 100 MB
 
-    # Authentication
-    auth_token: SecretStr = SecretStr("")  # bearer token; empty = no auth
-
     # LLM enrichment settings (OpenAI-compatible API)
     enrichment_llm_api_base: str = "http://localhost:11434/v1"
     enrichment_llm_api_key: SecretStr = SecretStr("")
