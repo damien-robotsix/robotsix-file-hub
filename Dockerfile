@@ -19,7 +19,9 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends git \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
-WORKDIR /app
+# Build under the runtime's WORKDIR so the venv's absolute paths (script
+# shebangs, pyvenv.cfg) stay valid once it is copied into the runtime stage.
+WORKDIR /home/app
 COPY pyproject.toml uv.lock ./
 RUN uv sync --no-dev --frozen --no-install-project
 COPY src/ ./src/
@@ -30,11 +32,12 @@ FROM python:3.14-slim AS runtime
 RUN useradd --create-home --uid 1000 app
 WORKDIR /home/app
 
-# Copy uv binary (needed for uv run)
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
-
-# Copy Python venv and source
-COPY --from=builder /app/.venv /home/app/.venv
+# Copy Python venv and source.  uv is deliberately NOT copied here: `uv run`
+# re-resolves the environment from pyproject.toml at every start, which needs
+# git for the robotsix-http git dependency — absent from this stage — so the
+# container crash-looped on "Git executable not found".  The venv is already
+# complete, so its uvicorn is invoked directly by CMD below.
+COPY --from=builder /home/app/.venv /home/app/.venv
 COPY pyproject.toml /home/app/
 COPY src/ /home/app/src/
 
@@ -48,4 +51,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
 
 USER app
 
-CMD ["uv", "run", "uvicorn", "robotsix_file_hub.main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["/home/app/.venv/bin/uvicorn", "robotsix_file_hub.main:app", "--host", "0.0.0.0", "--port", "8080"]
