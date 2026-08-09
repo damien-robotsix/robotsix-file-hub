@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.2.1...v0.3.0) (2026-08-09)
+
+
+### Features
+
+* Frontend: Remove auth UI, login page, and token machinery (20260809T004220Z-frontend-remove-auth-ui-login-page-and-t-7528) ([#159](https://github.com/damien-robotsix/robotsix-file-hub/issues/159)) ([3733eb6](https://github.com/damien-robotsix/robotsix-file-hub/commit/3733eb6e3f890c9925bd8b53a6757a11b6140214))
+
 ## [0.2.1](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.2.0...v0.2.1) (2026-08-08)
 
 
