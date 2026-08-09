@@ -19,8 +19,6 @@ modules:
       - LICENSE
       - docker-compose.yml
       - CHANGELOG.md
-      - changelog.d/20260809T004217Z-backend-remove-app-level-auth-auth-py-co-65ca.removal.md
-      - changelog.d/20260809T004220Z-frontend-remove-auth-ui-login-page-and-t-7528.removal.md
       - README.md
       - alembic.ini
       - deploy/docker-compose.yml
