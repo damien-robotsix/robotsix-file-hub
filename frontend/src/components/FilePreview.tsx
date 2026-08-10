@@ -18,7 +18,7 @@ export default function FilePreview({
   showMeta = true,
 }: FilePreviewProps) {
   const [textContent, setTextContent] = useState<string | null>(null);
-  const { metadata, error, deleting, handleDelete } = useFileDetail(fileId, () => onClose?.());
+  const { metadata, error, setError, deleting, handleDelete } = useFileDetail(fileId, () => onClose?.());
 
   useEffect(() => {
     setTextContent(null);

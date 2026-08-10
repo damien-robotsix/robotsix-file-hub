@@ -30,5 +30,5 @@ export function useFileDetail(
       .catch((e: unknown) => setError(String(e)));
   }, [fileId]);
 
-  return { metadata, error, deleting, handleDelete };
+  return { metadata, error, setError, deleting, handleDelete };
 }
