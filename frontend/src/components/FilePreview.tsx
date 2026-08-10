@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { deleteFile, getFileMetadata, downloadFileUrl, type FileMetadata } from "../api.ts";
+import { downloadFileUrl } from "../api.ts";
 import { formatSize } from "../lib/format.ts";
 import { classifyPreview, escapeHtml } from "../lib/preview.ts";
+import { useFileDetail } from "../hooks/useFileDetail.ts";
 
 interface FilePreviewProps {
   fileId: string;
@@ -16,36 +17,11 @@ export default function FilePreview({
   showHeader = true,
   showMeta = true,
 }: FilePreviewProps) {
-  const [metadata, setMetadata] = useState<FileMetadata | null>(null);
   const [textContent, setTextContent] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
-
-  const handleDelete = async () => {
-    if (!metadata) return;
-    if (!window.confirm(`Delete "${metadata.filename}"? This cannot be undone.`)) return;
-    setDeleting(true);
-    try {
-      await deleteFile(fileId);
-      onClose?.();
-    } catch (e: unknown) {
-      setError(String(e));
-      setDeleting(false);
-    }
-  };
+  const { metadata, error, deleting, handleDelete } = useFileDetail(fileId, () => onClose?.());
 
   useEffect(() => {
-    // Reset derived state when the file changes.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTextContent(null);
-    setError(null);
-    getFileMetadata(fileId)
-      .then((meta) => {
-        setTextContent(null);
-        setError(null);
-        setMetadata(meta);
-      })
-      .catch((e: unknown) => setError(String(e)));
   }, [fileId]);
 
   useEffect(() => {
