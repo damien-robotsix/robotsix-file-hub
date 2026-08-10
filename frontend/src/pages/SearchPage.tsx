@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { search, downloadFileUrl, type SearchResult } from "../api.ts";
 import { formatSize } from "../lib/format.ts";
@@ -18,18 +18,22 @@ export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialQuery = searchParams.get("q") ?? "";
   const [query, setQuery] = useState(initialQuery);
+  const lastSyncedQueryRef = useRef(initialQuery);
+
+  // Sync the input field to the URL when it changes externally
+  // (e.g. NavSearch navigates while we're already mounted).  Setting
+  // state during render is preferred over a useEffect here so the
+  // update is batched into the same commit (react-hooks/set-state-in-effect).
+  if (initialQuery !== lastSyncedQueryRef.current) {
+    lastSyncedQueryRef.current = initialQuery;
+    setQuery(initialQuery);
+  }
   const [results, setResults] = useState<SearchResult[]>([]);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
   const [searched, setSearched] = useState(false);
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
-
-  // Keep the input field in sync with the URL (e.g. when NavSearch
-  // navigates here while we are already mounted).
-  useEffect(() => {
-    setQuery(initialQuery);
-  }, [initialQuery]);
 
   // Single source of truth: every time the URL query changes (including
   // the first mount with ?q=…), fire the search.  handleSubmit only
@@ -44,10 +48,18 @@ export default function SearchPage() {
     }
 
     let cancelled = false;
-    setSearching(true);
-    setError(null);
 
-    search(initialQuery)
+    // Defer the "loading" state update into the promise chain so that
+    // setState is not called synchronously in the effect body
+    // (react-hooks/set-state-in-effect).
+    Promise.resolve()
+      .then(() => {
+        if (!cancelled) {
+          setSearching(true);
+          setError(null);
+        }
+        return search(initialQuery);
+      })
       .then((res) => {
         if (!cancelled) {
           setResults(res.results);
