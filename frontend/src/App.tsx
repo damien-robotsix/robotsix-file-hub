@@ -5,6 +5,7 @@ import UploadPage from "./pages/UploadPage.tsx";
 import SearchPage from "./pages/SearchPage.tsx";
 import FilesPage from "./pages/FilesPage.tsx";
 import FileDetailPage from "./pages/FileDetailPage.tsx";
+import ErrorBoundary from "./components/ErrorBoundary.tsx";
 import "./App.css";
 
 function NavSearch() {
@@ -52,11 +53,46 @@ export default function App() {
       <AppNav />
       <main className="app-main">
         <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/files" element={<FilesPage />} />
-          <Route path="/files/:fileId" element={<FileDetailPage />} />
-          <Route path="/upload" element={<UploadPage />} />
-          <Route path="/search" element={<SearchPage />} />
+          <Route
+            path="/"
+            element={
+              <ErrorBoundary>
+                <HomePage />
+              </ErrorBoundary>
+            }
+          />
+          <Route
+            path="/files"
+            element={
+              <ErrorBoundary>
+                <FilesPage />
+              </ErrorBoundary>
+            }
+          />
+          <Route
+            path="/files/:fileId"
+            element={
+              <ErrorBoundary>
+                <FileDetailPage />
+              </ErrorBoundary>
+            }
+          />
+          <Route
+            path="/upload"
+            element={
+              <ErrorBoundary>
+                <UploadPage />
+              </ErrorBoundary>
+            }
+          />
+          <Route
+            path="/search"
+            element={
+              <ErrorBoundary>
+                <SearchPage />
+              </ErrorBoundary>
+            }
+          />
         </Routes>
       </main>
     </div>
