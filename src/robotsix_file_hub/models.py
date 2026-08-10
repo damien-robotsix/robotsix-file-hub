@@ -20,6 +20,15 @@ class Base(DeclarativeBase):
 
 
 class FileRecord(Base):
+    """Central persistence entity for uploaded files.
+
+    Maps to the ``file_records`` table with 13 columns including metadata,
+    enrichment fields (category, tags, summary, source, embedding), and
+    timestamps.  The ``embedding`` column dimension is coupled to
+    ``EMBEDDING_DIMENSIONS``; enrichment fields are nullable until the
+    enrichment task runs.
+    """
+
     __tablename__ = "file_records"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))

@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """Startup/shutdown lifecycle: create DB schema, start workers, stop workers."""
     await init_db()
     await start_workers()
     try:
@@ -68,6 +69,12 @@ async def health_live() -> dict[str, str]:
 
 @app.get("/health")
 async def health() -> dict[str, str]:
+    """Report service liveness by probing the database and storage backend.
+
+    Returns:
+        dict with keys ``status``, ``db``, and ``storage`` reflecting
+        reachability of each dependency.
+    """
     db_status = "ok"
     try:
         async with engine.connect() as conn:

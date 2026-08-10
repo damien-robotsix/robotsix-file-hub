@@ -37,10 +37,21 @@ class StorageBackend(ABC):
 
 
 class LocalStorageBackend(StorageBackend):
+    """Local filesystem ``StorageBackend``.
+
+    Stores files under *base_path* on disk; each public method offloads the
+    I/O call to a thread and wraps ``OSError`` in ``StorageError``.
+    """
+
     def __init__(self, base_path: str) -> None:
         self.base_path = Path(base_path)
 
     async def save(self, file_id: str, content: bytes) -> str:
+        """Write *content* to a file named *file_id*, returning its path.
+
+        Offloads the ``write_bytes`` call to a thread; raises
+        ``StorageError`` (wrapping ``OSError``) on failure.
+        """
         self.base_path.mkdir(parents=True, exist_ok=True)
         file_path = self.base_path / file_id
 
@@ -56,6 +67,11 @@ class LocalStorageBackend(StorageBackend):
         return str(file_path)
 
     async def get(self, path: str) -> bytes:
+        """Read and return the file bytes at *path*.
+
+        Offloads the ``read_bytes`` call to a thread; raises
+        ``StorageError`` (wrapping ``OSError``) on failure.
+        """
         file_path = Path(path)
 
         def _read() -> bytes:
@@ -68,6 +84,11 @@ class LocalStorageBackend(StorageBackend):
             raise StorageError(f"Failed to read file: {exc}") from exc
 
     async def delete(self, path: str) -> None:
+        """Remove the file at *path* if it exists.
+
+        Offloads the ``unlink`` call to a thread; raises ``StorageError``
+        (wrapping ``OSError``) on failure.
+        """
         file_path = Path(path)
 
         def _remove() -> None:
@@ -81,6 +102,15 @@ class LocalStorageBackend(StorageBackend):
 
 
 class S3StorageBackend(StorageBackend):
+    """MinIO / S3 ``StorageBackend`` via ``boto3``.
+
+    Constructs a ``boto3`` S3 client from *endpoint*, *bucket*,
+    *access_key*, *secret_key*, and *region*.  Each public method
+    offloads the boto3 call to a thread and wraps exceptions in
+    ``StorageError``.  The key prefix ``s3://<bucket>/`` is stripped
+    in ``get`` and ``delete``.
+    """
+
     def __init__(
         self,
         endpoint: str,
@@ -99,6 +129,12 @@ class S3StorageBackend(StorageBackend):
         )
 
     async def save(self, file_id: str, content: bytes) -> str:
+        """Upload *content* as object *file_id*, returning its S3 URI.
+
+        Offloads the ``put_object`` call to a thread; raises
+        ``StorageError`` on failure.
+        """
+
         def _put() -> None:
             self.client.put_object(
                 Bucket=self.bucket,
@@ -115,6 +151,13 @@ class S3StorageBackend(StorageBackend):
         return f"s3://{self.bucket}/{file_id}"
 
     async def get(self, path: str) -> bytes:
+        """Retrieve object bytes by S3 *path*.
+
+        Strips the ``s3://<bucket>/`` prefix, offloads the
+        ``get_object`` call to a thread; raises ``StorageError``
+        on failure.
+        """
+
         def _get() -> bytes:
             key = path.removeprefix(f"s3://{self.bucket}/")
             response = self.client.get_object(Bucket=self.bucket, Key=key)
@@ -127,6 +170,13 @@ class S3StorageBackend(StorageBackend):
             raise StorageError(f"Failed to download from S3: {exc}") from exc
 
     async def delete(self, path: str) -> None:
+        """Remove the object at S3 *path*.
+
+        Strips the ``s3://<bucket>/`` prefix, offloads the
+        ``delete_object`` call to a thread; raises ``StorageError``
+        on failure.
+        """
+
         def _remove() -> None:
             key = path.removeprefix(f"s3://{self.bucket}/")
             self.client.delete_object(Bucket=self.bucket, Key=key)
