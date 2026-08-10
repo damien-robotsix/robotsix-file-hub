@@ -23,6 +23,7 @@ modules:
       - CHANGELOG.md
       - README.md
       - alembic.ini
+      - changelog.d/20260809T004220Z-docs-module-registry-remove-auth-referen-909f.removal.md
       - deploy/docker-compose.yml
       - docs/API.md
       - docs/configuration.md
