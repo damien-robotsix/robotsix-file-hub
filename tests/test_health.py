@@ -30,6 +30,14 @@ async def test_health_endpoint_accessible_without_auth(test_client: AsyncClient)
     assert response.status_code == 200
 
 
+async def test_health_live_returns_ok(test_client: AsyncClient) -> None:
+    """GET /health/live returns 200 with status ok and no dependency checks."""
+    response = await test_client.get("/health/live")
+    assert response.status_code == 200
+    data = response.json()
+    assert data == {"status": "ok"}
+
+
 async def test_health_db_failure_returns_degraded(test_client: AsyncClient) -> None:
     """GET /health returns db=error and status=degraded when the database is down."""
     mock_engine = AsyncMock()

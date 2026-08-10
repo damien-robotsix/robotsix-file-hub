@@ -61,6 +61,11 @@ app.include_router(tasks_router)
 app.include_router(config_router)
 
 
+@app.get("/health/live")
+async def health_live() -> dict[str, str]:
+    return {"status": "ok"}
+
+
 @app.get("/health")
 async def health() -> dict[str, str]:
     db_status = "ok"

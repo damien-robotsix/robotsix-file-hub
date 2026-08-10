@@ -5,6 +5,7 @@
 _.model_config  # pydantic settings / base model config
 _.deploy_spec  # FastAPI route
 _.health  # FastAPI route
+_.health_live  # FastAPI route
 _.upload_file  # FastAPI route
 _.upload_files_batch  # FastAPI route
 _.download_file  # FastAPI route
