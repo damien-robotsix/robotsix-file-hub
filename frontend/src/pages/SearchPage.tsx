@@ -116,7 +116,7 @@ export default function SearchPage() {
                 {isImage(r.content_type) ? (
                   <img src={downloadFileUrl(r.id)} alt={r.filename} loading="lazy" />
                 ) : (
-                  <span className="result-file-icon">
+                  <span className="result-file-icon" aria-hidden="true">
                     {r.content_type === "application/pdf"
                       ? "📕"
                       : r.content_type?.startsWith("text/")

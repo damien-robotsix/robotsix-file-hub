@@ -345,7 +345,7 @@ export default function FilesPage() {
           <tbody>
             {files.map((f) => (
               <tr key={f.id}>
-                <td>{contentTypeIcon(f.content_type)}</td>
+                <td><span aria-hidden="true">{contentTypeIcon(f.content_type)}</span></td>
                 <td>
                   <Link
                     to={`/files/${f.id}`}
