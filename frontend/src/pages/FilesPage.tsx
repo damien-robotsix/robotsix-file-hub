@@ -194,28 +194,13 @@ export default function FilesPage() {
 
   return (
     <div className="files-page">
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
+      <div className="files-page-header">
         <h1>Files</h1>
-        <div style={{ display: "flex", gap: "0.5rem" }}>
+        <div className="files-header-actions">
           <button
+            className="files-reindex-btn"
             onClick={handleReindex}
             disabled={reindexing}
-            style={{
-              padding: "0.4rem 0.9rem",
-              fontSize: "0.9rem",
-              cursor: reindexing ? "not-allowed" : "pointer",
-              background: "#6c757d",
-              color: "#fff",
-              border: "none",
-              borderRadius: "4px",
-              opacity: reindexing ? 0.65 : 1,
-            }}
           >
             {reindexing ? "Reindexing…" : "Reindex"}
           </button>
@@ -293,15 +278,15 @@ export default function FilesPage() {
 
       {/* Reindex status */}
       {(reindexing || reindexProgress || reindexError) && (
-        <div style={{ marginBottom: "1rem" }}>
+        <div className="files-reindex-progress">
           {reindexError && <p className="files-error">{reindexError}</p>}
           {reindexProgress && (
-            <div style={{ padding: "0.75rem", background: "#f8f9fa", borderRadius: "6px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem" }}>
-                <span style={{ fontSize: "0.9rem", fontWeight: 500 }}>
+            <div className="files-reindex-progress-panel">
+              <div className="files-reindex-progress-inner">
+                <span className="files-reindex-label">
                   {reindexProgress.active ? "Reindexing…" : "Reindex complete"}
                 </span>
-                <span style={{ fontSize: "0.85rem", color: "#6c757d" }}>
+                <span className="files-reindex-count">
                   {reindexProgress.completed} / {reindexProgress.total}
                   {reindexProgress.failed > 0 && ` (${reindexProgress.failed} failed)`}
                 </span>
