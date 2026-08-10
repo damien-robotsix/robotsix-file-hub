@@ -12,14 +12,29 @@ docs are available at `/docs` (Swagger UI).
 
 ## Health
 
-### `GET /health`
+### `GET /health/live`
 
-Returns a liveness check.
+Lightweight liveness probe. Returns immediately without checking any
+dependencies (database, storage). Used by Docker HEALTHCHECK.
 
 **Response** `200`
 
 ```json
 {"status": "ok"}
+```
+
+### `GET /health`
+
+Readiness probe. Checks database connectivity and storage backend health.
+
+**Response** `200`
+
+```json
+{
+  "status": "ok",
+  "db": "ok",
+  "storage": "ok"
+}
 ```
 
 ---
