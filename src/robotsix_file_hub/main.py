@@ -7,11 +7,11 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Response
+from pythonjsonlogger.json import JsonFormatter
 from sqlalchemy import text
 
 from .config import get_settings
-from .database import engine
-from .models import Base
+from .database import engine, init_db
 from .routes.config import router as config_router
 from .routes.files import router as files_router
 from .routes.search import router as search_router
@@ -19,11 +19,12 @@ from .routes.tasks import router as tasks_router
 from .storage import StorageError, create_storage_backend
 from .tasks import start_workers, stop_workers
 
+logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    await init_db()
     await start_workers()
     try:
         yield
@@ -33,13 +34,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 settings = get_settings()
 
-# Configure logging: UTC ISO-8601 timestamps to stdout
+# Configure logging: UTC ISO-8601 timestamps to stdout, structured JSON
 logging.Formatter.converter = time.gmtime
+handler = logging.StreamHandler()
+handler.setFormatter(JsonFormatter())
 logging.basicConfig(
     level=settings.log_level,
-    format="%(asctime)s %(levelname)s %(name)s %(message)s",
-    datefmt="%Y-%m-%dT%H:%M:%S",
-    handlers=[logging.StreamHandler()],
+    handlers=[handler],
 )
 
 app = FastAPI(
