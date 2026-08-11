@@ -81,6 +81,7 @@ modules:
     description: React/Vite frontend SPA
     paths:
       - frontend/.gitignore
+      - frontend/.npmrc
       - frontend/.prettierrc
       - frontend/eslint.config.js
       - frontend/index.html
