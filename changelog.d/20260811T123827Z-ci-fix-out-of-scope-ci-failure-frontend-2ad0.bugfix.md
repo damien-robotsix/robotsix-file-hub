@@ -1,0 +1,1 @@
+Bumped eslint-plugin-react-hooks from ^5.1.0 to ^7.1.1 to resolve peer dependency conflict with ESLint 10.x. Updated eslint.config.js to use the plugin's native flat config (reactHooks.configs.flat.recommended) and synced package-lock.json via npm install.
