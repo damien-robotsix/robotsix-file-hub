@@ -53,6 +53,12 @@ class Settings(ConfigModel):
     # Hybrid search weighting (0.0 = keyword-only, 1.0 = vector-only)
     search_vector_weight: float = 0.7
 
+    # Rate limiting (slowapi)
+    rate_limit_storage_uri: str = ""  # empty = in-memory; "redis://host:6379/0" for multi-worker
+    rate_limit_default: str = "100/minute"
+    rate_limit_search: str = "20/minute"
+    rate_limit_files_upload: str = "30/minute"
+
     # Logging
     log_level: str = "INFO"
 

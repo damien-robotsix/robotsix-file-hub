@@ -45,6 +45,7 @@ modules:
       - src/robotsix_file_hub/enrichment.py
       - src/robotsix_file_hub/main.py
       - src/robotsix_file_hub/models.py
+      - src/robotsix_file_hub/rate_limiter.py
       - src/robotsix_file_hub/routes/__init__.py
       - src/robotsix_file_hub/routes/config.py
       - src/robotsix_file_hub/routes/files.py

@@ -7,11 +7,15 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Response
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIASGIMiddleware
 from sqlalchemy import text
 
 from .config import get_settings
 from .database import engine
 from .models import Base
+from .rate_limiter import limiter
 from .routes.config import router as config_router
 from .routes.files import router as files_router
 from .routes.search import router as search_router
@@ -47,6 +51,10 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+app.state.limiter = limiter
+app.add_middleware(SlowAPIASGIMiddleware)
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
 app.include_router(files_router)
 app.include_router(search_router)

@@ -13,6 +13,7 @@ from fastapi import (
     Header,
     HTTPException,
     Query,
+    Request,
     Response,
     UploadFile,
     status,
@@ -23,6 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..config import get_settings
 from ..database import get_db
 from ..models import FileRecord
+from ..rate_limiter import limiter
 from ..schemas import (
     BatchUploadResponse,
     CategoriesResponse,
@@ -104,7 +106,9 @@ async def _process_upload(
     response_model=FileUploadResponse,
     responses={413: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
 )
+@limiter.limit(get_settings().rate_limit_files_upload)
 async def upload_file(
+    request: Request,
     file: Annotated[UploadFile, File()],
     db: Annotated[AsyncSession, Depends(get_db)],
     storage: Annotated[StorageBackend, Depends(_get_storage)],
@@ -141,7 +145,9 @@ async def upload_file(
     response_model=BatchUploadResponse,
     responses={413: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
 )
+@limiter.limit(get_settings().rate_limit_files_upload)
 async def upload_files_batch(
+    request: Request,
     files: Annotated[list[UploadFile], File()],
     db: Annotated[AsyncSession, Depends(get_db)],
     storage: Annotated[StorageBackend, Depends(_get_storage)],
@@ -329,7 +335,9 @@ async def get_file_metadata(
     "/reindex",
     responses={500: {"model": ErrorResponse}},
 )
+@limiter.limit(get_settings().rate_limit_files_upload)
 async def reindex_files(
+    request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
     category: Annotated[
         str | None, Query(description="Only re-index files with this category")
