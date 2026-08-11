@@ -35,6 +35,10 @@ export default function FilePreview({
   };
 
   useEffect(() => {
+    // Reset derived state when the file changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTextContent(null);
+    setError(null);
     getFileMetadata(fileId)
       .then((meta) => {
         setTextContent(null);
@@ -47,6 +51,9 @@ export default function FilePreview({
   useEffect(() => {
     if (!metadata) return;
     if (classifyPreview(metadata.content_type) !== "text") {
+      // Reset text content when preview is not text.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTextContent(null);
       return;
     }
 
