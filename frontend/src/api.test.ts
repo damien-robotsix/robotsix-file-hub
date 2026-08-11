@@ -176,7 +176,7 @@ describe("API client", () => {
 
       // The constructor returns our mock; we also need to trigger the 'load' handler
       const OriginalXHR = globalThis.XMLHttpRequest;
-      globalThis.XMLHttpRequest = vi.fn(() => mockXHR) as unknown as typeof XMLHttpRequest;
+      globalThis.XMLHttpRequest = vi.fn(function() { return mockXHR; }) as unknown as typeof XMLHttpRequest;
 
       // Capture the 'load' handler so we can fire it synchronously
       let loadHandler: (() => void) | undefined;
@@ -212,7 +212,7 @@ describe("API client", () => {
       };
 
       const OriginalXHR = globalThis.XMLHttpRequest;
-      globalThis.XMLHttpRequest = vi.fn(() => mockXHR) as unknown as typeof XMLHttpRequest;
+      globalThis.XMLHttpRequest = vi.fn(function() { return mockXHR; }) as unknown as typeof XMLHttpRequest;
 
       let loadHandler: (() => void) | undefined;
       mockXHR.addEventListener.mockImplementation(
@@ -241,7 +241,7 @@ describe("API client", () => {
       };
 
       const OriginalXHR = globalThis.XMLHttpRequest;
-      globalThis.XMLHttpRequest = vi.fn(() => mockXHR) as unknown as typeof XMLHttpRequest;
+      globalThis.XMLHttpRequest = vi.fn(function() { return mockXHR; }) as unknown as typeof XMLHttpRequest;
 
       let errorHandler: (() => void) | undefined;
       mockXHR.addEventListener.mockImplementation(
@@ -270,7 +270,7 @@ describe("API client", () => {
       };
 
       const OriginalXHR = globalThis.XMLHttpRequest;
-      globalThis.XMLHttpRequest = vi.fn(() => mockXHR) as unknown as typeof XMLHttpRequest;
+      globalThis.XMLHttpRequest = vi.fn(function() { return mockXHR; }) as unknown as typeof XMLHttpRequest;
 
       let abortHandler: (() => void) | undefined;
       mockXHR.addEventListener.mockImplementation(
@@ -301,7 +301,7 @@ describe("API client", () => {
       };
 
       const OriginalXHR = globalThis.XMLHttpRequest;
-      globalThis.XMLHttpRequest = vi.fn(() => mockXHR) as unknown as typeof XMLHttpRequest;
+      globalThis.XMLHttpRequest = vi.fn(function() { return mockXHR; }) as unknown as typeof XMLHttpRequest;
 
       let progressHandler: ((e: { loaded: number; total: number; lengthComputable: boolean }) => void) | undefined;
       let loadHandler: (() => void) | undefined;
@@ -371,7 +371,7 @@ function createMockXHR(o?: Partial<MockXHR>): MockXHR {
 
 describe("uploadFilesBatchWithProgress", () => {
   let mx: MockXHR;
-  beforeEach(() => { localStorage.clear(); mx = createMockXHR(); vi.stubGlobal("XMLHttpRequest", vi.fn(() => mx)); });
+  beforeEach(() => { localStorage.clear(); mx = createMockXHR(); vi.stubGlobal("XMLHttpRequest", vi.fn(function() { return mx; })); });
   function mf(n: string, s: number) { return new File([new Uint8Array(s)], n); }
 
   it("resolves with FileMetadata[] on 2xx", async () => {
