@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { search, downloadFileUrl, type SearchResult } from "../api.ts";
 import { formatSize } from "../lib/format.ts";
@@ -17,7 +17,7 @@ function isImage(contentType: string | null): boolean {
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialQuery = searchParams.get("q") ?? "";
-  const [query, setQuery] = useState(initialQuery);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -25,10 +25,13 @@ export default function SearchPage() {
   const [searched, setSearched] = useState(false);
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
 
-  // Keep the input field in sync with the URL (e.g. when NavSearch
-  // navigates here while we are already mounted).
+  // Sync the input with URL changes (e.g. when NavSearch navigates
+  // here while we are already mounted) — use a DOM ref to avoid a
+  // synchronous setState inside the effect.
   useEffect(() => {
-    setQuery(initialQuery);
+    if (inputRef.current) {
+      inputRef.current.value = initialQuery;
+    }
   }, [initialQuery]);
 
   // Single source of truth: every time the URL query changes (including
@@ -36,31 +39,29 @@ export default function SearchPage() {
   // updates the URL — it never calls the API directly, avoiding the
   // stale-ref double-fire on initial form submit.
   useEffect(() => {
-    if (!initialQuery) {
-      setResults([]);
-      setTotal(0);
-      setSearched(false);
-      return;
-    }
+    if (!initialQuery) return;
 
     let cancelled = false;
-    setSearching(true);
-    setError(null);
 
-    search(initialQuery)
-      .then((res) => {
+    const runSearch = async () => {
+      setSearching(true);
+      setError(null);
+
+      try {
+        const res = await search(initialQuery);
         if (!cancelled) {
           setResults(res.results);
           setTotal(res.total);
           setSearched(true);
         }
-      })
-      .catch((err: unknown) => {
+      } catch (err: unknown) {
         if (!cancelled) setError(String(err));
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setSearching(false);
-      });
+      }
+    };
+
+    runSearch();
 
     return () => {
       cancelled = true;
@@ -69,7 +70,7 @@ export default function SearchPage() {
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    const q = query.trim();
+    const q = inputRef.current?.value.trim();
     if (!q) return;
     setSearchParams({ q });
   }
@@ -79,13 +80,13 @@ export default function SearchPage() {
       <h1>Search Files</h1>
       <form onSubmit={handleSubmit} className="search-form">
         <input
+          ref={inputRef}
           type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          defaultValue={initialQuery}
           placeholder="Search your files with natural language..."
           className="search-input"
         />
-        <button type="submit" disabled={!query.trim() || searching} className="search-btn">
+        <button type="submit" disabled={searching} className="search-btn">
           {searching ? "Searching..." : "Search"}
         </button>
       </form>

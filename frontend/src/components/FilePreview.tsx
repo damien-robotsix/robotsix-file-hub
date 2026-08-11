@@ -35,36 +35,36 @@ export default function FilePreview({
   };
 
   useEffect(() => {
-    setTextContent(null);
-    setError(null);
-    getFileMetadata(fileId)
-      .then(setMetadata)
-      .catch((e: unknown) => setError(String(e)));
-  }, [fileId]);
-
-  useEffect(() => {
-    if (!metadata) return;
-    if (classifyPreview(metadata.content_type) !== "text") {
-      setTextContent(null);
-      return;
-    }
-
     let cancelled = false;
-    fetch(downloadFileUrl(fileId))
-      .then((res) => {
-        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-        return res.text();
-      })
-      .then((text) => {
-        if (!cancelled) setTextContent(text);
+
+    getFileMetadata(fileId)
+      .then((meta) => {
+        if (cancelled) return;
+        setMetadata(meta);
+        setError(null);
+
+        if (classifyPreview(meta.content_type) !== "text") {
+          setTextContent(null);
+          return;
+        }
+
+        return fetch(downloadFileUrl(fileId))
+          .then((res) => {
+            if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+            return res.text();
+          })
+          .then((text) => {
+            if (!cancelled) setTextContent(text);
+          });
       })
       .catch((e: unknown) => {
         if (!cancelled) setError(String(e));
       });
+
     return () => {
       cancelled = true;
     };
-  }, [fileId, metadata]);
+  }, [fileId]);
 
   if (error) {
     return (
