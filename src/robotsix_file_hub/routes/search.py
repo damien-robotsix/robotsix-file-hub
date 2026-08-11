@@ -1,5 +1,6 @@
 """Root-level search endpoint — hybrid NL query with Postgres FTS + pgvector."""
 
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, HTTPException, status
@@ -9,13 +10,18 @@ from ..database import get_db
 from ..schemas import ErrorResponse, SearchRequest, SearchResponse
 from ..search import search_files_pg
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(tags=["search"])
 
 
 @router.post(
     "/search",
     response_model=SearchResponse,
-    responses={500: {"model": ErrorResponse}},
+    responses={
+        400: {"model": ErrorResponse},
+        500: {"model": ErrorResponse},
+    },
 )
 async def search(
     body: Annotated[SearchRequest, Body()],
@@ -27,6 +33,12 @@ async def search(
     results.  Falls back to keyword-only ranking when embeddings are
     unavailable or the database backend does not support pgvector.
     """
+    if not body.query or not body.query.strip():
+        logger.warning("POST /search: empty or whitespace-only query rejected")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Search query must not be empty",
+        )
     try:
         return await search_files_pg(
             db=db,
@@ -38,7 +50,10 @@ async def search(
             created_after=body.created_after,
             created_before=body.created_before,
         )
+    except HTTPException:
+        raise
     except Exception as exc:
+        logger.warning("POST /search: search failed: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Search failed: {exc}",

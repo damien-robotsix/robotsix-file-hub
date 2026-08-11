@@ -1,9 +1,13 @@
 """Task status endpoint for background job tracking."""
 
+import logging
+
 from fastapi import APIRouter, HTTPException, status
 
 from ..schemas import ErrorResponse, TaskResponse
 from ..tasks import get_task
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -19,8 +23,10 @@ async def get_task_status(task_id: str) -> TaskResponse:
     Returns the task type, status, progress (for reindex tasks),
     and any error message if the task failed.
     """
+    logger.debug("GET /tasks/%s: retrieving task status", task_id)
     task = get_task(task_id)
     if task is None:
+        logger.warning("GET /tasks/%s: task not found", task_id)
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Task {task_id} not found",
