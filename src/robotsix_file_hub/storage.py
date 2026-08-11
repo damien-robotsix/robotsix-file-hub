@@ -131,7 +131,7 @@ class S3StorageBackend(StorageBackend):
             # about an S3 object, and this module issues no queries at all.
             # Flagged Medium/LOW-confidence, which is the shape of a regex hit
             # rather than a finding.
-            raise StorageError(f"Failed to delete from S3: {exc}") from exc  # nosec B608
+            raise StorageError(f"Failed to delete from S3: {exc}") from exc  # nosec B608  # noqa: S608
 
 
 def create_storage_backend() -> StorageBackend:
