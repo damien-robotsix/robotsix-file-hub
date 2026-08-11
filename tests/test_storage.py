@@ -12,6 +12,7 @@ from src.robotsix_file_hub.storage import (
     LocalStorageBackend,
     S3StorageBackend,
     StorageError,
+    _get_storage,
     compute_checksum,
     create_storage_backend,
 )
@@ -461,6 +462,51 @@ class TestCreateStorageBackend:
 
         assert isinstance(backend, LocalStorageBackend)
         assert str(backend.base_path) == "/tmp/uploads"
+
+
+class TestGetStorage:
+    """Tests for the _get_storage() lazy singleton helper."""
+
+    def test_cache_miss_creates_backend(self) -> None:
+        """First call creates a StorageBackend and caches it in _storage."""
+        import src.robotsix_file_hub.storage as storage_module
+
+        storage_module._storage = None  # reset singleton
+        result = _get_storage()
+        assert isinstance(result, LocalStorageBackend)
+        assert storage_module._storage is result
+
+    def test_cache_hit_returns_same_instance(self) -> None:
+        """Second call returns the exact same object (identity check)."""
+        import src.robotsix_file_hub.storage as storage_module
+
+        first = _get_storage()
+        second = _get_storage()
+        assert first is second
+        assert storage_module._storage is first
+
+    async def test_concurrent_calls_return_same_instance(self) -> None:
+        """Multiple concurrent calls all get the same singleton."""
+        import asyncio
+
+        import src.robotsix_file_hub.storage as storage_module
+
+        storage_module._storage = None  # reset singleton
+
+        async def get_in_task() -> object:
+            # Simulate a context switch so tasks overlap
+            await asyncio.sleep(0)
+            return _get_storage()
+
+        # Launch several tasks concurrently
+        results = await asyncio.gather(
+            get_in_task(),
+            get_in_task(),
+            get_in_task(),
+        )
+        # All must be the same instance
+        assert results[0] is results[1] is results[2]
+        assert storage_module._storage is results[0]
 
 
 class TestComputeChecksum:
