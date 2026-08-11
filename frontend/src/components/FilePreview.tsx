@@ -188,7 +188,7 @@ export default function FilePreview({
 
         {previewKind === "unsupported" && (
           <div className="preview-unsupported">
-            <div className="fallback-icon">📄</div>
+            <div className="fallback-icon" aria-hidden="true">📄</div>
             <p>Preview not available for this file type ({metadata.content_type}).</p>
             <a href={fileUrl} className="download-btn" download={metadata.filename}>
               ⬇ Download {metadata.filename}
