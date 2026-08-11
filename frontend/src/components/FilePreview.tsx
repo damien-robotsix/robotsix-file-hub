@@ -35,17 +35,18 @@ export default function FilePreview({
   };
 
   useEffect(() => {
-    setTextContent(null);
-    setError(null);
     getFileMetadata(fileId)
-      .then(setMetadata)
+      .then((meta) => {
+        setTextContent(null);
+        setError(null);
+        setMetadata(meta);
+      })
       .catch((e: unknown) => setError(String(e)));
   }, [fileId]);
 
   useEffect(() => {
     if (!metadata) return;
     if (classifyPreview(metadata.content_type) !== "text") {
-      setTextContent(null);
       return;
     }
 

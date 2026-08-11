@@ -28,7 +28,7 @@ export default function SearchPage() {
   // Keep the input field in sync with the URL (e.g. when NavSearch
   // navigates here while we are already mounted).
   useEffect(() => {
-    setQuery(initialQuery);
+    Promise.resolve().then(() => setQuery(initialQuery));
   }, [initialQuery]);
 
   // Single source of truth: every time the URL query changes (including
@@ -37,15 +37,21 @@ export default function SearchPage() {
   // stale-ref double-fire on initial form submit.
   useEffect(() => {
     if (!initialQuery) {
-      setResults([]);
-      setTotal(0);
-      setSearched(false);
+      Promise.resolve().then(() => {
+        setResults([]);
+        setTotal(0);
+        setSearched(false);
+      });
       return;
     }
 
     let cancelled = false;
-    setSearching(true);
-    setError(null);
+    Promise.resolve().then(() => {
+      if (!cancelled) {
+        setSearching(true);
+        setError(null);
+      }
+    });
 
     search(initialQuery)
       .then((res) => {
