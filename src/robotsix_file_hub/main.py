@@ -37,7 +37,13 @@ settings = get_settings()
 # Configure logging: UTC ISO-8601 timestamps to stdout, structured JSON
 logging.Formatter.converter = time.gmtime
 handler = logging.StreamHandler()
-handler.setFormatter(JsonFormatter())
+handler.setFormatter(
+    JsonFormatter(
+        "%(asctime)s %(levelname)s %(name)s %(message)s",
+        datefmt="%Y-%m-%dT%H:%M:%S",
+        timestamp=True,
+    )
+)
 logging.basicConfig(
     level=settings.log_level,
     handlers=[handler],
