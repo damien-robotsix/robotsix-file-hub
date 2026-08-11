@@ -16,9 +16,25 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 10
     groups:
+      # Minor and patch only. Majors are deliberately left OUT of the
+      # group so each arrives as its own PR.
+      #
+      # A catch-all group bundled typescript 5->7, vite 6->8, vitest 3->4
+      # and eslint-plugin-react-hooks 5->7 into one PR. Each needed a
+      # different migration (typescript 7 has no compatible
+      # typescript-eslint at all — its peer range is still <6.1.0), so
+      # the PR could not be made green as a unit, and main stayed red
+      # from 2026-08-09 to 2026-08-11. Fourteen tickets across the fleet
+      # parked on that red target branch, unable to merge through no
+      # fault of their own.
+      #
+      # Ungrouped majors can be landed, reverted, or held one at a time.
       npm-dependencies:
         patterns:
           - "*"
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: "github-actions"
     directory: "/"
