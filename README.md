@@ -61,8 +61,8 @@ cp .env.example .env
 docker compose up --build
 ```
 
-The backend API is now live at `http://localhost:8000`. Visit `/health` for
-a liveness check and `/docs` for the interactive OpenAPI docs.
+The backend API is now live at `http://localhost:8000`. Visit `/health/live` for
+a lightweight liveness probe and `/docs` for the interactive OpenAPI docs.
 
 Start the frontend dev server separately:
 
@@ -85,8 +85,8 @@ uv sync
 uv run uvicorn robotsix_file_hub.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-The API is now live at `http://localhost:8000`. Visit `/health` for a
-liveness check and `/docs` for the interactive OpenAPI docs.
+The API is now live at `http://localhost:8000`. Visit `/health/live` for a
+lightweight liveness probe and `/docs` for the interactive OpenAPI docs.
 
 ### Frontend
 
@@ -131,7 +131,8 @@ Base URL: `http://localhost:8000`
 
 | Method | Path | Description |
 |---|---|---|
-| `GET` | `/health` | Health check — returns `{"status":"ok"}` |
+| `GET` | `/health/live` | Lightweight liveness probe — returns `{"status":"ok"}` (no dependencies) |
+| `GET` | `/health` | Readiness probe — checks DB + storage connectivity |
 | `GET` | `/deploy-spec` | Deploy spec for central-deploy — returns `deploy/docker-compose.yml` with contract-version header |
 | `POST` | `/files` | Upload a single file (`multipart/form-data`, field `file`) |
 | `POST` | `/files/batch` | Upload multiple files (field `files`) |
