@@ -21,6 +21,7 @@ modules:
       - LICENSE
       - docker-compose.yml
       - CHANGELOG.md
+      - changelog.d/20260812T021802Z-merge-pr-208-wire-up-dead-logging-config-8896.feature.md
       - README.md
       - alembic.ini
       - deploy/docker-compose.yml
