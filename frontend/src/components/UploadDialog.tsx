@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, type DragEvent, type ChangeEvent } from "react";
+import { useState, useRef, useCallback, type DragEvent, type ChangeEvent, type KeyboardEvent } from "react";
 import { uploadFilesBatchWithProgress, type FileMetadata } from "../api.ts";
 import { formatSize } from "../lib/format.ts";
 import "./UploadDialog.css";
@@ -91,6 +91,16 @@ export default function UploadDialog({ open, onClose, onUploadComplete }: Upload
     [uploading],
   );
 
+  const handleDropZoneKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        if (!uploading) fileInputRef.current?.click();
+      }
+    },
+    [uploading],
+  );
+
   const handleFileInput = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
       addFiles(e.target.files);
@@ -158,9 +168,15 @@ export default function UploadDialog({ open, onClose, onUploadComplete }: Upload
 
   return (
     <div className="upload-dialog-overlay" onClick={uploading ? undefined : handleClose}>
-      <div className="upload-dialog" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="upload-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="upload-dialog-title"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="upload-dialog-header">
-          <h2>Upload Files</h2>
+          <h2 id="upload-dialog-title">Upload Files</h2>
           <button className="upload-dialog-close" onClick={handleClose} disabled={uploading}>
             &times;
           </button>
@@ -170,9 +186,12 @@ export default function UploadDialog({ open, onClose, onUploadComplete }: Upload
           {/* Drop zone */}
           <div
             className={`upload-drop-zone ${dragOver ? "drag-over" : ""} ${uploading ? "disabled" : ""}`}
+            role="button"
+            tabIndex={0}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
+            onKeyDown={handleDropZoneKeyDown}
             onClick={() => {
               if (!uploading) fileInputRef.current?.click();
             }}
@@ -215,7 +234,13 @@ export default function UploadDialog({ open, onClose, onUploadComplete }: Upload
 
                     {/* Progress bar */}
                     {result && result.kind === "uploading" && (
-                      <div className="upload-progress-bar">
+                      <div
+                        className="upload-progress-bar"
+                        role="progressbar"
+                        aria-valuenow={Math.round(result.progress * 100)}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                      >
                         <div
                           className="progress-fill"
                           style={{ width: `${Math.round(result.progress * 100)}%` }}
@@ -226,7 +251,13 @@ export default function UploadDialog({ open, onClose, onUploadComplete }: Upload
                     {/* Result status */}
                     {result && result.kind === "success" && (
                       <>
-                        <div className="upload-progress-bar">
+                        <div
+                          className="upload-progress-bar"
+                          role="progressbar"
+                          aria-valuenow={100}
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                        >
                           <div className="progress-fill success" style={{ width: "100%" }} />
                         </div>
                         <div className="upload-result-status success">
@@ -236,7 +267,13 @@ export default function UploadDialog({ open, onClose, onUploadComplete }: Upload
                     )}
                     {result && result.kind === "error" && (
                       <>
-                        <div className="upload-progress-bar">
+                        <div
+                          className="upload-progress-bar"
+                          role="progressbar"
+                          aria-valuenow={100}
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                        >
                           <div className="progress-fill error" style={{ width: "100%" }} />
                         </div>
                         <div className="upload-result-status error">{result.message}</div>
