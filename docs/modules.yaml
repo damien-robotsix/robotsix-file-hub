@@ -22,6 +22,8 @@ modules:
       - LICENSE
       - docker-compose.yml
       - CHANGELOG.md
+      - changelog.d/20260805T052345Z-fix-deploy-spec-endpoint-returning-500-i-615b.misc.md
+      - changelog.d/README.md
       - README.md
       - alembic.ini
       - changelog.d/20260809T004220Z-docs-module-registry-remove-auth-referen-909f.removal.md
@@ -87,6 +89,8 @@ modules:
       - frontend/src/App.tsx
       - frontend/src/api.test.ts
       - frontend/src/api.ts
+      - frontend/src/components/ErrorBoundary.test.tsx
+      - frontend/src/components/ErrorBoundary.tsx
       - frontend/src/components/FilePreview.tsx
       - frontend/src/components/UploadButton.tsx
       - frontend/src/components/UploadDialog.css
