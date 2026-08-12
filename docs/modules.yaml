@@ -14,6 +14,7 @@ modules:
       - .gitignore
       - .release-please-manifest.json
       - .pre-commit-config.yaml
+      - .robotsix-mill/config.yaml
       - .robotsix-mill/periodic/*.yaml
       - ARCHITECTURE.md
       - CONTRIBUTING.md
