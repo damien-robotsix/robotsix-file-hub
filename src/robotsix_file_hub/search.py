@@ -132,9 +132,19 @@ def _hybrid_score(
 
 def _record_to_search_result(record: FileRecord, relevance: float) -> SearchResult:
     """Build a ``SearchResult`` from a ``FileRecord`` with a pre-computed relevance."""
-    sr = SearchResult.model_validate(record)
-    sr.relevance = relevance
-    return sr
+    return SearchResult(
+        id=record.id,
+        filename=record.filename,
+        size=record.size,
+        content_type=record.content_type,
+        checksum=record.checksum,
+        created_at=record.created_at,
+        category=record.category,
+        tags=record.tags,
+        summary=record.summary,
+        source=record.source,
+        relevance=round(relevance, 4),
+    )
 
 
 async def search_files(
@@ -216,9 +226,7 @@ async def search_files(
     total = len(scored)
     page = scored[offset : offset + limit]
 
-    results: list[SearchResult] = []
-    for score, rec in page:
-        results.append(_record_to_search_result(rec, round(score, 4)))
+    results = [_record_to_search_result(rec, score) for score, rec in page]
 
     return SearchResponse(
         results=results,
@@ -337,9 +345,7 @@ async def search_files_pg(
     result = await db.execute(stmt, exec_params)
     rows = result.all()
 
-    results: list[SearchResult] = []
-    for rec, hybrid in rows:
-        results.append(_record_to_search_result(rec, round(float(hybrid), 4)))
+    results = [_record_to_search_result(rec, float(hybrid)) for rec, hybrid in rows]
 
     return SearchResponse(
         results=results,
