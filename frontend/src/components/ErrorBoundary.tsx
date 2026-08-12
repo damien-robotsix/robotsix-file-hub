@@ -60,7 +60,7 @@ export default class ErrorBoundary extends Component<
               textAlign: "left",
             }}
           >
-            {this.state.error?.message ?? "Unknown error"}
+            {this.state.error?.message || "Unknown error"}
           </pre>
         </div>
       );

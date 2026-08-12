@@ -74,6 +74,7 @@ modules:
       - tests/test_storage.py
       - tests/test_tasks.py
       - tests/test_upload.py
+      - changelog.d/*.md
   - id: frontend
     description: React/Vite frontend SPA
     paths:

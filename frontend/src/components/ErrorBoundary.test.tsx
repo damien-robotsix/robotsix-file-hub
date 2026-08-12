@@ -6,7 +6,7 @@ import ErrorBoundary from "./ErrorBoundary";
 // Test component that throws during render
 // ---------------------------------------------------------------------------
 
-function Bomb({ message }: { message?: string }) {
+function Bomb({ message }: { message?: string }): never {
   throw new Error(message ?? "Boom!");
 }
 
@@ -98,10 +98,12 @@ describe("ErrorBoundary", () => {
     );
 
     expect(spy).toHaveBeenCalled();
-    const callArgs = spy.mock.calls[0];
-    const arg0 = callArgs[0];
-    expect(typeof arg0).toBe("string");
-    expect((arg0 as string).includes("ErrorBoundary caught an error:")).toBe(true);
+    const logged = spy.mock.calls.some(
+      (call) =>
+        typeof call[0] === "string" &&
+        call[0].includes("ErrorBoundary caught an error:"),
+    );
+    expect(logged).toBe(true);
 
     spy.mockRestore();
   });
