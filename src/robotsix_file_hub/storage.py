@@ -2,12 +2,15 @@
 
 import asyncio
 import hashlib
+import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
 
 import boto3  # type: ignore[import-untyped]
 
 from .config import get_settings
+
+logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
@@ -47,6 +50,7 @@ class LocalStorageBackend(StorageBackend):
         try:
             await asyncio.to_thread(_write)
         except OSError as exc:
+            logger.error("Local storage save failed (file_id=%s): %s", file_id, exc)
             raise StorageError(f"Failed to write file: {exc}") from exc
 
         return str(file_path)
@@ -60,6 +64,7 @@ class LocalStorageBackend(StorageBackend):
         try:
             return await asyncio.to_thread(_read)
         except OSError as exc:
+            logger.error("Local storage read failed (path=%s): %s", path, exc)
             raise StorageError(f"Failed to read file: {exc}") from exc
 
     async def delete(self, path: str) -> None:
@@ -71,6 +76,7 @@ class LocalStorageBackend(StorageBackend):
         try:
             await asyncio.to_thread(_remove)
         except OSError as exc:
+            logger.error("Local storage delete failed (path=%s): %s", path, exc)
             raise StorageError(f"Failed to delete file: {exc}") from exc
 
 
@@ -103,6 +109,7 @@ class S3StorageBackend(StorageBackend):
         try:
             await asyncio.to_thread(_put)
         except Exception as exc:
+            logger.error("S3 upload failed (bucket=%s, key=%s): %s", self.bucket, file_id, exc)
             raise StorageError(f"Failed to upload to S3: {exc}") from exc
 
         return f"s3://{self.bucket}/{file_id}"
@@ -116,6 +123,7 @@ class S3StorageBackend(StorageBackend):
         try:
             return await asyncio.to_thread(_get)
         except Exception as exc:
+            logger.error("S3 download failed (bucket=%s, path=%s): %s", self.bucket, path, exc)
             raise StorageError(f"Failed to download from S3: {exc}") from exc
 
     async def delete(self, path: str) -> None:
@@ -131,6 +139,7 @@ class S3StorageBackend(StorageBackend):
             # about an S3 object, and this module issues no queries at all.
             # Flagged Medium/LOW-confidence, which is the shape of a regex hit
             # rather than a finding.
+            logger.error("S3 delete failed (bucket=%s, path=%s): %s", self.bucket, path, exc)
             raise StorageError(f"Failed to delete from S3: {exc}") from exc  # nosec B608
 
 
@@ -138,6 +147,11 @@ def create_storage_backend() -> StorageBackend:
     """Factory: return the configured storage backend."""
     backend = settings.storage_backend
     if backend == "s3":
+        logger.info(
+            "Storage backend: s3 (bucket=%s, endpoint=%s)",
+            settings.s3_bucket,
+            settings.s3_endpoint,
+        )
         return S3StorageBackend(
             endpoint=settings.s3_endpoint,
             bucket=settings.s3_bucket,
@@ -145,6 +159,7 @@ def create_storage_backend() -> StorageBackend:
             secret_key=settings.s3_secret_key.get_secret_value(),
             region=settings.s3_region,
         )
+    logger.info("Storage backend: local (base_path=%s)", settings.local_storage_path)
     return LocalStorageBackend(base_path=settings.local_storage_path)
 
 
