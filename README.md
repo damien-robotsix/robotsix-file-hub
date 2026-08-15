@@ -40,21 +40,22 @@ For a deeper dive into the internal design, see **[ARCHITECTURE.md](ARCHITECTURE
 - Python ≥ 3.14
 - [uv](https://docs.astral.sh/uv/) package manager
 - Node.js ≥ 18 (for the frontend)
-- [Docker](https://docs.docker.com/compose/) (optional, for PostgreSQL +
-  MinIO)
+- [Docker](https://docs.docker.com/compose/) (optional, for running the
+  backend)
 - (Optional) [Ollama](https://ollama.com/) or any OpenAI-compatible LLM API
   for file enrichment
 
 ### Docker Compose (recommended)
 
-The easiest way to run the backend with PostgreSQL and MinIO (S3-compatible
-storage) is via Docker Compose:
+The easiest way to run the backend is via Docker Compose. The backend starts
+with the default configuration — SQLite for the database and local filesystem
+storage (there is no environment overlay):
 
 ```bash
 # Clone and enter the project
 git clone <repo-url> && cd robotsix-file-hub
 
-# Start all services (backend, PostgreSQL, MinIO)
+# Start the backend (SQLite + local storage)
 docker compose up --build
 ```
 
