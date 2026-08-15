@@ -1,3 +1,4 @@
+# central-deploy-contract-version: 1
 services:
   file-hub:
     image: ghcr.io/damien-robotsix/robotsix-file-hub:main
