@@ -28,6 +28,7 @@ modules:
       - README.md
       - alembic.ini
       - changelog.d/20260809T004220Z-docs-module-registry-remove-auth-referen-909f.removal.md
+      - changelog.d/20260815T171155Z-remove-dead-file-hub-env-from-root-997f.misc.md
       - deploy/docker-compose.yml
       - docs/API.md
       - docs/configuration.md
