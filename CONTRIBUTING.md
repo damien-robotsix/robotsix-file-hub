@@ -48,10 +48,12 @@ For production or when testing migrations explicitly:
 uv run alembic upgrade head
 ```
 
-### Environment variables
+### Configuration
 
-Copy `.env.example` to `.env` and adjust as needed.  All settings are
-prefixed with `FILE_HUB_`.  The defaults work for local development
+Settings are read from `config/config.json` (or the path named by the
+`ROBOTSIX_CONFIG_FILE` environment variable).  There is no environment
+overlay.  The committed defaults target the container layout; for local
+development, point `ROBOTSIX_CONFIG_FILE` at a file using relative paths
 (SQLite, local filesystem storage, Ollama on localhost).
 
 ---

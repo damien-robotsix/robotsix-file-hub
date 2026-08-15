@@ -24,9 +24,9 @@ with AI-generated metadata and vector-powered hybrid search.
   file browser, upload dialog, search page, and file detail views with
   inline previews.
 - **Database** — SQLite via `aiosqlite` by default (zero-config); swap to
-  any SQLAlchemy-supported database by changing `FILE_HUB_DATABASE_URL`.
+  any SQLAlchemy-supported database by changing `database_url`.
 - **Storage** — local filesystem by default; S3-compatible object storage
-  (AWS S3, MinIO, etc.) supported via the `FILE_HUB_STORAGE_BACKEND=s3` flag.
+  (AWS S3, MinIO, etc.) supported via the `storage_backend: "s3"` setting.
 - **AI Pipeline** — calls an OpenAI-compatible API for LLM enrichment
   (defaults to Ollama at `http://localhost:11434/v1`). Generates embeddings
   locally with `sentence-transformers/all-MiniLM-L6-v2` (384-dim).
@@ -53,9 +53,6 @@ storage) is via Docker Compose:
 ```bash
 # Clone and enter the project
 git clone <repo-url> && cd robotsix-file-hub
-
-# Copy the example environment file (already configured for Docker)
-cp .env.example .env
 
 # Start all services (backend, PostgreSQL, MinIO)
 docker compose up --build
@@ -101,29 +98,11 @@ and `/files` requests to the backend at `http://localhost:8000`.
 
 ## Configuration
 
-All settings are read from environment variables prefixed with `FILE_HUB_`.
-See [`.env.example`](.env.example) for a complete annotated example.
-
-| Variable | Default | Description |
-|---|---|---|
-| `FILE_HUB_DATABASE_URL` | `sqlite+aiosqlite:///./file_hub.db` | SQLAlchemy async database URL |
-| `FILE_HUB_STORAGE_BACKEND` | `local` | `"local"` or `"s3"` |
-| `FILE_HUB_LOCAL_STORAGE_PATH` | `./uploads` | Filesystem path for local storage |
-| `FILE_HUB_S3_ENDPOINT` | *(empty)* | S3-compatible endpoint URL |
-| `FILE_HUB_S3_BUCKET` | `file-hub` | S3 bucket name |
-| `FILE_HUB_S3_ACCESS_KEY` | *(empty)* | S3 access key |
-| `FILE_HUB_S3_SECRET_KEY` | *(empty)* | S3 secret key |
-| `FILE_HUB_S3_REGION` | `us-east-1` | AWS / S3 region |
-| `FILE_HUB_MAX_FILE_SIZE` | `104857600` (100 MB) | Upload size limit in bytes |
-| `FILE_HUB_ENRICHMENT_LLM_API_BASE` | `http://localhost:11434/v1` | OpenAI-compatible LLM API base URL |
-| `FILE_HUB_ENRICHMENT_LLM_API_KEY` | *(empty)* | API key for the LLM service |
-| `FILE_HUB_ENRICHMENT_LLM_MODEL` | `llama3.1` | LLM model name |
-| `FILE_HUB_ENRICHMENT_LLM_TIMEOUT` | `30.0` | LLM HTTP timeout (seconds) |
-| `FILE_HUB_ENRICHMENT_LLM_MAX_TOKENS` | `256` | Max tokens for LLM completions |
-| `FILE_HUB_ENRICHMENT_LLM_EMBEDDING_MODEL` | *(empty)* | Separate embedding model name (falls back to enrichment model) |
-| `FILE_HUB_SEARCH_VECTOR_WEIGHT` | `0.7` | Hybrid search balance (0=keyword, 1=vector) |
-| `FILE_HUB_EMBEDDING_MODEL_NAME` | `sentence-transformers/all-MiniLM-L6-v2` | Local sentence-transformers model |
-| `FILE_HUB_LOG_LEVEL` | `INFO` | Application log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`) |
+All settings are read from a single JSON file — `config/config.json` by
+default, or the path named by the `ROBOTSIX_CONFIG_FILE` environment
+variable. There is no environment overlay. See
+[`docs/configuration.md`](docs/configuration.md) for the full list of keys,
+types, and defaults.
 
 ## API Reference
 
@@ -178,7 +157,7 @@ The Vite dev server proxies `/api` (stripping the prefix) and `/files` to
 ```
 ├── src/robotsix_file_hub/   # Python backend
 │   ├── main.py              # App factory, lifespan, /health
-│   ├── config.py            # pydantic-settings (FILE_HUB_ prefix)
+│   ├── config.py            # JSON config (config.json)
 │   ├── database.py          # Async SQLAlchemy engine + session
 │   ├── models.py            # FileRecord ORM model
 │   ├── schemas.py           # Pydantic request/response models
@@ -201,7 +180,7 @@ The Vite dev server proxies `/api` (stripping the prefix) and `/files` to
 │   ├── deployment.md        # Deployment guide
 │   └── modules.yaml         # Module manifest
 ├── pyproject.toml
-├── .env.example             # Annotated configuration example
+├── .env.example             # Optional ROBOTSIX_CONFIG_FILE override
 └── README.md
 ```
 
