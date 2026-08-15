@@ -66,26 +66,29 @@ server {
 
 ### Local filesystem (default)
 
-Set `FILE_HUB_STORAGE_BACKEND=local` and `FILE_HUB_LOCAL_STORAGE_PATH` to a
-writable directory (e.g. `/data/file-hub/uploads`). Ensure the uvicorn
-process has read/write access.
+Set `storage_backend` to `local` and `local_storage_path` to a writable
+directory (e.g. `/data/file-hub/uploads`) in `config/config.json`. Ensure the
+uvicorn process has read/write access.
 
 Back up the `uploads/` directory and the SQLite database file together.
 
 ### S3-compatible storage
 
-Set `FILE_HUB_STORAGE_BACKEND=s3` and configure the S3 credentials:
+Set `storage_backend` to `s3` and configure the S3 credentials in
+`config/config.json`:
 
-```bash
-export FILE_HUB_STORAGE_BACKEND=s3
-export FILE_HUB_S3_ENDPOINT=https://s3.amazonaws.com     # or MinIO endpoint
-export FILE_HUB_S3_BUCKET=file-hub-prod
-export FILE_HUB_S3_ACCESS_KEY=AKIAIOSFODNN7EXAMPLE
-export FILE_HUB_S3_SECRET_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
-export FILE_HUB_S3_REGION=us-east-1
+```json
+{
+  "storage_backend": "s3",
+  "s3_endpoint": "https://s3.amazonaws.com",
+  "s3_bucket": "file-hub-prod",
+  "s3_access_key": "AKIAIOSFODNN7EXAMPLE",
+  "s3_secret_key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+  "s3_region": "us-east-1"
+}
 ```
 
-The application uses the default AWS credential chain when `S3_ACCESS_KEY`
+The application uses the default AWS credential chain when `s3_access_key`
 is empty — set `AWS_PROFILE` or use IAM instance roles instead of explicit
 keys.
 
@@ -95,15 +98,19 @@ keys.
 
 ### SQLite (default)
 
-Zero-config — the database file is created at `FILE_HUB_DATABASE_URL`
-(default: `./file_hub.db`). Suitable for single-server deployments.
+Zero-config — the database file is created at `database_url`
+(default: `/home/app/data/file_hub.db` in the container). Suitable for
+single-server deployments.
 
 ### PostgreSQL
 
-For multi-worker or high-throughput deployments, switch to PostgreSQL:
+For multi-worker or high-throughput deployments, switch to PostgreSQL by
+setting `database_url` in `config/config.json`:
 
-```bash
-export FILE_HUB_DATABASE_URL=postgresql+asyncpg://user:pass@host:5432/file_hub
+```json
+{
+  "database_url": "postgresql+asyncpg://user:pass@host:5432/file_hub"
+}
 ```
 
 Create the database and run migrations:
@@ -129,42 +136,44 @@ The enrichment pipeline requires an OpenAI-compatible API endpoint.
 # Install Ollama and pull a model
 ollama pull llama3.1
 
-# Start with default config (no env changes needed)
+# Start with default config (no config changes needed)
 uv run uvicorn robotsix_file_hub.main:app
 ```
 
 ### OpenAI / Azure / other providers
 
-```bash
-export FILE_HUB_ENRICHMENT_LLM_API_BASE=https://api.openai.com/v1
-export FILE_HUB_ENRICHMENT_LLM_API_KEY=sk-…
-export FILE_HUB_ENRICHMENT_LLM_MODEL=gpt-4o-mini
-export FILE_HUB_ENRICHMENT_LLM_EMBEDDING_MODEL=text-embedding-3-small
+Set the enrichment settings in `config/config.json`:
+
+```json
+{
+  "enrichment_llm_api_base": "https://api.openai.com/v1",
+  "enrichment_llm_api_key": "sk-…",
+  "enrichment_llm_model": "gpt-4o-mini",
+  "enrichment_llm_embedding_model": "text-embedding-3-small"
+}
 ```
 
 ---
 
 ## Embeddings
 
-The default embedding model (`sentence-transformers/all-MiniLM-L6-v2`) is
-downloaded automatically on first use and cached locally.  It runs on CPU
-and produces 384-dimensional vectors.
+Embeddings are generated via the enrichment LLM API — the same
+OpenAI-compatible endpoint used for enrichment. The embedding model is set
+by `enrichment_llm_embedding_model` (default `bge-m3`), falling back to
+`enrichment_llm_model` when empty.
 
-To use a different model:
+To use a different model, set it in `config/config.json`:
 
-```bash
-export FILE_HUB_EMBEDDING_MODEL_NAME=sentence-transformers/all-mpnet-base-v2
-```
-
-Or offload embeddings to the LLM API:
-
-```bash
-export FILE_HUB_ENRICHMENT_LLM_EMBEDDING_MODEL=text-embedding-3-small
+```json
+{
+  "enrichment_llm_embedding_model": "text-embedding-3-small"
+}
 ```
 
 ---
 
-## Environment Variables Reference
+## Configuration Reference
 
-See [`.env.example`](../.env.example) for a complete annotated list of all
-configuration variables with their defaults.
+See [`config/config.json`](../config/config.json) for the complete list of
+settings, and [`docs/configuration.md`](configuration.md) for descriptions
+and defaults.

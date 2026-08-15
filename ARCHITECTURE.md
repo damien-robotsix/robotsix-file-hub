@@ -41,16 +41,16 @@ dev server in development and a set of static assets in production.
   `/deploy-spec` (returns `deploy/docker-compose.yml` for central-deploy
   contracts).
 - Configures **UTC ISO-8601 logging** to stdout at the level specified
-  by `FILE_HUB_LOG_LEVEL`.
+  by `log_level`.
 
 ### Configuration (`config.py`)
 
-All settings are loaded from environment variables prefixed with
-`FILE_HUB_` via **pydantic-settings**.  A single `Settings` class owns
-every tunable — database URL, storage backend, LLM endpoint, embedding
-model, search weights, and log level.  Other modules import
-`get_settings()` (a cached singleton) rather than reading `os.environ`
-directly.
+All settings are loaded from a single JSON file (`config/config.json` by
+default, or the path named by `ROBOTSIX_CONFIG_FILE`) via
+`robotsix_config.load_config`.  A single `Settings` class owns every
+tunable — database URL, storage backend, LLM endpoint, embedding model,
+search weights, and log level.  Other modules import `get_settings()` (a
+cached singleton) rather than reading the file directly.
 
 ### Database layer (`database.py`, `models.py`, `schemas.py`)
 
@@ -62,7 +62,7 @@ directly.
 
 **Key design decision:** the database URL is configurable at runtime.
 The default is `sqlite+aiosqlite:///./file_hub.db` (zero-config, single
-file).  Swap to PostgreSQL by setting `FILE_HUB_DATABASE_URL` to a
+file).  Swap to PostgreSQL by setting `database_url` to a
 `postgresql+asyncpg://…` URL — the SQLAlchemy ORM and Alembic migrations
 work identically against both.
 
@@ -75,8 +75,8 @@ Two implementations ship:
 
 | Class | Config flag | Behaviour |
 |---|---|---|
-| `LocalStorageBackend` | `FILE_HUB_STORAGE_BACKEND=local` (default) | Saves files under `FILE_HUB_LOCAL_STORAGE_PATH` (default `./uploads`). Paths are stable and directly readable. |
-| `S3StorageBackend` | `FILE_HUB_STORAGE_BACKEND=s3` | Stores objects in an S3-compatible bucket (AWS S3, MinIO, etc.) via boto3. Configuration: endpoint, bucket name, access key, secret key, region. |
+| `LocalStorageBackend` | `storage_backend="local"` (default) | Saves files under `local_storage_path` (default `./uploads`). Paths are stable and directly readable. |
+| `S3StorageBackend` | `storage_backend="s3"` | Stores objects in an S3-compatible bucket (AWS S3, MinIO, etc.) via boto3. Configuration: endpoint, bucket name, access key, secret key, region. |
 
 The backend is selected once at startup by `create_storage_backend()` and
 injected into route handlers via FastAPI dependency injection.  Route
@@ -110,8 +110,8 @@ When a file is uploaded, it is queued for **asynchronous enrichment**:
 After enrichment, `build_embedding_text()` concatenates the filename,
 summary, tags, and category into a single text string.  This text is
 sent to the OpenAI-compatible embeddings endpoint (same API base as
-enrichment, configurable via `FILE_HUB_ENRICHMENT_LLM_EMBEDDING_MODEL`
-which falls back to `FILE_HUB_ENRICHMENT_LLM_MODEL`).
+enrichment, configurable via `enrichment_llm_embedding_model`
+which falls back to `enrichment_llm_model`).
 
 Previously, embeddings were generated in-process with
 `sentence-transformers/all-MiniLM-L6-v2`.  That pulled torch (CUDA
@@ -122,7 +122,7 @@ configured and OpenAI-compatible, so the local model was removed.
 ### Hybrid search (`search.py`)
 
 The `/files/search` endpoint performs a **hybrid** keyword + vector
-search weighted by `FILE_HUB_SEARCH_VECTOR_WEIGHT` (default 0.7):
+search weighted by `search_vector_weight` (default 0.7):
 
 - **Keyword search** — SQL `LIKE` / `ILIKE` against `filename`,
   `original_name`, `summary`, `tags`, and `category` columns.
