@@ -24,10 +24,20 @@ export function useFileDetail(
 
   useEffect(() => {
     if (!fileId) return;
-    setError(null);
+    let ignore = false;
     getFileMetadata(fileId)
-      .then(setMetadata)
-      .catch((e: unknown) => setError(String(e)));
+      .then((next) => {
+        if (!ignore) {
+          setMetadata(next);
+          setError(null);
+        }
+      })
+      .catch((e: unknown) => {
+        if (!ignore) setError(String(e));
+      });
+    return () => {
+      ignore = true;
+    };
   }, [fileId]);
 
   return { metadata, error, setError, deleting, handleDelete };
