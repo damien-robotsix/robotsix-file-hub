@@ -1,35 +1,13 @@
-import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { deleteFile, getFileMetadata, downloadFileUrl, type FileMetadata } from "../api.ts";
+import { downloadFileUrl } from "../api.ts";
 import { formatSize } from "../lib/format.ts";
+import { useFileDetail } from "../hooks/useFileDetail.ts";
 import FilePreview from "../components/FilePreview.tsx";
 
 export default function FileDetailPage() {
   const { fileId } = useParams<{ fileId: string }>();
   const navigate = useNavigate();
-  const [metadata, setMetadata] = useState<FileMetadata | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
-
-  const handleDelete = async () => {
-    if (!fileId || !metadata) return;
-    if (!window.confirm(`Delete "${metadata.filename}"? This cannot be undone.`)) return;
-    setDeleting(true);
-    try {
-      await deleteFile(fileId);
-      navigate("/", { replace: true });
-    } catch (e: unknown) {
-      setError(String(e));
-      setDeleting(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!fileId) return;
-    getFileMetadata(fileId)
-      .then(setMetadata)
-      .catch((e: unknown) => setError(String(e)));
-  }, [fileId]);
+  const { metadata, error, deleting, handleDelete } = useFileDetail(fileId, () => navigate("/", { replace: true }));
 
   if (error) {
     return (

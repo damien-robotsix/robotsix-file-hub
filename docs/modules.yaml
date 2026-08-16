@@ -81,6 +81,7 @@ modules:
     description: React/Vite frontend SPA
     paths:
       - frontend/.gitignore
+      - frontend/.npmrc
       - frontend/.prettierrc
       - frontend/eslint.config.js
       - frontend/index.html
@@ -98,6 +99,7 @@ modules:
       - frontend/src/components/UploadDialog.css
       - frontend/src/components/UploadDialog.test.tsx
       - frontend/src/components/UploadDialog.tsx
+      - frontend/src/hooks/useFileDetail.ts
       - frontend/src/index.css
       - frontend/src/lib/format.test.ts
       - frontend/src/lib/format.ts
