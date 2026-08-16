@@ -1,5 +1,48 @@
 # Changelog
 
+## [0.9.0](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.8.0...v0.9.0) (2026-08-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* **config:** FILE_HUB_* environment variables are no longer read. Configuration comes from the file at ROBOTSIX_CONFIG_FILE (default config/config.json). Nothing currently deploys this component.
+
+### Features
+
+* Backend: Remove app-level auth (auth.py, config, routes, tests) (20260809T004217Z-backend-remove-app-level-auth-auth-py-co-65ca) ([#158](https://github.com/damien-robotsix/robotsix-file-hub/issues/158)) ([2f033c7](https://github.com/damien-robotsix/robotsix-file-hub/commit/2f033c7b6157f919498a939580257bf47264facf))
+* **config:** align with the fleet config standard ([#145](https://github.com/damien-robotsix/robotsix-file-hub/issues/145)) ([a3b1bc3](https://github.com/damien-robotsix/robotsix-file-hub/commit/a3b1bc34a089d407bced2520132f8c1faaeaef33))
+* Docs & module registry: Remove auth references, add changelog fragment (20260809T004220Z-docs-module-registry-remove-auth-referen-909f) ([#167](https://github.com/damien-robotsix/robotsix-file-hub/issues/167)) ([f55633b](https://github.com/damien-robotsix/robotsix-file-hub/commit/f55633bd6b4fe38f5a4f143c1d34281a635fc600))
+* Frontend: Remove auth UI, login page, and token machinery (20260809T004220Z-frontend-remove-auth-ui-login-page-and-t-7528) ([#159](https://github.com/damien-robotsix/robotsix-file-hub/issues/159)) ([3733eb6](https://github.com/damien-robotsix/robotsix-file-hub/commit/3733eb6e3f890c9925bd8b53a6757a11b6140214))
+* Merge PR [#208](https://github.com/damien-robotsix/robotsix-file-hub/issues/208) — wire up dead logging config (per-module loggers and JSON formatter) (20260812T021802Z-merge-pr-208-wire-up-dead-logging-config-8896) ([#212](https://github.com/damien-robotsix/robotsix-file-hub/issues/212)) ([ca3355a](https://github.com/damien-robotsix/robotsix-file-hub/commit/ca3355a1d38727bbdb78c2b661053af642bfe443))
+* **mill:** enable the credit_balance periodic pass ([#148](https://github.com/damien-robotsix/robotsix-file-hub/issues/148)) ([e5089e8](https://github.com/damien-robotsix/robotsix-file-hub/commit/e5089e8beca8b7077ed61891131ccd83bbbb07b4))
+* Split health endpoint into liveness vs readiness probes and fix Docker HEALTHCHECK (20260807T143726Z-split-health-endpoint-into-liveness-vs-r-8514) ([#193](https://github.com/damien-robotsix/robotsix-file-hub/issues/193)) ([a179617](https://github.com/damien-robotsix/robotsix-file-hub/commit/a179617cc7bf72a59c2feb8910d358db743183b0))
+
+
+### Bug Fixes
+
+* ci_fix: out-of-scope CI failure — frontend in frontend/package.json — either downgrade eslint back to ^9.x or upgrade eslint-plugin-react-hooks to a version that supports eslint 10 (20260811T125341Z-ci-fix-out-of-scope-ci-failure-frontend-9721) ([#209](https://github.com/damien-robotsix/robotsix-file-hub/issues/209)) ([dd489da](https://github.com/damien-robotsix/robotsix-file-hub/commit/dd489da8638d5ac0a2a52dad2bf40428fda9a1a3))
+* ci_fix: out-of-scope CI failure — frontend in frontend/package.json — either downgrade typescript to &lt;6.1.0 or upgrade typescript-eslint to a version supporting TypeScript 7.x (20260810T154545Z-ci-fix-out-of-scope-ci-failure-frontend-ca0b) ([#191](https://github.com/damien-robotsix/robotsix-file-hub/issues/191)) ([88be4c4](https://github.com/damien-robotsix/robotsix-file-hub/commit/88be4c44a7ea71f47a979fd6d67e511d0f99d298))
+* ci_fix: out-of-scope CI failure — frontend in frontend/package.json — update eslint-plugin-react-hooks to a version compatible with eslint@^10.x (or downgrade eslint). Also add @testing-library/dom as a direct dependency to resolve missing screen/waitFor exports. (20260811T130316Z-ci-fix-out-of-scope-ci-failure-frontend-86f2) ([#210](https://github.com/damien-robotsix/robotsix-file-hub/issues/210)) ([9f168df](https://github.com/damien-robotsix/robotsix-file-hub/commit/9f168df3036bf794393852dbfaa015a48dcc30d9))
+* **ci:** grant security-events: write so the audit SARIF upload succeeds ([#124](https://github.com/damien-robotsix/robotsix-file-hub/issues/124)) ([acdeae3](https://github.com/damien-robotsix/robotsix-file-hub/commit/acdeae3143f813c9e0b374bbe7af756dccefa1e4))
+* **ci:** make release-please conform to the standard ([#149](https://github.com/damien-robotsix/robotsix-file-hub/issues/149)) ([ee7b038](https://github.com/damien-robotsix/robotsix-file-hub/commit/ee7b038f01fc0f78de76a59f0b236d7bc230ccb9))
+* **deps:** bump pypdf to 6.15.0 for two DoS advisories ([#146](https://github.com/damien-robotsix/robotsix-file-hub/issues/146)) ([85c5a8a](https://github.com/damien-robotsix/robotsix-file-hub/commit/85c5a8a1fee59131d36247775c0492dd40621b11))
+* **docker:** install git in the builder stage for the git dependency ([#140](https://github.com/damien-robotsix/robotsix-file-hub/issues/140)) ([1ea4f25](https://github.com/damien-robotsix/robotsix-file-hub/commit/1ea4f25468b5fdf8d4fc0b6785148ba024dafa0a))
+* **docker:** start uvicorn from the venv instead of `uv run` ([#161](https://github.com/damien-robotsix/robotsix-file-hub/issues/161)) ([beb0a23](https://github.com/damien-robotsix/robotsix-file-hub/commit/beb0a2337dfff35f0936ea06e7a6f84a400874ce))
+* drop torch, embed via the configured OpenAI-compatible endpoint ([#137](https://github.com/damien-robotsix/robotsix-file-hub/issues/137)) ([54601f0](https://github.com/damien-robotsix/robotsix-file-hub/commit/54601f07688218ad804eecb64262c175ca236fdf))
+* Emit central-deploy-contract-version header so file-hub can be registered/tracked (20260809T150331Z-emit-central-deploy-contract-version-hea-fd1d) ([#187](https://github.com/damien-robotsix/robotsix-file-hub/issues/187)) ([92e755c](https://github.com/damien-robotsix/robotsix-file-hub/commit/92e755c9ae1fbd59380269fe59a8c1cbb8e18ed8))
+* Fix UploadDialog keyboard accessibility and ARIA roles (20260804T050905Z-fix-uploaddialog-keyboard-accessibility-0642) ([#185](https://github.com/damien-robotsix/robotsix-file-hub/issues/185)) ([a152928](https://github.com/damien-robotsix/robotsix-file-hub/commit/a152928f7da4345ee059e3e4e288bcf10f3aef3f))
+* **frontend:** revert the four-major dependabot bump that reddened main ([#195](https://github.com/damien-robotsix/robotsix-file-hub/issues/195)) ([c93c06e](https://github.com/damien-robotsix/robotsix-file-hub/commit/c93c06e7b2b5a617ef23aefd267a6ba4abbcb8e5))
+* **release:** don't fail lock-sync when the release branch is gone ([#164](https://github.com/damien-robotsix/robotsix-file-hub/issues/164)) ([5740818](https://github.com/damien-robotsix/robotsix-file-hub/commit/574081817455c5083c69b2bc0f36df94e0caff07))
+* **release:** keep release-please inside the 0.x line ([#151](https://github.com/damien-robotsix/robotsix-file-hub/issues/151)) ([d9ead1c](https://github.com/damien-robotsix/robotsix-file-hub/commit/d9ead1c78b3ba302a18325163c3f3288adf0624f))
+* **release:** mint an App token so release PRs get CI ([#153](https://github.com/damien-robotsix/robotsix-file-hub/issues/153)) ([6b3f6c7](https://github.com/damien-robotsix/robotsix-file-hub/commit/6b3f6c71724b2805469f9ed981f3d4bd161714f5))
+* **release:** regenerate uv.lock on the release branch ([#155](https://github.com/damien-robotsix/robotsix-file-hub/issues/155)) ([a10b922](https://github.com/damien-robotsix/robotsix-file-hub/commit/a10b922f7243fc624881799313ee30541e3bb4b2))
+* ship deploy/ in the runtime image so /deploy-spec returns 200 ([#166](https://github.com/damien-robotsix/robotsix-file-hub/issues/166)) ([a7353f4](https://github.com/damien-robotsix/robotsix-file-hub/commit/a7353f40576df9fbb2f133b4d257a2e20d618b0d))
+
+
+### Documentation
+
+* Add ARCHITECTURE.md and CONTRIBUTING.md to the repository (20260803T043903Z-add-architecture-md-and-contributing-md-87b2) ([#172](https://github.com/damien-robotsix/robotsix-file-hub/issues/172)) ([3a64aeb](https://github.com/damien-robotsix/robotsix-file-hub/commit/3a64aeb1f112e8c51e4ca939e78ed7192ac6b691))
+
 ## [0.8.0](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.7.0...v0.8.0) (2026-08-14)
 
 
