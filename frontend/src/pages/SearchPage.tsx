@@ -28,7 +28,9 @@ export default function SearchPage() {
   // Keep the input field in sync with the URL (e.g. when NavSearch
   // navigates here while we are already mounted).
   useEffect(() => {
-    Promise.resolve().then(() => setQuery(initialQuery));
+    // Sync local input state from the URL query parameter.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setQuery(initialQuery);
   }, [initialQuery]);
 
   // Single source of truth: every time the URL query changes (including
@@ -37,11 +39,11 @@ export default function SearchPage() {
   // stale-ref double-fire on initial form submit.
   useEffect(() => {
     if (!initialQuery) {
-      Promise.resolve().then(() => {
-        setResults([]);
-        setTotal(0);
-        setSearched(false);
-      });
+      // Reset results when the URL has no query.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setResults([]);
+      setTotal(0);
+      setSearched(false);
       return;
     }
 
