@@ -44,6 +44,5 @@ jobs:
     uses: damien-robotsix/robotsix-github-workflows/.github/workflows/release-please.yml@b2c5f36c25e318d81f89a2a0b24ae92872ba4606  # main
     with:
       app-id: ${{ vars.RELEASE_APP_ID }}
-      skip-labeling: true
     secrets:
       app-private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
