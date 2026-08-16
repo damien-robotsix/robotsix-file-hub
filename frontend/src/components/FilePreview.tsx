@@ -21,6 +21,8 @@ export default function FilePreview({
   const { metadata, error, setError, deleting, handleDelete } = useFileDetail(fileId, () => onClose?.());
 
   useEffect(() => {
+    // Reset derived state when the file changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTextContent(null);
   }, [fileId]);
 
