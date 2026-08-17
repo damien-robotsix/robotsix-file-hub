@@ -18,7 +18,7 @@ from __future__ import annotations
 import json
 from typing import Any, cast
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from robotsix_config import (
     InvalidConfigError,
     apply_update,
@@ -30,6 +30,7 @@ from robotsix_config import (
 )
 
 from ..config import Settings, reload_settings
+from ..rate_limiter import DEFAULT_RATE_LIMIT, limiter
 
 router = APIRouter(tags=["config"])
 
@@ -53,7 +54,8 @@ def _masked(raw: dict[str, Any]) -> dict[str, Any]:
 
 
 @router.get("/config")
-def read_config() -> dict[str, Any]:
+@limiter.limit(DEFAULT_RATE_LIMIT)
+def read_config(request: Request) -> dict[str, Any]:
     """Effective config with secrets masked, plus schema and version."""
     return {
         "config": _masked(_read_config_file()),
@@ -63,7 +65,8 @@ def read_config() -> dict[str, Any]:
 
 
 @router.put("/config")
-def write_config(update: dict[str, Any]) -> dict[str, Any]:
+@limiter.limit(DEFAULT_RATE_LIMIT)
+def write_config(request: Request, update: dict[str, Any]) -> dict[str, Any]:
     """Apply a partial update and record a new version.
 
     Keys omitted from *update* keep their current values. A secret submitted
@@ -81,13 +84,15 @@ def write_config(update: dict[str, Any]) -> dict[str, Any]:
 
 
 @router.get("/config/versions")
-def config_versions() -> dict[str, Any]:
+@limiter.limit(DEFAULT_RATE_LIMIT)
+def config_versions(request: Request) -> dict[str, Any]:
     """The version history, newest first, without the snapshots."""
     return {"versions": list(reversed(read_versions(include_data=False)))}
 
 
 @router.post("/config/rollback")
-def config_rollback(body: dict[str, Any]) -> dict[str, Any]:
+@limiter.limit(DEFAULT_RATE_LIMIT)
+def config_rollback(request: Request, body: dict[str, Any]) -> dict[str, Any]:
     """Restore an earlier version as a new version.
 
     Secrets are not rolled back: the history never stores them, so they are

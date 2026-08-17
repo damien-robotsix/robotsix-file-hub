@@ -13,6 +13,7 @@ from fastapi import (
     Header,
     HTTPException,
     Query,
+    Request,
     Response,
     UploadFile,
     status,
@@ -23,6 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..config import get_settings
 from ..database import get_db
 from ..models import FileRecord
+from ..rate_limiter import DEFAULT_RATE_LIMIT, limiter
 from ..schemas import (
     BatchUploadResponse,
     CategoriesResponse,
@@ -104,7 +106,9 @@ async def _process_upload(
     response_model=FileUploadResponse,
     responses={413: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
 )
+@limiter.limit(DEFAULT_RATE_LIMIT)
 async def upload_file(
+    request: Request,
     file: Annotated[UploadFile, File()],
     db: Annotated[AsyncSession, Depends(get_db)],
     storage: Annotated[StorageBackend, Depends(_get_storage)],
@@ -141,7 +145,9 @@ async def upload_file(
     response_model=BatchUploadResponse,
     responses={413: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
 )
+@limiter.limit(DEFAULT_RATE_LIMIT)
 async def upload_files_batch(
+    request: Request,
     files: Annotated[list[UploadFile], File()],
     db: Annotated[AsyncSession, Depends(get_db)],
     storage: Annotated[StorageBackend, Depends(_get_storage)],
@@ -217,7 +223,9 @@ async def _cleanup_storage(
     "/categories",
     response_model=CategoriesResponse,
 )
+@limiter.limit(DEFAULT_RATE_LIMIT)
 async def list_categories(
+    request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> CategoriesResponse:
     """Return a sorted list of distinct categories across all files."""
@@ -230,7 +238,9 @@ async def list_categories(
     "/{file_id}",
     responses={404: {"model": ErrorResponse}},
 )
+@limiter.limit(DEFAULT_RATE_LIMIT)
 async def download_file(
+    request: Request,
     file_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
     storage: Annotated[StorageBackend, Depends(_get_storage)],
@@ -263,7 +273,9 @@ async def download_file(
     status_code=status.HTTP_204_NO_CONTENT,
     responses={404: {"model": ErrorResponse}},
 )
+@limiter.limit(DEFAULT_RATE_LIMIT)
 async def delete_file(
+    request: Request,
     file_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
     storage: Annotated[StorageBackend, Depends(_get_storage)],
@@ -314,7 +326,9 @@ async def delete_file(
     response_model=FileMetadataResponse,
     responses={404: {"model": ErrorResponse}},
 )
+@limiter.limit(DEFAULT_RATE_LIMIT)
 async def get_file_metadata(
+    request: Request,
     file_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> FileMetadataResponse:
@@ -329,7 +343,9 @@ async def get_file_metadata(
     "/reindex",
     responses={500: {"model": ErrorResponse}},
 )
+@limiter.limit(DEFAULT_RATE_LIMIT)
 async def reindex_files(
+    request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
     category: Annotated[
         str | None, Query(description="Only re-index files with this category")
@@ -360,7 +376,8 @@ async def reindex_files(
 @router.get(
     "/reindex/progress",
 )
-async def reindex_progress() -> dict[str, int | bool | str | None]:
+@limiter.limit(DEFAULT_RATE_LIMIT)
+async def reindex_progress(request: Request) -> dict[str, int | bool | str | None]:
     """Return the current reindex operation progress.
 
     Returns ``total``, ``completed``, ``failed``, and ``active``
@@ -374,7 +391,9 @@ async def reindex_progress() -> dict[str, int | bool | str | None]:
     "",
     response_model=FileListResponse,
 )
+@limiter.limit(DEFAULT_RATE_LIMIT)
 async def list_files(
+    request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
     category: Annotated[str | None, Query(description="Filter by category")] = None,
     tag: Annotated[str | None, Query(description="Filter by tag (substring match)")] = None,
