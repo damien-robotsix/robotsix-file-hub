@@ -21,40 +21,92 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from pydantic import SecretStr
+from pydantic import Field, SecretStr
 from robotsix_config import ConfigModel, load_config
 
 
 class Settings(ConfigModel):
     """Every setting file-hub reads at runtime."""
 
-    database_url: str = "sqlite+aiosqlite:///./file_hub.db"
-    storage_backend: str = "local"  # "local" or "s3"
-    local_storage_path: str = "./uploads"
-    s3_endpoint: str = ""
-    s3_bucket: str = "file-hub"
-    s3_access_key: str = ""
-    s3_secret_key: SecretStr = SecretStr("")
-    s3_region: str = "us-east-1"
-    max_file_size: int = 100 * 1024 * 1024  # 100 MB
+    database_url: str = Field(
+        "sqlite+aiosqlite:///./file_hub.db",
+        description="SQLAlchemy database URL for the file-hub metadata database.",
+    )
+    storage_backend: str = Field(
+        "local",
+        description='Where uploaded file contents are stored: "local" or "s3".',
+    )
+    local_storage_path: str = Field(
+        "./uploads",
+        description='Directory for uploaded files when storage_backend is "local".',
+    )
+    s3_endpoint: str = Field(
+        "",
+        description="S3-compatible endpoint URL (leave empty for AWS S3).",
+    )
+    s3_bucket: str = Field(
+        "file-hub",
+        description="S3 bucket name for uploaded files.",
+    )
+    s3_access_key: str = Field(
+        "",
+        description="S3 access key (leave empty to use IAM role credentials).",
+    )
+    s3_secret_key: SecretStr = Field(
+        SecretStr(""),
+        description="S3 secret key.",
+    )
+    s3_region: str = Field(
+        "us-east-1",
+        description="AWS region of the S3 bucket.",
+    )
+    max_file_size: int = Field(
+        100 * 1024 * 1024,
+        description="Maximum upload size in bytes (default 100 MB).",
+    )
 
     # LLM enrichment settings (OpenAI-compatible API)
-    enrichment_llm_api_base: str = "http://localhost:11434/v1"
-    enrichment_llm_api_key: SecretStr = SecretStr("")
-    enrichment_llm_model: str = "llama3.1"
-    enrichment_llm_timeout: float = 30.0
-    enrichment_llm_max_tokens: int = 256
+    enrichment_llm_api_base: str = Field(
+        "http://localhost:11434/v1",
+        description="Base URL of the OpenAI-compatible LLM API used for file enrichment.",
+    )
+    enrichment_llm_api_key: SecretStr = Field(
+        SecretStr(""),
+        description="API key for the enrichment LLM API.",
+    )
+    enrichment_llm_model: str = Field(
+        "llama3.1",
+        description="Model name for LLM enrichment.",
+    )
+    enrichment_llm_timeout: float = Field(
+        30.0,
+        description="Request timeout in seconds for LLM enrichment calls.",
+    )
+    enrichment_llm_max_tokens: int = Field(
+        256,
+        description="Maximum tokens generated per LLM enrichment response.",
+    )
 
     # Embedding model served by enrichment_llm_api_base. bge-m3 is what
     # the Ollama box already has pulled; it emits 1024-dim vectors, which
     # must match EMBEDDING_DIMENSIONS below and the pgvector column.
-    enrichment_llm_embedding_model: str = "bge-m3"
+    enrichment_llm_embedding_model: str = Field(
+        "bge-m3",
+        description="Embedding model served by enrichment_llm_api_base; must emit "
+        "vectors matching EMBEDDING_DIMENSIONS and the pgvector column.",
+    )
 
     # Hybrid search weighting (0.0 = keyword-only, 1.0 = vector-only)
-    search_vector_weight: float = 0.7
+    search_vector_weight: float = Field(
+        0.7,
+        description="Hybrid search weighting (0.0 = keyword-only, 1.0 = vector-only).",
+    )
 
     # Logging
-    log_level: str = "INFO"
+    log_level: str = Field(
+        "INFO",
+        description="Application log level.",
+    )
 
 
 @lru_cache(maxsize=1)

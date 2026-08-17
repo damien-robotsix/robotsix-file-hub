@@ -1,0 +1,1 @@
+Added field-level `description` metadata to every setting in the `Settings` config model and regenerated `config/config.schema.json`, so the deploy UI now shows human-readable explanations for each config field.
