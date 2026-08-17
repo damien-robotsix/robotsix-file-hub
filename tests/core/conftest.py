@@ -12,7 +12,20 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from src.robotsix_file_hub.database import get_db
 from src.robotsix_file_hub.main import app
 from src.robotsix_file_hub.models import Base
+from src.robotsix_file_hub.rate_limiter import limiter
 from src.robotsix_file_hub.storage import LocalStorageBackend, StorageBackend
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter() -> None:
+    """Clear slowapi's in-memory counters before every test.
+
+    The limiter is a process-wide singleton, so counters would otherwise
+    leak across tests and make unrelated tests fail with 429 once a
+    popular endpoint (e.g. ``/search``) crosses the shared 60/minute cap.
+    """
+    limiter.reset()
+    yield
 
 
 @pytest.fixture

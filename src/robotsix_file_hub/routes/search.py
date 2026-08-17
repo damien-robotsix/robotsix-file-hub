@@ -3,10 +3,11 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
+from ..rate_limiter import DEFAULT_RATE_LIMIT, limiter
 from ..schemas import ErrorResponse, SearchRequest, SearchResponse
 from ..search import search_files_pg
 
@@ -23,7 +24,9 @@ router = APIRouter(tags=["search"])
         500: {"model": ErrorResponse},
     },
 )
+@limiter.limit(DEFAULT_RATE_LIMIT)
 async def search(
+    request: Request,
     body: Annotated[SearchRequest, Body()],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> SearchResponse:

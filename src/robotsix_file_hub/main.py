@@ -6,13 +6,16 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Response
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi.responses import FileResponse, JSONResponse
 from pythonjsonlogger.json import JsonFormatter
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIASGIMiddleware
 from sqlalchemy import text
 
 from .config import get_settings
 from .database import engine, init_db
+from .rate_limiter import DEFAULT_RATE_LIMIT, limiter
 from .routes.config import router as config_router
 from .routes.files import router as files_router
 from .routes.search import router as search_router
@@ -57,6 +60,32 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Rate limiting: IP-based (get_remote_address), enforced by the slowapi
+# ASGI middleware, which reads the Limiter from ``app.state.limiter``.
+app.state.limiter = limiter
+app.add_middleware(SlowAPIASGIMiddleware)
+
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
+    """Return RFC 9457 ``application/problem+json`` for 429 responses.
+
+    Matches the error envelope used for every other error in the
+    service, so clients get a uniform problem-detail body.
+    """
+    return JSONResponse(
+        status_code=429,
+        content={
+            "type": "about:blank",
+            "title": "Too Many Requests",
+            "status": 429,
+            "detail": str(exc.detail),
+            "instance": str(request.url),
+        },
+        headers={"Content-Type": "application/problem+json"},
+    )
+
+
 app.include_router(files_router)
 app.include_router(search_router)
 app.include_router(tasks_router)
@@ -64,12 +93,14 @@ app.include_router(config_router)
 
 
 @app.get("/health/live")
-async def health_live() -> dict[str, str]:
+@limiter.limit(DEFAULT_RATE_LIMIT)
+async def health_live(request: Request) -> dict[str, str]:
     return {"status": "ok"}
 
 
 @app.get("/health")
-async def health() -> dict[str, str]:
+@limiter.limit(DEFAULT_RATE_LIMIT)
+async def health(request: Request) -> dict[str, str]:
     """Report service liveness by probing the database and storage backend.
 
     Returns:
@@ -103,7 +134,8 @@ _UI_STATIC_DIR = Path("static")
 
 
 @app.get("/deploy-spec")
-async def deploy_spec() -> Response:
+@limiter.limit(DEFAULT_RATE_LIMIT)
+async def deploy_spec(request: Request) -> Response:
     spec_content = _DEPLOY_SPEC_PATH.read_text()
     return Response(
         content=spec_content,
@@ -113,7 +145,8 @@ async def deploy_spec() -> Response:
 
 
 @app.get("/{full_path:path}", include_in_schema=False)
-async def serve_ui(full_path: str) -> FileResponse:
+@limiter.limit(DEFAULT_RATE_LIMIT)
+async def serve_ui(request: Request, full_path: str) -> FileResponse:
     """Serve the built SPA, falling back to index.html for client-side routes.
 
     The frontend is a React SPA with client-side routes (``/files``,

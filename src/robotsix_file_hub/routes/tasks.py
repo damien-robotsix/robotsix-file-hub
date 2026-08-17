@@ -2,8 +2,9 @@
 
 import logging
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 
+from ..rate_limiter import DEFAULT_RATE_LIMIT, limiter
 from ..schemas import ErrorResponse, TaskResponse
 from ..tasks import get_task
 
@@ -17,7 +18,8 @@ router = APIRouter(prefix="/tasks", tags=["tasks"])
     response_model=TaskResponse,
     responses={404: {"model": ErrorResponse}},
 )
-async def get_task_status(task_id: str) -> TaskResponse:
+@limiter.limit(DEFAULT_RATE_LIMIT)
+async def get_task_status(request: Request, task_id: str) -> TaskResponse:
     """Return the current status of a background task.
 
     Returns the task type, status, progress (for reindex tasks),
