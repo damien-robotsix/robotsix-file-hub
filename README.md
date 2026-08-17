@@ -102,7 +102,7 @@ and `/files` requests to the backend at `http://localhost:8000`.
 All settings are read from a single JSON file — `config/config.json` by
 default, or the path named by the `ROBOTSIX_CONFIG_FILE` environment
 variable. There is no environment overlay. See
-[`docs/configuration.md`](docs/configuration.md) for the full list of keys,
+[`docs/core/configuration.md`](docs/core/configuration.md) for the full list of keys,
 types, and defaults.
 
 ## API Reference
@@ -127,7 +127,7 @@ Base URL: `http://localhost:8000`
 | `GET` | `/tasks/{task_id}` | Poll enrichment/reindex task status (`type`, `status`, `progress`, `error`) |
 
 Full request/response schemas are available in the interactive docs at
-`/docs` (Swagger UI) and in [`docs/API.md`](docs/API.md).
+`/docs` (Swagger UI) and in [`docs/core/API.md`](docs/core/API.md).
 
 ## Frontend Development
 
@@ -175,10 +175,12 @@ The Vite dev server proxies `/api` (stripping the prefix) and `/files` to
 │   │   └── pages/           # HomePage, FilesPage, SearchPage, UploadPage, etc.
 │   ├── vite.config.ts       # Vite config with /api proxy
 │   └── package.json
-├── tests/                   # pytest test suite
+├── tests/core/              # pytest test suite
 ├── docs/
-│   ├── API.md               # Detailed API reference
-│   ├── deployment.md        # Deployment guide
+│   ├── core/
+│   │   ├── API.md           # Detailed API reference
+│   │   ├── configuration.md # Configuration reference
+│   │   └── deployment.md    # Deployment guide
 │   └── modules.yaml         # Module manifest
 ├── pyproject.toml
 ├── .env.example             # Optional ROBOTSIX_CONFIG_FILE override
@@ -194,7 +196,7 @@ The Vite dev server proxies `/api` (stripping the prefix) and `/files` to
 
 ## Testing conventions
 
-All test files must use the shared fixtures from [`tests/conftest.py`](tests/conftest.py)
+All test files must use the shared fixtures from [`tests/core/conftest.py`](tests/core/conftest.py)
 (`test_client`, `test_db_session`, `test_storage`, `test_session_factory`)
 instead of duplicating SQLAlchemy engine/session/client/storage setup inline.
 File-local fixtures are acceptable only when monkey-patching module globals
@@ -203,7 +205,7 @@ maintenance duplication.
 
 ## Deployment
 
-See [`docs/deployment.md`](docs/deployment.md) for production deployment
+See [`docs/core/deployment.md`](docs/core/deployment.md) for production deployment
 considerations (S3 storage, database migration, reverse proxy setup).
 
 ## Contributing

@@ -30,9 +30,9 @@ modules:
       - changelog.d/20260809T004220Z-docs-module-registry-remove-auth-referen-909f.removal.md
       - changelog.d/20260815T171155Z-remove-dead-file-hub-env-from-root-997f.misc.md
       - deploy/docker-compose.yml
-      - docs/API.md
-      - docs/configuration.md
-      - docs/deployment.md
+      - docs/core/API.md
+      - docs/core/configuration.md
+      - docs/core/deployment.md
       - docs/modules.yaml
       - migrations/env.py
       - migrations/script.py.mako
@@ -61,22 +61,22 @@ modules:
       - src/robotsix_file_hub/storage.py
       - src/robotsix_file_hub/tasks.py
       - vulture_whitelist.py
-      - tests/__init__.py
-      - tests/conftest.py
-      - tests/test_config_routes.py
-      - tests/test_delete.py
-      - tests/test_deploy_spec.py
-      - tests/test_download.py
-      - tests/test_embeddings.py
-      - tests/test_enrichment.py
-      - tests/test_health.py
-      - tests/test_search.py
-      - tests/test_search_keyword.py
-      - tests/test_search_pg.py
-      - tests/test_storage.py
-      - tests/test_tasks.py
-      - tests/test_ui.py
-      - tests/test_upload.py
+      - tests/core/__init__.py
+      - tests/core/conftest.py
+      - tests/core/test_config_routes.py
+      - tests/core/test_delete.py
+      - tests/core/test_deploy_spec.py
+      - tests/core/test_download.py
+      - tests/core/test_embeddings.py
+      - tests/core/test_enrichment.py
+      - tests/core/test_health.py
+      - tests/core/test_search.py
+      - tests/core/test_search_keyword.py
+      - tests/core/test_search_pg.py
+      - tests/core/test_storage.py
+      - tests/core/test_tasks.py
+      - tests/core/test_ui.py
+      - tests/core/test_upload.py
       - changelog.d/*.md
   - id: frontend
     description: React/Vite frontend SPA

@@ -38,7 +38,7 @@ def test_runtime_image_ships_the_deploy_directory() -> None:
     tests above cannot catch that: they run from the repo root, where the file
     exists on disk regardless of what the image contains.
     """
-    dockerfile = (Path(__file__).parents[1] / "Dockerfile").read_text()
+    dockerfile = (Path(__file__).parents[2] / "Dockerfile").read_text()
     _, _, runtime_stage = dockerfile.partition("AS runtime")
     assert runtime_stage, "no `AS runtime` stage found in Dockerfile"
 

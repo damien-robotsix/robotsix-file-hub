@@ -174,6 +174,6 @@ To use a different model, set it in `config/config.json`:
 
 ## Configuration Reference
 
-See [`config/config.json`](../config/config.json) for the complete list of
-settings, and [`docs/configuration.md`](configuration.md) for descriptions
+See [`config/config.json`](../../config/config.json) for the complete list of
+settings, and [`docs/core/configuration.md`](configuration.md) for descriptions
 and defaults.

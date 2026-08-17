@@ -5,7 +5,7 @@ default, or the path named by the `ROBOTSIX_CONFIG_FILE` environment
 variable. There is no environment overlay: the file is the only source of
 config values, and any key it omits falls back to the pydantic default below.
 
-The committed [`config/config.json`](../config/config.json) is a template
+The committed [`config/config.json`](../../config/config.json) is a template
 whose defaults match the container layout (persistent volumes at
 `/home/app/data` and `/home/app/uploads`). For local development, override
 `ROBOTSIX_CONFIG_FILE` with a file that uses relative paths if you want the
