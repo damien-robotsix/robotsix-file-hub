@@ -24,6 +24,7 @@ modules:
       - CHANGELOG.md
       - changelog.d/20260804T050905Z-add-react-errorboundary-to-prevent-blank-523e.misc.md
       - changelog.d/20260805T052345Z-fix-deploy-spec-endpoint-returning-500-i-615b.misc.md
+      - changelog.d/20260805T052345Z-pin-ghcr-io-astral-sh-uv-docker-image-to-9891.misc.md
       - changelog.d/README.md
       - README.md
       - alembic.ini
