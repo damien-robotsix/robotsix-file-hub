@@ -26,6 +26,8 @@ jobs:
     uses: damien-robotsix/robotsix-github-workflows/.github/workflows/python-ci.yml@e94a9aad6c4d6753c860520ba49b6a94a59ceb55  # main
     with:
       python-version: "3.14"
+      # Must match required-version in pyproject.toml ([tool.uv]).
+      uv-version: "0.12.5"
       # The tests import through `src.robotsix_file_hub...` rather than the
       # installed package, so a bare package name collects nothing ("Module
       # robotsix_file_hub was never imported"). Measured this way: 85%.
@@ -50,6 +52,8 @@ jobs:
 
       - uses: astral-sh/setup-uv@ae62891fec2bb8e7d6c99fc78c9fec3a63790f8d  # v10.0.0
         with:
+          # Must match required-version in pyproject.toml ([tool.uv]).
+          version: "0.12.5"
           enable-cache: true
 
       - name: Install dependencies
@@ -83,6 +87,8 @@ jobs:
 
       - uses: astral-sh/setup-uv@ae62891fec2bb8e7d6c99fc78c9fec3a63790f8d  # v10.0.0
         with:
+          # Must match required-version in pyproject.toml ([tool.uv]).
+          version: "0.12.5"
           enable-cache: true
 
       - name: Install dependencies
