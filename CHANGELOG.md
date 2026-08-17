@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.10.0](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.9.0...v0.10.0) (2026-08-17)
+
+
+### Features
+
+* Add Field descriptions to all config schema fields (20260817T030055Z-add-field-descriptions-to-all-config-sch-f7bb) ([#227](https://github.com/damien-robotsix/robotsix-file-hub/issues/227)) ([c0b4437](https://github.com/damien-robotsix/robotsix-file-hub/commit/c0b443734d2ec190d0386eab7a58271059f96a9e))
+* Implement slowapi rate limiting for all FastAPI endpoints (20260811T223309Z-merge-pr-181-rate-limiting-with-slowapi-c1e6) ([#230](https://github.com/damien-robotsix/robotsix-file-hub/issues/230)) ([9a373c6](https://github.com/damien-robotsix/robotsix-file-hub/commit/9a373c6384d4940e567afaff40b4be268213b1ed))
+* Serve the human-facing UI at the root path — gateway users currently get JSON 404 {"detail": "Not Found"} (20260816T210736Z-serve-the-human-facing-ui-at-the-root-pa-7f4a) ([#228](https://github.com/damien-robotsix/robotsix-file-hub/issues/228)) ([0c6e8e7](https://github.com/damien-robotsix/robotsix-file-hub/commit/0c6e8e7cb3f033038edaf40ccf60978385dc9652))
+
+
+### Bug Fixes
+
+* ci_fix: out-of-scope CI failure — frontend in frontend/package.json (eslint / eslint-plugin-react-hooks peer dependency resolution) (20260811T123827Z-ci-fix-out-of-scope-ci-failure-frontend-2ad0) ([#206](https://github.com/damien-robotsix/robotsix-file-hub/issues/206)) ([f123bd9](https://github.com/damien-robotsix/robotsix-file-hub/commit/f123bd9c939ae52aac81e00778525ca1cec6edfc))
+
 ## [0.9.0](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.8.0...v0.9.0) (2026-08-16)
 
 
