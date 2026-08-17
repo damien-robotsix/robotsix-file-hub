@@ -51,6 +51,7 @@ modules:
       - src/robotsix_file_hub/enrichment.py
       - src/robotsix_file_hub/main.py
       - src/robotsix_file_hub/models.py
+      - src/robotsix_file_hub/rate_limiter.py
       - src/robotsix_file_hub/routes/__init__.py
       - src/robotsix_file_hub/routes/config.py
       - src/robotsix_file_hub/routes/files.py
@@ -70,6 +71,7 @@ modules:
       - tests/core/test_embeddings.py
       - tests/core/test_enrichment.py
       - tests/core/test_health.py
+      - tests/core/test_rate_limit.py
       - tests/core/test_search.py
       - tests/core/test_search_keyword.py
       - tests/core/test_search_pg.py
