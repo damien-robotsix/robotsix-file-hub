@@ -1,0 +1,1 @@
+Pin `uv` to version 0.12.5 via `[tool.uv] required-version` in `pyproject.toml` to fix CI timeout caused by `setup-uv` failing to fetch the version manifest from `raw.githubusercontent.com` on GitHub-hosted runners.
