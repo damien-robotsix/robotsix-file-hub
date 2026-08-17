@@ -1,0 +1,1 @@
+Serve the human-facing UI at the root path: `GET /` (and any other unknown path) now returns the built React SPA when the `static/` directory is present, falling back to `index.html` for client-side routes instead of a JSON 404. The frontend API client also drops its dev-only `/api` prefix in production builds so its data calls reach the same-origin FastAPI routes.

@@ -1,4 +1,13 @@
-const API_BASE = "/api";
+// The API is served from the same origin as the SPA. In production the
+// FastAPI app mounts its routers at /files, /search, /tasks, /config with no
+// /api prefix, so the SPA must call those paths directly. In dev the Vite
+// server proxies /api/* to the backend and strips the prefix (see
+// vite.config.ts), so we keep the /api prefix there.
+export function apiBase(isProduction: boolean): string {
+  return isProduction ? "" : "/api";
+}
+
+const API_BASE = apiBase(import.meta.env.PROD);
 
 export interface FileMetadata {
   id: string;

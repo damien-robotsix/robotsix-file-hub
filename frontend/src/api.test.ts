@@ -11,6 +11,7 @@ import {
   triggerReindex,
   getReindexProgress,
   uploadFilesBatchWithProgress,
+  apiBase,
   type FileMetadata,
   type SearchResponse,
   type CategoriesResponse,
@@ -94,6 +95,11 @@ describe("API client", () => {
 
   it("downloadFileUrl returns correct URL", () => {
     expect(downloadFileUrl("abc-123")).toBe("/api/files/abc-123");
+  });
+
+  it("uses the /api prefix in dev/test but not in production", () => {
+    expect(apiBase(false)).toBe("/api");
+    expect(apiBase(true)).toBe("");
   });
 
   it("deleteFile sends DELETE with X-Confirm-Delete", async () => {
