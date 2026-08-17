@@ -75,6 +75,7 @@ modules:
       - tests/test_search_pg.py
       - tests/test_storage.py
       - tests/test_tasks.py
+      - tests/test_ui.py
       - tests/test_upload.py
       - changelog.d/*.md
   - id: frontend
