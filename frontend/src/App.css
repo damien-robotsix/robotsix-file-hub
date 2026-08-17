@@ -259,6 +259,61 @@
   user-select: none;
 }
 
+/* ── Files page header ── */
+.files-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.files-header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.files-reindex-btn {
+  padding: 0.4rem 0.9rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  background: #6c757d;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+}
+
+.files-reindex-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+/* ── Reindex progress ── */
+.files-reindex-progress {
+  margin-bottom: 1rem;
+}
+
+.files-reindex-progress-panel {
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.files-reindex-progress-inner {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+}
+
+.files-reindex-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.files-reindex-count {
+  font-size: 0.85rem;
+  color: #6c757d;
+  font-weight: 400;
+}
+
 /* ── Search page ── */
 .search-page h1 {
   margin-bottom: 1rem;
