@@ -93,7 +93,7 @@ class Settings(ConfigModel):
     enrichment_llm_embedding_model: str = Field(
         "bge-m3",
         description="Embedding model served by enrichment_llm_api_base; must emit "
-        "vectors matching EMBEDDING_DIMENSIONS and the pgvector column.",
+        "1024-dim vectors matching the pgvector column.",
     )
 
     # Hybrid search weighting (0.0 = keyword-only, 1.0 = vector-only)

@@ -91,7 +91,7 @@
     },
     "enrichment_llm_embedding_model": {
       "default": "bge-m3",
-      "description": "Embedding model served by enrichment_llm_api_base; must emit vectors matching EMBEDDING_DIMENSIONS and the pgvector column.",
+      "description": "Embedding model served by enrichment_llm_api_base; must emit 1024-dim vectors matching the pgvector column.",
       "title": "Enrichment Llm Embedding Model",
       "type": "string"
     },
