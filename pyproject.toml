@@ -52,6 +52,12 @@ asyncio_mode = "auto"
 # regardless of which test package is being collected.
 pythonpath = ["."]
 
+[tool.uv]
+# Pins the uv binary version for both local dev and the setup-uv CI action.
+# Without this, setup-uv fetches the version manifest from
+# raw.githubusercontent.com, which has timed out on GitHub-hosted runners.
+required-version = "0.12.5"
+
 [tool.uv.sources]
 robotsix-http = { git = "https://github.com/damien-robotsix/robotsix-http.git", rev = "ba90d55ea2bcbd02f605f392e837cea7b485d73d" }
 robotsix-modules = { git = "https://github.com/damien-robotsix/robotsix-modules.git", branch = "main" }
