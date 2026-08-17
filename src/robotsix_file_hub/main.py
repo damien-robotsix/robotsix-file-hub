@@ -6,7 +6,8 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, HTTPException, Response
+from fastapi.responses import FileResponse
 from pythonjsonlogger.json import JsonFormatter
 from sqlalchemy import text
 
@@ -98,6 +99,7 @@ async def health() -> dict[str, str]:
 
 
 _DEPLOY_SPEC_PATH = Path("deploy/docker-compose.yml")
+_UI_STATIC_DIR = Path("static")
 
 
 @app.get("/deploy-spec")
@@ -108,3 +110,27 @@ async def deploy_spec() -> Response:
         media_type="application/x-yaml",
         headers={"central-deploy-contract-version": "1"},
     )
+
+
+@app.get("/{full_path:path}", include_in_schema=False)
+async def serve_ui(full_path: str) -> FileResponse:
+    """Serve the built SPA, falling back to index.html for client-side routes.
+
+    The frontend is a React SPA with client-side routes (``/files``,
+    ``/search``, ``/upload``, ...).  A browser refresh on one of those
+    paths must serve the SPA shell rather than a 404, so any unknown
+    path is answered with ``index.html``.  API routes are unaffected:
+    they are registered before this catch-all and therefore win.
+
+    When the UI static directory does not exist (e.g. local development
+    with only the Vite dev server) the endpoint returns a 404, keeping
+    the same behaviour as before the SPA mount was added.
+    """
+    static_dir = _UI_STATIC_DIR.resolve()
+    requested = (static_dir / full_path).resolve()
+    if requested.is_file() and requested.is_relative_to(static_dir):
+        return FileResponse(requested)
+    index = static_dir / "index.html"
+    if index.is_file():
+        return FileResponse(index)
+    raise HTTPException(status_code=404, detail="Not Found")
