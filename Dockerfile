@@ -18,7 +18,7 @@ FROM python:3.14-slim AS builder
 RUN apt-get update \
     && apt-get install -y --no-install-recommends git \
     && rm -rf /var/lib/apt/lists/*
-COPY --from=ghcr.io/astral-sh/uv:latest@sha256:2d890623d310b57771ce840f0da5eed5fc6d657da05ffaa45d82797b53fa3abc /uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.12.5@sha256:db2d5999728c5837e1bf9ba278ee6b05cef1e95e82a20e27b0c915cb4478b9d7 /uv /usr/local/bin/uv
 # Build under the runtime's WORKDIR so the venv's absolute paths (script
 # shebangs, pyvenv.cfg) stay valid once it is copied into the runtime stage.
 WORKDIR /home/app
