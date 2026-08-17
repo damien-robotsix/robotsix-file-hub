@@ -89,7 +89,7 @@ class Settings(ConfigModel):
 
     # Embedding model served by enrichment_llm_api_base. bge-m3 is what
     # the Ollama box already has pulled; it emits 1024-dim vectors, which
-    # must match EMBEDDING_DIMENSIONS below and the pgvector column.
+    # must match the pgvector column.
     enrichment_llm_embedding_model: str = Field(
         "bge-m3",
         description="Embedding model served by enrichment_llm_api_base; must emit "
