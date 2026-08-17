@@ -96,14 +96,14 @@ The `pyproject.toml` configures:
 uv run pytest
 
 # Run a single test file
-uv run pytest tests/test_search.py
+uv run pytest tests/core/test_search.py
 
 # Run with verbose output
 uv run pytest -v
 ```
 
 Tests use **pytest-asyncio** in `auto` mode and share fixtures from
-`tests/conftest.py`.  Each test gets an isolated database session that
+`tests/core/conftest.py`.  Each test gets an isolated database session that
 is rolled back after the test completes.
 
 ### Frontend
@@ -189,7 +189,7 @@ the DOM environment.  Test files live alongside their source
 
 ### Testing
 
-- **Backend** — use shared fixtures from `tests/conftest.py`.  Do not
+- **Backend** — use shared fixtures from `tests/core/conftest.py`.  Do not
   duplicate SQLAlchemy engine/session/client setup in individual test
   files.
 - **Frontend** — prefer `@testing-library/react` queries (`getByRole`,
@@ -202,6 +202,6 @@ the DOM environment.  Test files live alongside their source
 
 - [README](README.md) — project overview, quick start, API reference.
 - [ARCHITECTURE.md](ARCHITECTURE.md) — internal design and module layout.
-- [docs/API.md](docs/API.md) — detailed request/response schemas.
-- [docs/deployment.md](docs/deployment.md) — production deployment.
-- [docs/configuration.md](docs/configuration.md) — configuration reference.
+- [docs/core/API.md](docs/core/API.md) — detailed request/response schemas.
+- [docs/core/deployment.md](docs/core/deployment.md) — production deployment.
+- [docs/core/configuration.md](docs/core/configuration.md) — configuration reference.

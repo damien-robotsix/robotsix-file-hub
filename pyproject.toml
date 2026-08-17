@@ -45,6 +45,11 @@ python_version = "3.14"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+# Tests live in per-module packages (tests/core) and import the source
+# tree via the `src` namespace package (`src.robotsix_file_hub...`).
+# Add the repo root to sys.path so pytest can resolve those imports
+# regardless of which test package is being collected.
+pythonpath = ["."]
 
 [tool.uv.sources]
 robotsix-http = { git = "https://github.com/damien-robotsix/robotsix-http.git", rev = "ba90d55ea2bcbd02f605f392e837cea7b485d73d" }
