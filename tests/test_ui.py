@@ -37,27 +37,21 @@ async def test_spa_client_route_falls_back_to_index(
     assert "File Hub" in response.text
 
 
-async def test_static_asset_served(
-    test_client: AsyncClient, ui_static_dir: Path
-) -> None:
+async def test_static_asset_served(test_client: AsyncClient, ui_static_dir: Path) -> None:
     """GET /assets/app.js returns the asset file."""
     response = await test_client.get("/assets/app.js")
     assert response.status_code == 200
     assert "console.log" in response.text
 
 
-async def test_svg_asset_served(
-    test_client: AsyncClient, ui_static_dir: Path
-) -> None:
+async def test_svg_asset_served(test_client: AsyncClient, ui_static_dir: Path) -> None:
     """GET /vite.svg returns the SVG asset."""
     response = await test_client.get("/vite.svg")
     assert response.status_code == 200
     assert "image/svg+xml" in response.headers["content-type"]
 
 
-async def test_api_route_takes_precedence(
-    test_client: AsyncClient, ui_static_dir: Path
-) -> None:
+async def test_api_route_takes_precedence(test_client: AsyncClient, ui_static_dir: Path) -> None:
     """A known API route still returns its normal response, not index.html."""
     response = await test_client.get("/health/live")
     assert response.status_code == 200
