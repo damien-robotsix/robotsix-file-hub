@@ -3,36 +3,43 @@
   "properties": {
     "database_url": {
       "default": "sqlite+aiosqlite:///./file_hub.db",
+      "description": "SQLAlchemy database URL for the file-hub metadata database.",
       "title": "Database Url",
       "type": "string"
     },
     "storage_backend": {
       "default": "local",
+      "description": "Where uploaded file contents are stored: \"local\" or \"s3\".",
       "title": "Storage Backend",
       "type": "string"
     },
     "local_storage_path": {
       "default": "./uploads",
+      "description": "Directory for uploaded files when storage_backend is \"local\".",
       "title": "Local Storage Path",
       "type": "string"
     },
     "s3_endpoint": {
       "default": "",
+      "description": "S3-compatible endpoint URL (leave empty for AWS S3).",
       "title": "S3 Endpoint",
       "type": "string"
     },
     "s3_bucket": {
       "default": "file-hub",
+      "description": "S3 bucket name for uploaded files.",
       "title": "S3 Bucket",
       "type": "string"
     },
     "s3_access_key": {
       "default": "",
+      "description": "S3 access key (leave empty to use IAM role credentials).",
       "title": "S3 Access Key",
       "type": "string"
     },
     "s3_secret_key": {
       "default": "",
+      "description": "S3 secret key.",
       "format": "password",
       "title": "S3 Secret Key",
       "type": "string",
@@ -40,21 +47,25 @@
     },
     "s3_region": {
       "default": "us-east-1",
+      "description": "AWS region of the S3 bucket.",
       "title": "S3 Region",
       "type": "string"
     },
     "max_file_size": {
       "default": 104857600,
+      "description": "Maximum upload size in bytes (default 100 MB).",
       "title": "Max File Size",
       "type": "integer"
     },
     "enrichment_llm_api_base": {
       "default": "http://localhost:11434/v1",
+      "description": "Base URL of the OpenAI-compatible LLM API used for file enrichment.",
       "title": "Enrichment Llm Api Base",
       "type": "string"
     },
     "enrichment_llm_api_key": {
       "default": "",
+      "description": "API key for the enrichment LLM API.",
       "format": "password",
       "title": "Enrichment Llm Api Key",
       "type": "string",
@@ -62,31 +73,37 @@
     },
     "enrichment_llm_model": {
       "default": "llama3.1",
+      "description": "Model name for LLM enrichment.",
       "title": "Enrichment Llm Model",
       "type": "string"
     },
     "enrichment_llm_timeout": {
       "default": 30.0,
+      "description": "Request timeout in seconds for LLM enrichment calls.",
       "title": "Enrichment Llm Timeout",
       "type": "number"
     },
     "enrichment_llm_max_tokens": {
       "default": 256,
+      "description": "Maximum tokens generated per LLM enrichment response.",
       "title": "Enrichment Llm Max Tokens",
       "type": "integer"
     },
     "enrichment_llm_embedding_model": {
       "default": "bge-m3",
+      "description": "Embedding model served by enrichment_llm_api_base; must emit 1024-dim vectors matching the pgvector column.",
       "title": "Enrichment Llm Embedding Model",
       "type": "string"
     },
     "search_vector_weight": {
       "default": 0.7,
+      "description": "Hybrid search weighting (0.0 = keyword-only, 1.0 = vector-only).",
       "title": "Search Vector Weight",
       "type": "number"
     },
     "log_level": {
       "default": "INFO",
+      "description": "Application log level.",
       "title": "Log Level",
       "type": "string"
     }
