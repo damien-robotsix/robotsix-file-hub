@@ -30,6 +30,7 @@ modules:
       - alembic.ini
       - changelog.d/20260809T004220Z-docs-module-registry-remove-auth-referen-909f.removal.md
       - changelog.d/20260815T171155Z-remove-dead-file-hub-env-from-root-997f.misc.md
+      - changelog.d/20260817T130800Z-cherry-pick-pr-190-commit-move-inline-st-78fc.misc.md
       - deploy/docker-compose.yml
       - docs/core/API.md
       - docs/core/configuration.md
