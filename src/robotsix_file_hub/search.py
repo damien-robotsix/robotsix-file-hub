@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .config import get_settings
 from .embeddings import generate_embedding
-from .models import FileRecord
+from .models import EMBEDDING_DIMENSIONS, FileRecord
 from .schemas import SearchResponse, SearchResult
 
 logger = logging.getLogger(__name__)
@@ -322,7 +322,7 @@ async def search_files_pg(
             kw_score_expr, 0.0
         ) + vector_weight * func.coalesce(
             sa_text("1.0 - (file_records.embedding <=> :query_embedding) / 2.0").bindparams(
-                bindparam("query_embedding", type_=Vector(384))
+                bindparam("query_embedding", type_=Vector(EMBEDDING_DIMENSIONS))
             ),
             0.0,
         )

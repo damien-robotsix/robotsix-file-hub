@@ -3,7 +3,6 @@
 import os
 import tempfile
 from collections.abc import AsyncGenerator
-from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -110,39 +109,6 @@ async def test_client(
         yield client
 
     app.dependency_overrides = original_deps
-
-
-@pytest.fixture
-def mock_enrich_file() -> dict[str, str | None]:
-    """Patch ``tasks.enrich_file`` to return canned enrichment values.
-
-    Yields the canned dict so tests can assert against the values that
-    the (mocked) enrichment pipeline would produce.
-    """
-    import src.robotsix_file_hub.tasks as tasks_module
-
-    canned: dict[str, str | None] = {
-        "category": "document",
-        "tags": "test,mock",
-        "summary": "Mock enrichment summary.",
-        "embedding": "[0.1, 0.2, 0.3]",
-    }
-
-    with patch.object(tasks_module, "enrich_file", new=AsyncMock(return_value=canned)):
-        yield canned
-
-
-@pytest.fixture
-def mock_search_embedding() -> list[float]:
-    """Patch ``search.generate_embedding`` to return a canned vector.
-
-    Prevents real embedding API calls during search endpoint tests.
-    """
-    import src.robotsix_file_hub.search as search_module
-
-    canned = [0.1, 0.2, 0.3]
-    with patch.object(search_module, "generate_embedding", new=AsyncMock(return_value=canned)):
-        yield canned
 
 
 @pytest.fixture
