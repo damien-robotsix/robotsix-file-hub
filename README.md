@@ -47,15 +47,15 @@ For a deeper dive into the internal design, see **[ARCHITECTURE.md](ARCHITECTURE
 
 ### Docker Compose (recommended)
 
-The easiest way to run the backend is via Docker Compose. The backend starts
-with the default configuration — SQLite for the database and local filesystem
-storage (there is no environment overlay):
+The easiest way to run the backend is via Docker Compose. It starts Postgres
+and MinIO alongside the backend, and mounts `config/config.docker.json` so the
+backend uses Postgres for metadata and MinIO (S3) for file storage:
 
 ```bash
 # Clone and enter the project
 git clone <repo-url> && cd robotsix-file-hub
 
-# Start the backend (SQLite + local storage)
+# Start the backend (Postgres + MinIO/S3 storage)
 docker compose up --build
 ```
 
