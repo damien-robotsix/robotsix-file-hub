@@ -9,6 +9,7 @@ modules:
       - .env.example
       - .github/dependabot.yml
       - .github/workflows/ci.yml
+      - .github/workflows/dependabot-auto-merge.yml
       - .github/workflows/docker-publish.yml
       - .github/workflows/release-please.yml
       - .gitignore
