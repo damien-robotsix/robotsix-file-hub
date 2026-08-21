@@ -1,5 +1,5 @@
 # Stage 1: Build frontend
-FROM node:22-slim AS frontend-builder
+FROM node:22-slim@sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436 AS frontend-builder
 WORKDIR /app
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
@@ -7,7 +7,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # Stage 2: Build Python dependencies
-FROM python:3.14-slim AS builder
+FROM python:3.14-slim@sha256:ce40764625a4ff50df3548277632e7f96c4e77fe75fa848aae9885476e7df5a4 AS builder
 # git is required at BUILD time only: robotsix-http is a git dependency
 # (pyproject.toml [tool.uv.sources]), and uv shells out to git to fetch it.
 # python:*-slim ships without git, so `uv sync` fails with "Git executable not
@@ -28,7 +28,7 @@ COPY src/ ./src/
 RUN uv sync --no-dev --frozen
 
 # Stage 3: Runtime
-FROM python:3.14-slim AS runtime
+FROM python:3.14-slim@sha256:ce40764625a4ff50df3548277632e7f96c4e77fe75fa848aae9885476e7df5a4 AS runtime
 RUN useradd --create-home --uid 1000 app
 WORKDIR /home/app
 
