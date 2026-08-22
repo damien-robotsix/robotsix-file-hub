@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.10.1](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.10.0...v0.10.1) (2026-08-21)
+
+
+### Bug Fixes
+
+* CI failure: Publish Docker image on main (20260817T215544Z-ci-failure-publish-docker-image-on-main-0f9c) ([#236](https://github.com/damien-robotsix/robotsix-file-hub/issues/236)) ([c500e4a](https://github.com/damien-robotsix/robotsix-file-hub/commit/c500e4abbe0943ff8ea89652a15d8213da2cb530))
+* completeness_check scan: 3 findings (2026-08-21) (20260821T001404Z-completeness-check-scan-3-findings-2026-1233) ([#240](https://github.com/damien-robotsix/robotsix-file-hub/issues/240)) ([28b1139](https://github.com/damien-robotsix/robotsix-file-hub/commit/28b113950fa55af4d9cb7237d87f5dccfb56f84f))
+* docker-compose.yml FILE_HUB_* env vars are inert after robotsix_config migration (20260820T234341Z-docker-compose-yml-file-hub-env-vars-are-de52) ([#244](https://github.com/damien-robotsix/robotsix-file-hub/issues/244)) ([6bb03ae](https://github.com/damien-robotsix/robotsix-file-hub/commit/6bb03aea557e6175c024dc0651f2ec29ffb5b89c))
+
 ## [0.10.0](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.9.0...v0.10.0) (2026-08-17)
 
 
