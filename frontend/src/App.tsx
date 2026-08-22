@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from "react";
-import { Routes, Route, Link, useNavigate } from "react-router-dom";
+import { Routes, Route, useNavigate } from "react-router-dom";
+import { AppShell } from "@robotsix/ui";
+import { ConfigPanel } from "@robotsix/ui";
 import HomePage from "./pages/HomePage.tsx";
 import UploadPage from "./pages/UploadPage.tsx";
 import SearchPage from "./pages/SearchPage.tsx";
@@ -35,22 +37,20 @@ function NavSearch() {
   );
 }
 
-function AppNav() {
-  return (
-    <nav className="app-nav">
-      <Link to="/">Home</Link>
-      <Link to="/files">Files</Link>
-      <Link to="/upload">Upload</Link>
-      <Link to="/search">Search</Link>
-      <NavSearch />
-    </nav>
-  );
-}
-
 export default function App() {
   return (
     <div className="app">
-      <AppNav />
+      <AppShell
+        brand="File Hub"
+        navItems={[
+          { label: "Home", href: "/" },
+          { label: "Files", href: "/files" },
+          { label: "Upload", href: "/upload" },
+          { label: "Search", href: "/search" },
+        ]}
+        settingsHref="/settings"
+        rightSlot={<NavSearch />}
+      />
       <main className="app-main">
         <Routes>
           <Route
@@ -90,6 +90,14 @@ export default function App() {
             element={
               <ErrorBoundary>
                 <SearchPage />
+              </ErrorBoundary>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ErrorBoundary>
+                <ConfigPanel title="File Hub Settings" />
               </ErrorBoundary>
             }
           />

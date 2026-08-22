@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import ErrorBoundary from "./components/ErrorBoundary.tsx";
 import App from "./App.tsx";
+import "@robotsix/ui/style.css";
 import "./index.css";
 
 createRoot(document.getElementById("root")!, {

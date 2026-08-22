@@ -1,25 +1,6 @@
-:root {
-  font-family:
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Roboto,
-    Oxygen,
-    Ubuntu,
-    Cantarell,
-    sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  color: #213547;
-  background-color: #ffffff;
-}
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+/* File-hub–specific overrides on top of @robotsix/ui/style.css.
+   The shared stylesheet already sets body font, color, bg, box-sizing,
+   heading styles, link styles, and :focus-visible. */
 
 body {
   min-height: 100vh;
