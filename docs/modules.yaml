@@ -96,6 +96,7 @@ modules:
       - frontend/package-lock.json
       - frontend/public/vite.svg
       - frontend/src/App.css
+      - frontend/src/App.test.tsx
       - frontend/src/App.tsx
       - frontend/src/api.test.ts
       - frontend/src/api.ts

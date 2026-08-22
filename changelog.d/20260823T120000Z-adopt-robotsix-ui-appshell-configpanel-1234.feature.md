@@ -1,0 +1,1 @@
+Adopt `@robotsix/ui` shared design system — replace bespoke nav with `AppShell`, refactor CSS to consume `--rsu-*` design tokens, add `/settings` route with `ConfigPanel` for schema-driven configuration management, and add Vitest tests for the new integration.
