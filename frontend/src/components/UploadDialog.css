@@ -68,7 +68,7 @@
 .upload-drop-zone:hover,
 .upload-drop-zone.drag-over {
   border-color: var(--rsu-color-primary);
-  background: #f0f7ff;
+  background: var(--rsu-color-info-bg);
 }
 
 .upload-drop-zone.disabled {
