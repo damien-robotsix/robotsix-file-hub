@@ -38,6 +38,7 @@ async def test_call_llm_returns_parsed_fields() -> None:
 
     mock_provider = MagicMock()
     mock_provider.build_agent.return_value = mock_agent
+
     async def _fake_retry(fn, what):
         return await fn()
 
@@ -73,6 +74,7 @@ async def test_call_llm_uses_configured_tier_level() -> None:
     mock_result.output = EnrichmentModel(summary="ok", category="doc", tags=["t1"])
     mock_agent.run.return_value = mock_result
     mock_provider.build_agent.return_value = mock_agent
+
     async def _fake_retry(fn, what):
         return await fn()
 
@@ -109,6 +111,7 @@ async def test_call_llm_passes_openrouter_api_key() -> None:
     mock_result.output = EnrichmentModel(summary="s", category="c", tags=["t"])
     mock_agent.run.return_value = mock_result
     mock_provider.build_agent.return_value = mock_agent
+
     async def _fake_retry(fn, what):
         return await fn()
 
