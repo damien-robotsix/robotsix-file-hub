@@ -11,7 +11,7 @@ whose defaults match the container layout (persistent volumes at
 `ROBOTSIX_CONFIG_FILE` with a file that uses relative paths if you want the
 database and uploads alongside the repo.
 
-Secrets (`s3_secret_key`, `api_key` in the `embedding` block) are masked on read and
+Secrets (`langfuse.projects.*.secret_key`, `openrouter.keys.*`, `embedding.api_key`) are masked on read and
 never returned in plain text by the `/config` HTTP surface.
 
 ## Logging
