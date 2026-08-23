@@ -15,7 +15,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@robotsix/ui": "github:damien-robotsix/robotsix-ui#v0.1.40",
+    "@robotsix/ui": "github:damien-robotsix/robotsix-ui#v0.1.33",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.18.2"
