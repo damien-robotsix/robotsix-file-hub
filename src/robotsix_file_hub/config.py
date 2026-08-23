@@ -21,8 +21,87 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from pydantic import Field, SecretStr
+from pydantic import BaseModel, Field, SecretStr
 from robotsix_config import ConfigModel, load_config
+
+
+class LangfuseProject(BaseModel):
+    """A single Langfuse project's credentials."""
+
+    public_key: str = Field(
+        "pk-lf-...",
+        description="Langfuse public key for this project.",
+    )
+    secret_key: SecretStr = Field(
+        SecretStr("sk-lf-..."),
+        description="Langfuse secret key for this project.",
+    )
+
+
+class LangfuseConfig(BaseModel):
+    """Langfuse observability config — one block per robotsix-standards.
+
+    Each project gets its own key pair.  The deploy engine enriches the
+    block with ``project_id`` at deploy time.
+    """
+
+    host: str = Field(
+        "https://langfuse.robotsix.net",
+        description="Langfuse instance URL.",
+    )
+    projects: dict[str, LangfuseProject] = Field(
+        default_factory=lambda: {
+            "robotsix-file-hub": LangfuseProject(
+                public_key="pk-lf-...",
+                secret_key=SecretStr("sk-lf-..."),
+            ),
+        },
+        description="Alias → project credentials map.  Must contain at least one entry.",
+    )
+
+
+class OpenRouterConfig(BaseModel):
+    """OpenRouter API keys — one block per robotsix-standards.
+
+    Keys are indexed by the same alias used in ``langfuse.projects``
+    (``robotsix-file-hub``).  No legacy fallbacks.
+    """
+
+    keys: dict[str, SecretStr] = Field(
+        default_factory=lambda: {
+            "robotsix-file-hub": SecretStr("sk-or-..."),
+        },
+        description="Alias → OpenRouter API key map.",
+    )
+
+
+class EmbeddingSettings(BaseModel):
+    """Dedicated embedding configuration pointing at the shared bge-m3 server."""
+
+    provider: str = Field(
+        "openai_compatible",
+        description="Embedding provider identifier (openai_compatible).",
+    )
+    model: str = Field(
+        "bge-m3",
+        description="Embedding model name — must emit 1024-dim vectors.",
+    )
+    endpoint: str = Field(
+        "http://localhost:11434/v1",
+        description="Base URL of the shared Ollama bge-m3 embedding server.",
+    )
+    dimensions: int = Field(
+        1024,
+        description="Dimensionality of the embedding vector (must match pgvector column).",
+    )
+    api_key: SecretStr = Field(
+        SecretStr("ollama"),
+        description="API key for the embedding endpoint (default 'ollama' for local Ollama).",
+    )
+    timeout: float = Field(
+        30.0,
+        description="Request timeout in seconds for embedding calls.",
+    )
 
 
 class Settings(ConfigModel):
@@ -41,38 +120,53 @@ class Settings(ConfigModel):
         description="Maximum upload size in bytes (default 100 MB).",
     )
 
-    # LLM enrichment settings (OpenAI-compatible API)
-    enrichment_llm_api_base: str = Field(
-        "http://localhost:11434/v1",
-        description="Base URL of the OpenAI-compatible LLM API used for file enrichment.",
-    )
-    enrichment_llm_api_key: SecretStr = Field(
-        SecretStr(""),
-        description="API key for the enrichment LLM API.",
-    )
-    enrichment_llm_model: str = Field(
-        "llama3.1",
-        description="Model name for LLM enrichment.",
-    )
-    enrichment_llm_timeout: float = Field(
-        30.0,
-        description="Request timeout in seconds for LLM enrichment calls.",
-    )
-    enrichment_llm_max_tokens: int = Field(
-        256,
-        description="Maximum tokens generated per LLM enrichment response.",
+    # ── Canonical Langfuse + OpenRouter config (robotsix-standards) ──
+
+    langfuse: LangfuseConfig = Field(
+        default_factory=lambda: LangfuseConfig(
+            host="https://langfuse.robotsix.net",
+            projects={
+                "robotsix-file-hub": LangfuseProject(
+                    public_key="pk-lf-...",
+                    secret_key=SecretStr("sk-lf-..."),
+                ),
+            },
+        ),
+        description="Langfuse observability configuration.",
     )
 
-    # Embedding model served by enrichment_llm_api_base. bge-m3 is what
-    # the Ollama box already has pulled; it emits 1024-dim vectors, which
-    # must match the pgvector column.
-    enrichment_llm_embedding_model: str = Field(
-        "bge-m3",
-        description="Embedding model served by enrichment_llm_api_base; must emit "
-        "1024-dim vectors matching the pgvector column.",
+    openrouter: OpenRouterConfig = Field(
+        default_factory=lambda: OpenRouterConfig(
+            keys={"robotsix-file-hub": SecretStr("sk-or-...")},
+        ),
+        description="OpenRouter API key configuration.",
     )
 
-    # Hybrid search weighting (0.0 = keyword-only, 1.0 = vector-only)
+    # ── LLM enrichment tier (robotsix-llmio) ──
+
+    enrichment_llm_tier_level: int = Field(
+        1,
+        ge=1,
+        le=4,
+        description="Capability tier for chat enrichment (1–4; default 1 for cheap extraction).",
+    )
+
+    # ── Dedicated embedding block ──
+
+    embedding: EmbeddingSettings = Field(
+        default_factory=lambda: EmbeddingSettings(
+            provider="openai_compatible",
+            model="bge-m3",
+            endpoint="http://localhost:11434/v1",
+            dimensions=1024,
+            api_key=SecretStr("ollama"),
+            timeout=30.0,
+        ),
+        description="Dedicated embedding configuration pointing at the shared bge-m3 server.",
+    )
+
+    # ── Hybrid search ──
+
     search_vector_weight: float = Field(
         0.7,
         description="Hybrid search weighting (0.0 = keyword-only, 1.0 = vector-only).",

@@ -2,12 +2,29 @@
   "database_url": "sqlite+aiosqlite:///./file_hub.db",
   "local_storage_path": "./uploads",
   "max_file_size": 104857600,
-  "enrichment_llm_api_base": "http://localhost:11434/v1",
-  "enrichment_llm_api_key": "",
-  "enrichment_llm_model": "llama3.1",
-  "enrichment_llm_timeout": 30.0,
-  "enrichment_llm_max_tokens": 256,
-  "enrichment_llm_embedding_model": "bge-m3",
+  "langfuse": {
+    "host": "https://langfuse.robotsix.net",
+    "projects": {
+      "robotsix-file-hub": {
+        "public_key": "pk-lf-...",
+        "secret_key": "sk-lf-..."
+      }
+    }
+  },
+  "openrouter": {
+    "keys": {
+      "robotsix-file-hub": "sk-or-..."
+    }
+  },
+  "enrichment_llm_tier_level": 1,
+  "embedding": {
+    "provider": "openai_compatible",
+    "model": "bge-m3",
+    "endpoint": "http://localhost:11434/v1",
+    "dimensions": 1024,
+    "api_key": "ollama",
+    "timeout": 30.0
+  },
   "search_vector_weight": 0.7,
   "log_level": "INFO"
 }

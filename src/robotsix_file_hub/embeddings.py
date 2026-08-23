@@ -1,8 +1,8 @@
 """Embedding generation for hybrid search.
 
 Embeddings come from the configured OpenAI-compatible embeddings
-endpoint (``enrichment_llm_api_base``, which already defaults to a local
-Ollama). This module owns only the *input* shaping — concatenating the
+endpoint (``embedding.endpoint``, which defaults to a local
+Ollama bge-m3 server). This module owns only the *input* shaping — concatenating the
 file-metadata fields that carry semantic meaning — and delegates the
 call itself to :func:`robotsix_file_hub.enrichment.generate_embedding`.
 

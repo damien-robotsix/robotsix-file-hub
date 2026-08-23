@@ -1,4 +1,110 @@
 {
+  "$defs": {
+    "EmbeddingSettings": {
+      "description": "Dedicated embedding configuration pointing at the shared bge-m3 server.",
+      "properties": {
+        "provider": {
+          "default": "openai_compatible",
+          "description": "Embedding provider identifier (openai_compatible).",
+          "title": "Provider",
+          "type": "string"
+        },
+        "model": {
+          "default": "bge-m3",
+          "description": "Embedding model name \u2014 must emit 1024-dim vectors.",
+          "title": "Model",
+          "type": "string"
+        },
+        "endpoint": {
+          "default": "http://localhost:11434/v1",
+          "description": "Base URL of the shared Ollama bge-m3 embedding server.",
+          "title": "Endpoint",
+          "type": "string"
+        },
+        "dimensions": {
+          "default": 1024,
+          "description": "Dimensionality of the embedding vector (must match pgvector column).",
+          "title": "Dimensions",
+          "type": "integer"
+        },
+        "api_key": {
+          "default": "**********",
+          "description": "API key for the embedding endpoint (default 'ollama' for local Ollama).",
+          "format": "password",
+          "title": "Api Key",
+          "type": "string",
+          "writeOnly": true
+        },
+        "timeout": {
+          "default": 30.0,
+          "description": "Request timeout in seconds for embedding calls.",
+          "title": "Timeout",
+          "type": "number"
+        }
+      },
+      "title": "EmbeddingSettings",
+      "type": "object"
+    },
+    "LangfuseConfig": {
+      "description": "Langfuse observability config \u2014 one block per robotsix-standards.\n\nEach project gets its own key pair.  The deploy engine enriches the\nblock with ``project_id`` at deploy time.",
+      "properties": {
+        "host": {
+          "default": "https://langfuse.robotsix.net",
+          "description": "Langfuse instance URL.",
+          "title": "Host",
+          "type": "string"
+        },
+        "projects": {
+          "additionalProperties": {
+            "$ref": "#/$defs/LangfuseProject"
+          },
+          "description": "Alias \u2192 project credentials map.  Must contain at least one entry.",
+          "title": "Projects",
+          "type": "object"
+        }
+      },
+      "title": "LangfuseConfig",
+      "type": "object"
+    },
+    "LangfuseProject": {
+      "description": "A single Langfuse project's credentials.",
+      "properties": {
+        "public_key": {
+          "default": "pk-lf-...",
+          "description": "Langfuse public key for this project.",
+          "title": "Public Key",
+          "type": "string"
+        },
+        "secret_key": {
+          "default": "**********",
+          "description": "Langfuse secret key for this project.",
+          "format": "password",
+          "title": "Secret Key",
+          "type": "string",
+          "writeOnly": true
+        }
+      },
+      "title": "LangfuseProject",
+      "type": "object"
+    },
+    "OpenRouterConfig": {
+      "description": "OpenRouter API keys \u2014 one block per robotsix-standards.\n\nKeys are indexed by the same alias used in ``langfuse.projects``\n(``robotsix-file-hub``).  No legacy fallbacks.",
+      "properties": {
+        "keys": {
+          "additionalProperties": {
+            "format": "password",
+            "type": "string",
+            "writeOnly": true
+          },
+          "description": "Alias \u2192 OpenRouter API key map.",
+          "title": "Keys",
+          "type": "object"
+        }
+      },
+      "title": "OpenRouterConfig",
+      "type": "object"
+    }
+  },
   "description": "Every setting file-hub reads at runtime.",
   "properties": {
     "database_url": {
@@ -19,43 +125,24 @@
       "title": "Max File Size",
       "type": "integer"
     },
-    "enrichment_llm_api_base": {
-      "default": "http://localhost:11434/v1",
-      "description": "Base URL of the OpenAI-compatible LLM API used for file enrichment.",
-      "title": "Enrichment Llm Api Base",
-      "type": "string"
+    "langfuse": {
+      "$ref": "#/$defs/LangfuseConfig",
+      "description": "Langfuse observability configuration."
     },
-    "enrichment_llm_api_key": {
-      "default": "",
-      "description": "API key for the enrichment LLM API.",
-      "format": "password",
-      "title": "Enrichment Llm Api Key",
-      "type": "string",
-      "writeOnly": true
+    "openrouter": {
+      "$ref": "#/$defs/OpenRouterConfig",
+      "description": "OpenRouter API key configuration."
     },
-    "enrichment_llm_model": {
-      "default": "llama3.1",
-      "description": "Model name for LLM enrichment.",
-      "title": "Enrichment Llm Model",
-      "type": "string"
-    },
-    "enrichment_llm_timeout": {
-      "default": 30.0,
-      "description": "Request timeout in seconds for LLM enrichment calls.",
-      "title": "Enrichment Llm Timeout",
-      "type": "number"
-    },
-    "enrichment_llm_max_tokens": {
-      "default": 256,
-      "description": "Maximum tokens generated per LLM enrichment response.",
-      "title": "Enrichment Llm Max Tokens",
+    "enrichment_llm_tier_level": {
+      "default": 1,
+      "description": "Capability tier level for chat enrichment (1\u20134; default 1 for cheap extraction).",
+      "maximum": 4,
+      "minimum": 1,
+      "title": "Enrichment Llm Tier Level",
       "type": "integer"
     },
-    "enrichment_llm_embedding_model": {
-      "default": "bge-m3",
-      "description": "Embedding model served by enrichment_llm_api_base; must emit 1024-dim vectors matching the pgvector column.",
-      "title": "Enrichment Llm Embedding Model",
-      "type": "string"
+    "embedding": {
+      "$ref": "#/$defs/EmbeddingSettings"
     },
     "search_vector_weight": {
       "default": 0.7,

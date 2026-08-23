@@ -68,7 +68,7 @@ async def test_embedding_dimensions_match_configured_model() -> None:
     from src.robotsix_file_hub.models import EMBEDDING_DIMENSIONS
 
     # bge-m3 emits 1024-dim vectors.
-    assert Settings().enrichment_llm_embedding_model == "bge-m3"
+    assert Settings().embedding.model == "bge-m3"
     assert EMBEDDING_DIMENSIONS == 1024
 
 
