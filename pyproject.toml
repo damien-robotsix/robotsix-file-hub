@@ -17,7 +17,6 @@ dependencies = [
     "robotsix-http>=0.1",
     "sqlalchemy>=2.0.52",
     "alembic>=1.19.1",
-    "boto3>=1.43.71",
     "httpx>=0.28.0",
     "openpyxl>=3.1.0",
     "pgvector>=0.4.0",

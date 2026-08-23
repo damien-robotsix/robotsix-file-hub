@@ -8,7 +8,7 @@
 - **Node.js ≥ 18** — managed with the Node.js version manager of your
   choice.
 - **[Docker](https://docs.docker.com/compose/)** — optional, for
-  PostgreSQL + MinIO (the Docker Compose stack).
+  PostgreSQL (the Docker Compose stack).
 - **[Ollama](https://ollama.com/)** — optional, for file enrichment.
 
 ### Backend setup

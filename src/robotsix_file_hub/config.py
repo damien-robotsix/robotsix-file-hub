@@ -32,33 +32,9 @@ class Settings(ConfigModel):
         "sqlite+aiosqlite:///./file_hub.db",
         description="SQLAlchemy database URL for the file-hub metadata database.",
     )
-    storage_backend: str = Field(
-        "local",
-        description='Where uploaded file contents are stored: "local" or "s3".',
-    )
     local_storage_path: str = Field(
         "./uploads",
-        description='Directory for uploaded files when storage_backend is "local".',
-    )
-    s3_endpoint: str = Field(
-        "",
-        description="S3-compatible endpoint URL (leave empty for AWS S3).",
-    )
-    s3_bucket: str = Field(
-        "file-hub",
-        description="S3 bucket name for uploaded files.",
-    )
-    s3_access_key: str = Field(
-        "",
-        description="S3 access key (leave empty to use IAM role credentials).",
-    )
-    s3_secret_key: SecretStr = Field(
-        SecretStr(""),
-        description="S3 secret key.",
-    )
-    s3_region: str = Field(
-        "us-east-1",
-        description="AWS region of the S3 bucket.",
+        description="Directory for uploaded files.",
     )
     max_file_size: int = Field(
         100 * 1024 * 1024,

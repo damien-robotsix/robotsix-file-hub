@@ -66,31 +66,11 @@ server {
 
 ### Local filesystem (default)
 
-Set `storage_backend` to `local` and `local_storage_path` to a writable
-directory (e.g. `/data/file-hub/uploads`) in `config/config.json`. Ensure the
-uvicorn process has read/write access.
+Set `local_storage_path` to a writable directory (e.g.
+`/data/file-hub/uploads`) in `config/config.json`. Ensure the uvicorn process
+has read/write access.
 
 Back up the `uploads/` directory and the SQLite database file together.
-
-### S3-compatible storage
-
-Set `storage_backend` to `s3` and configure the S3 credentials in
-`config/config.json`:
-
-```json
-{
-  "storage_backend": "s3",
-  "s3_endpoint": "https://s3.amazonaws.com",
-  "s3_bucket": "file-hub-prod",
-  "s3_access_key": "AKIAIOSFODNN7EXAMPLE",
-  "s3_secret_key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
-  "s3_region": "us-east-1"
-}
-```
-
-The application uses the default AWS credential chain when `s3_access_key`
-is empty — set `AWS_PROFILE` or use IAM instance roles instead of explicit
-keys.
 
 ---
 

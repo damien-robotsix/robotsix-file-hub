@@ -251,7 +251,7 @@ A multi-stage Python build:
 
 | File | Purpose |
 |---|---|
-| `docker-compose.yml` (repo root) | Local development stack: backend container + PostgreSQL + MinIO (S3-compatible storage). |
+| `docker-compose.yml` (repo root) | Local development stack: backend container + PostgreSQL. |
 | `deploy/docker-compose.yml` | Production deployment spec — served by the `/deploy-spec` endpoint for central-deploy. |
 
 Both compose files use named volumes (`uploads-data`, `db-data`) for
