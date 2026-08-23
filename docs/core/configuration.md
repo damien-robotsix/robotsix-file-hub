@@ -11,7 +11,7 @@ whose defaults match the container layout (persistent volumes at
 `ROBOTSIX_CONFIG_FILE` with a file that uses relative paths if you want the
 database and uploads alongside the repo.
 
-Secrets (`s3_secret_key`, `enrichment_llm_api_key`) are masked on read and
+Secrets (`enrichment_llm_api_key`) are masked on read and
 never returned in plain text by the `/config` HTTP surface.
 
 ## Logging
@@ -30,20 +30,7 @@ never returned in plain text by the `/config` HTTP surface.
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `storage_backend` | `str` | `local` | Storage backend — `"local"` for filesystem, `"s3"` for S3-compatible object storage. |
-| `local_storage_path` | `str` | `/home/app/uploads` | Filesystem path for local storage. Only used when `storage_backend=local`. |
-
-## S3 / MinIO
-
-These settings are only used when `storage_backend=s3`.
-
-| Key | Type | Default | Description |
-|---|---|---|---|
-| `s3_endpoint` | `str` | *(empty)* | S3-compatible endpoint URL (e.g. `http://localhost:9000` for MinIO). |
-| `s3_bucket` | `str` | `file-hub` | S3 bucket name. |
-| `s3_access_key` | `str` | *(empty)* | S3 access key. |
-| `s3_secret_key` | `str` | *(empty)* | S3 secret key. |
-| `s3_region` | `str` | `us-east-1` | AWS / S3 region. |
+| `local_storage_path` | `str` | `/home/app/uploads` | Filesystem path for local file storage. |
 
 ## Upload Limits
 

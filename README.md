@@ -206,7 +206,7 @@ maintenance duplication.
 ## Deployment
 
 See [`docs/core/deployment.md`](docs/core/deployment.md) for production deployment
-considerations (S3 storage, database migration, reverse proxy setup).
+considerations (database migration, reverse proxy setup).
 
 ## Contributing
 

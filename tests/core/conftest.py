@@ -63,7 +63,7 @@ def test_storage(tmp_upload_dir: str) -> StorageBackend:
     """Local storage backend pointing at the temp directory.
 
     Also patches the routes module's module-level ``_storage`` so
-    endpoint handlers pick it up without a real S3/MinIO backend.
+    endpoint handlers pick it up without a real storage backend.
     """
     import src.robotsix_file_hub.storage as storage_module
 
