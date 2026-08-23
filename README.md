@@ -25,8 +25,7 @@ with AI-generated metadata and vector-powered hybrid search.
   inline previews.
 - **Database** — SQLite via `aiosqlite` by default (zero-config); swap to
   any SQLAlchemy-supported database by changing `database_url`.
-- **Storage** — local filesystem by default; S3-compatible object storage
-  (AWS S3, MinIO, etc.) supported via the `storage_backend: "s3"` setting.
+- **Storage** — local filesystem storage.
 - **AI Pipeline** — uses **robotsix-llmio** (OpenRouter) for LLM enrichment
   (defaults to tier level 1 for cheap extraction) and a dedicated
   OpenAI-compatible embedding server (shared bge-m3, 1024-dim).
