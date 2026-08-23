@@ -123,9 +123,7 @@ class TestSecretsNeverReachTheHistory:
     async def test_history_file_holds_no_secret_values(
         self, test_client: AsyncClient, _isolated_config
     ):
-        await test_client.put(
-            "/config", json={"embedding": {"api_key": "rotated-secret"}}
-        )
+        await test_client.put("/config", json={"embedding": {"api_key": "rotated-secret"}})
         sidecar = _isolated_config.with_suffix(_isolated_config.suffix + ".versions")
         raw = sidecar.read_text(encoding="utf-8") if sidecar.exists() else ""
         assert "rotated-secret" not in raw
