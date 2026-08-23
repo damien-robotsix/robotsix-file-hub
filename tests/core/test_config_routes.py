@@ -27,8 +27,10 @@ def _isolated_config(tmp_path, monkeypatch):
         json.dumps(
             {
                 "log_level": "INFO",
-                "enrichment_llm_model": "seeded-model",
-                "enrichment_llm_api_key": "real-secret",
+                "embedding": {
+                    "model": "seeded-model",
+                    "api_key": "real-secret",
+                },
             }
         ),
         encoding="utf-8",
@@ -46,13 +48,13 @@ class TestGetConfig:
         assert body["schema"]["title"] == "Settings"
 
     async def test_secrets_are_masked(self, test_client: AsyncClient):
-        """enrichment_llm_api_key is a SecretStr; it must never leave the process."""
+        """embedding.api_key is a SecretStr; it must never leave the process."""
         body = (await test_client.get("/config")).json()
-        assert body["config"]["enrichment_llm_api_key"] == "**********"
+        assert body["config"]["embedding"]["api_key"] == "**********"
 
     async def test_non_secrets_are_intact(self, test_client: AsyncClient):
         body = (await test_client.get("/config")).json()
-        assert body["config"]["enrichment_llm_model"] == "seeded-model"
+        assert body["config"]["embedding"]["model"] == "seeded-model"
 
 
 class TestPutConfig:
@@ -61,7 +63,7 @@ class TestPutConfig:
         assert resp.status_code == 200
         cfg = resp.json()["config"]
         assert cfg["log_level"] == "DEBUG"
-        assert cfg["enrichment_llm_model"] == "seeded-model"
+        assert cfg["embedding"]["model"] == "seeded-model"
 
     async def test_echoed_mask_keeps_the_secret(self, test_client: AsyncClient):
         """A client that GETs, edits one field and PUTs it all back is sending
@@ -71,7 +73,7 @@ class TestPutConfig:
         await test_client.put("/config", json=current)
         after = (await test_client.get("/config")).json()["config"]
         assert after["log_level"] == "WARNING"
-        assert after["enrichment_llm_api_key"] == "**********"
+        assert after["embedding"]["api_key"] == "**********"
 
     async def test_takes_effect_without_a_restart(self, test_client: AsyncClient):
         """A write that lands on disk but not in the cached settings reads as
@@ -106,7 +108,7 @@ class TestVersionsAndRollback:
         first = (await test_client.get("/config/versions")).json()["versions"][-1]["version"]
         await test_client.post("/config/rollback", json={"version": first})
         after = (await test_client.get("/config")).json()["config"]
-        assert after["enrichment_llm_api_key"] == "**********"
+        assert after["embedding"]["api_key"] == "**********"
 
     async def test_unknown_version_rejected(self, test_client: AsyncClient):
         resp = await test_client.post("/config/rollback", json={"version": 999})
@@ -121,7 +123,9 @@ class TestSecretsNeverReachTheHistory:
     async def test_history_file_holds_no_secret_values(
         self, test_client: AsyncClient, _isolated_config
     ):
-        await test_client.put("/config", json={"enrichment_llm_api_key": "rotated-secret"})
+        await test_client.put(
+            "/config", json={"embedding": {"api_key": "rotated-secret"}}
+        )
         sidecar = _isolated_config.with_suffix(_isolated_config.suffix + ".versions")
         raw = sidecar.read_text(encoding="utf-8") if sidecar.exists() else ""
         assert "rotated-secret" not in raw
