@@ -12,7 +12,7 @@ with AI-generated metadata and vector-powered hybrid search.
 │   Vite 6)    │       │                    │       └─────────┘
 └──────────────┘       │  • File upload     │
                        │  • AI enrichment   │       ┌──────────────┐
-                       │  • Keyword search  │──────│ Local FS / S3│
+                       │  • Keyword search  │──────│   Local FS   │
                        │  • Vector search   │       │   storage    │
                        └───────────────────┘       └──────────────┘
 ```
@@ -25,8 +25,7 @@ with AI-generated metadata and vector-powered hybrid search.
   inline previews.
 - **Database** — SQLite via `aiosqlite` by default (zero-config); swap to
   any SQLAlchemy-supported database by changing `database_url`.
-- **Storage** — local filesystem by default; S3-compatible object storage
-  (AWS S3, MinIO, etc.) supported via the `storage_backend: "s3"` setting.
+- **Storage** — local filesystem storage.
 - **AI Pipeline** — calls an OpenAI-compatible API for LLM enrichment
   (defaults to Ollama at `http://localhost:11434/v1`). Generates embeddings
   locally with `sentence-transformers/all-MiniLM-L6-v2` (384-dim).
@@ -48,14 +47,14 @@ For a deeper dive into the internal design, see **[ARCHITECTURE.md](ARCHITECTURE
 ### Docker Compose (recommended)
 
 The easiest way to run the backend is via Docker Compose. It starts Postgres
-and MinIO alongside the backend, and mounts `config/config.docker.json` so the
-backend uses Postgres for metadata and MinIO (S3) for file storage:
+alongside the backend, and mounts `config/config.docker.json` so the
+backend uses Postgres for metadata and local filesystem for file storage:
 
 ```bash
 # Clone and enter the project
 git clone <repo-url> && cd robotsix-file-hub
 
-# Start the backend (Postgres + MinIO/S3 storage)
+# Start the backend
 docker compose up --build
 ```
 

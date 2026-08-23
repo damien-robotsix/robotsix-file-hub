@@ -15,7 +15,7 @@ LLM-powered file organization hub.  It assumes you have read the
 │   Vite 6)    │       │                    │       │ PostgreSQL)│
 └──────────────┘       │  • File upload     │       └──────────┘
                        │  • AI enrichment   │       ┌──────────────┐
-                       │  • Keyword search  │──────│ Local FS / S3│
+                       │  • Keyword search  │──────│   Local FS   │
                        │  • Vector search   │       │   storage    │
                        └───────────────────┘       └──────────────┘
 ```
@@ -71,17 +71,14 @@ work identically against both.
 File storage is behind an abstract `StorageBackend` interface with three
 methods: `save(file_id, content)`, `get(path)`, and `delete(path)`.
 
-Two implementations ship:
+Only the local filesystem backend ships:
 
 | Class | Config flag | Behaviour |
 |---|---|---|
 | `LocalStorageBackend` | `storage_backend="local"` (default) | Saves files under `local_storage_path` (default `./uploads`). Paths are stable and directly readable. |
-| `S3StorageBackend` | `storage_backend="s3"` | Stores objects in an S3-compatible bucket (AWS S3, MinIO, etc.) via boto3. Configuration: endpoint, bucket name, access key, secret key, region. |
 
-The backend is selected once at startup by `create_storage_backend()` and
-injected into route handlers via FastAPI dependency injection.  Route
-code never imports `boto3` directly — it only talks to the
-`StorageBackend` ABC.
+The backend is created once at startup by `create_storage_backend()` and
+injected into route handlers via FastAPI dependency injection.
 
 ### AI enrichment pipeline (`enrichment.py`)
 
