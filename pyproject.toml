@@ -10,6 +10,7 @@ license = {text = "MIT"}
 requires-python = ">=3.14"
 dependencies = [
     "robotsix-config @ git+https://github.com/damien-robotsix/robotsix-config.git@feabed320883760ec0f449469870d45f73d87194",
+    "robotsix-llmio[openrouter]>=0.4.0",
     "aiosqlite>=0.20.0",
     "asyncpg>=0.30.0",
     "fastapi>=0.141.1",
@@ -60,6 +61,7 @@ required-version = "0.12.5"
 [tool.uv.sources]
 robotsix-http = { git = "https://github.com/damien-robotsix/robotsix-http.git", rev = "ba90d55ea2bcbd02f605f392e837cea7b485d73d" }
 robotsix-modules = { git = "https://github.com/damien-robotsix/robotsix-modules.git", branch = "main" }
+robotsix-llmio = { git = "https://github.com/damien-robotsix/robotsix-llmio.git", rev = "9c973450c8cee550d391df888b16e9efe4493300" }
 
 [tool.deptry]
 known_first_party = ["robotsix_file_hub"]
@@ -73,6 +75,7 @@ DEP002 = [
     "alembic",
     "asyncpg",
     "python-multipart",
+    "robotsix-http",
     "uvicorn",
 ]
 

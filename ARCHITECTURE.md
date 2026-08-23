@@ -92,27 +92,42 @@ When a file is uploaded, it is queued for **asynchronous enrichment**:
    - Plain text / Markdown / code → direct decode
    - Unsupported types → skipped (enrichment fields left null)
 
-2. **LLM enrichment** — the extracted text is sent to an
-   OpenAI-compatible chat-completions endpoint (defaults to Ollama at
-   `http://localhost:11434/v1`, model `llama3.1`).  The LLM is prompted
-   to return a JSON object with `summary`, `category`, and `tags`.
+2. **LLM enrichment** — the extracted text is sent to
+   **robotsix-llmio** (OpenRouter transport) at a configurable tier
+   level (default 1 — cheap extraction). The LLM is prompted to
+   return structured output into an ``EnrichmentModel`` pydantic
+   model (``summary``, ``category``, ``tags``) via
+   ``PromptedOutput`` — no hand-rolled JSON-fence parsing.
 
-3. **Retry** — LLM calls use `robotsix_http.RetryConfig` (3 retries
-   with exponential backoff).  Enrichment is best-effort; a failure
+3. **Retry** — LLM calls use ``robotsix_llmio.LLMProvider.call_with_retry``
+   with built-in retries. Enrichment is best-effort; a failure
    leaves the record's enrichment fields null rather than failing the
    upload.
 
-### Embedding generation (`embeddings.py`)
+4. **Credentials** — OpenRouter API key is read from the canonical
+   ``openrouter.keys.robotsix-file-hub`` block. Langfuse tracing
+   exports are activated when ``LANGFUSE_PUBLIC_KEY``,
+   ``LANGFUSE_SECRET_KEY``, and ``LANGFUSE_BASE_URL`` are set from
+   the ``langfuse.projects.robotsix-file-hub`` block.
 
-After enrichment, `build_embedding_text()` concatenates the filename,
-summary, tags, and category into a single text string.  This text is
-sent to the OpenAI-compatible embeddings endpoint (same API base as
-enrichment, configurable via `enrichment_llm_embedding_model`
-which falls back to `enrichment_llm_model`).
+### Embedding generation
+
+Embeddings come from a **dedicated OpenAI-compatible embedding server**
+(the shared bge-m3 instance used by robotsix-chat's cognee memory).
+
+The ``embedding`` config block mirrors robotsix-chat's
+``MemoryEmbeddingSettings``: ``provider=openai_compatible``,
+``model=bge-m3``, ``dimensions=1024``, ``endpoint`` (operator-set),
+``api_key`` (default ``ollama``).
+
+After enrichment, ``_embedding_input_text()`` concatenates summary,
+category, and tags into a single text string. This text is sent to
+``embedding.endpoint/embeddings`` via a direct ``httpx`` call — no
+llmio involvement.
 
 Previously, embeddings were generated in-process with
-`sentence-transformers/all-MiniLM-L6-v2`.  That pulled torch (CUDA
-build, 2.7 GB of `nvidia/` wheels plus 689 MB of `triton`) into every
+``sentence-transformers/all-MiniLM-L6-v2``.  That pulled torch (CUDA
+build, 2.7 GB of ``nvidia/`` wheels plus 689 MB of ``triton``) into every
 install, despite running only on CPU.  The endpoint was already
 configured and OpenAI-compatible, so the local model was removed.
 

@@ -1,7 +1,11 @@
-"""LLM enrichment pipeline: text extraction + OpenAI-compatible API call.
+"""LLM enrichment pipeline: text extraction + llmio chat + embeddings.
 
 Extracts text from common file types (PDF, plain text, DOCX, XLSX)
-and calls a configurable LLM to generate summary, category, and tags.
+and calls robotsix-llmio (OpenRouter transport) to generate summary,
+category, and tags via structured output (:class:`EnrichmentModel`).
+
+Embeddings go to the dedicated ``embedding.endpoint`` (shared bge-m3
+server) — no llmio involvement.
 
 All operations are best-effort — if text extraction fails or the LLM
 call errors/times out, enrichment fields are left null rather than
@@ -12,10 +16,12 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from typing import Any, cast
 
 import httpx
-from robotsix_http import RetryConfig, acall_with_retry
+from pydantic import BaseModel, Field
+from robotsix_llmio import get_provider_for_level
 
 from .config import get_settings
 
@@ -23,7 +29,22 @@ logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
-_RETRY_CONFIG = RetryConfig(max_retries=3, backoff_base=2.0)
+
+# ── Structured enrichment model ────────────────────────────────────
+
+
+class EnrichmentModel(BaseModel):
+    """Structured output from the LLM enrichment prompt."""
+
+    summary: str = Field(description="A 1-3 sentence summary of the content.")
+    category: str = Field(
+        description=(
+            'A single category label (e.g. "document", "image", "code", '
+            '"spreadsheet", "presentation", "legal", "financial", '
+            '"scientific", "other").'
+        ),
+    )
+    tags: list[str] = Field(description="Up to 10 keyword tags.", max_length=10)
 
 
 # ── Text extraction ────────────────────────────────────────────────
@@ -104,18 +125,55 @@ def extract_text(content: bytes, content_type: str) -> str | None:
     return None
 
 
-# ── LLM call ────────────────────────────────────────────────────────
+# ── Langfuse environment wiring ────────────────────────────────────
+
+
+def _wire_langfuse_env() -> None:
+    """Export Langfuse credentials into the process environment.
+
+    llmio's Langfuse export activates when ``LANGFUSE_PUBLIC_KEY``,
+    ``LANGFUSE_SECRET_KEY``, and ``LANGFUSE_BASE_URL`` are set.  We
+    read them from the canonical ``langfuse`` config block for the
+    ``robotsix-file-hub`` project alias.
+    """
+    lf = settings.langfuse
+    project = lf.projects.get("robotsix-file-hub")
+    if project is None:
+        return
+
+    secret = project.secret_key.get_secret_value()
+    if not project.public_key or not secret:
+        return
+
+    os.environ.setdefault("LANGFUSE_PUBLIC_KEY", project.public_key)
+    os.environ.setdefault("LANGFUSE_SECRET_KEY", secret)
+    os.environ.setdefault("LANGFUSE_BASE_URL", lf.host)
+
+
+# ── LLM call (chat enrichment via robotsix-llmio) ───────────────────
 
 
 async def call_llm(text: str) -> dict[str, Any]:
-    """Call the OpenAI-compatible chat API and return structured enrichment.
+    """Call robotsix-llmio for structured enrichment.
 
-    The LLM is prompted to return a JSON object with ``summary``,
-    ``category``, and ``tags`` fields.  The response is parsed and
-    returned as a dict.
+    Builds a provider and agent at the configured ``enrichment_llm_tier_level``
+    (default 1) with ``output_type=EnrichmentModel``.  PromptedOutput wraps the
+    model for JSON-in-text structured output — no hand-rolled fence parsing.
 
-    Raises ``httpx.HTTPError`` or ``json.JSONDecodeError`` on failure.
+    Raises ``Exception`` on failure (best-effort — caller catches).
     """
+    _wire_langfuse_env()
+
+    level = settings.enrichment_llm_tier_level
+
+    # Resolve the OpenRouter API key for the robotsix-file-hub alias
+    or_key = settings.openrouter.keys.get("robotsix-file-hub")
+    api_key: str | None = None
+    if or_key is not None:
+        api_key = or_key.get_secret_value()
+
+    provider = get_provider_for_level(level, api_key=api_key)
+
     prompt = (
         "Analyze the following text content from a file and return a JSON object "
         "with exactly three fields:\n"
@@ -127,57 +185,32 @@ async def call_llm(text: str) -> dict[str, Any]:
         f"TEXT:\n{text[:8000]}"
     )
 
-    headers: dict[str, str] = {"Content-Type": "application/json"}
-    api_key = settings.enrichment_llm_api_key.get_secret_value()
-    if api_key:
-        headers["Authorization"] = f"Bearer {api_key}"
+    agent = provider.build_agent(
+        level=level,
+        system_prompt=prompt,
+        output_type=EnrichmentModel,
+        name="file-hub-enricher",
+        retries=2,
+        builtin_tools=False,
+        web_tools=False,
+    )
 
-    async with httpx.AsyncClient(timeout=settings.enrichment_llm_timeout) as client:
+    async def _run() -> EnrichmentModel:
+        result = await agent.run("")
+        return cast(EnrichmentModel, result.output)
 
-        async def _do_chat() -> httpx.Response:
-            response = await client.post(
-                f"{settings.enrichment_llm_api_base}/chat/completions",
-                headers=headers,
-                json={
-                    "model": settings.enrichment_llm_model,
-                    "messages": [{"role": "user", "content": prompt}],
-                    "max_tokens": settings.enrichment_llm_max_tokens,
-                    "temperature": 0.3,
-                },
-            )
-            response.raise_for_status()
-            return response
-
-        response = cast(
-            httpx.Response,
-            await acall_with_retry(
-                _do_chat,
-                config=_RETRY_CONFIG,
-                what="LLM chat completion",
-            ),
-        )
-        data = response.json()
-
-    content_raw = data["choices"][0]["message"]["content"]
-
-    # Parse the JSON response (handle markdown code fences gracefully)
-    result: dict[str, Any]
-    try:
-        result = json.loads(content_raw)
-    except json.JSONDecodeError:
-        if "```json" in content_raw:
-            block = content_raw.split("```json")[1].split("```")[0]
-            result = json.loads(block)
-        elif "```" in content_raw:
-            block = content_raw.split("```")[1].split("```")[0]
-            result = json.loads(block)
-        else:
-            raise
+    model_result = cast(
+        EnrichmentModel,
+        await provider.call_with_retry(
+            _run,
+            what="LLM chat enrichment",
+        ),
+    )
 
     return {
-        "summary": str(result.get("summary", "")),
-        "category": str(result.get("category", "")),
-        "tags": [str(t) for t in result.get("tags", [])],
+        "summary": model_result.summary or "",
+        "category": model_result.category or "",
+        "tags": model_result.tags or [],
     }
 
 
@@ -185,41 +218,28 @@ async def call_llm(text: str) -> dict[str, Any]:
 
 
 async def generate_embedding(text: str) -> list[float] | None:
-    """Call the OpenAI-compatible embeddings API and return a vector.
+    """Call the dedicated OpenAI-compatible embeddings endpoint.
 
-    Uses the configured ``enrichment_llm_embedding_model``, falling
-    back to ``enrichment_llm_model`` if no dedicated embedding model
-    is set.
+    Uses the ``embedding`` config block (``embedding.endpoint`` + ``embedding.model``).
+    Emits 1024-dim vectors — no llmio involvement.
 
     Returns ``None`` if the API call fails (best-effort).
     """
-    model = settings.enrichment_llm_embedding_model or settings.enrichment_llm_model
+    emb = settings.embedding
 
     headers: dict[str, str] = {"Content-Type": "application/json"}
-    api_key = settings.enrichment_llm_api_key.get_secret_value()
+    api_key = emb.api_key.get_secret_value()
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
 
     try:
-        async with httpx.AsyncClient(timeout=settings.enrichment_llm_timeout) as client:
-
-            async def _do_embed() -> httpx.Response:
-                response = await client.post(
-                    f"{settings.enrichment_llm_api_base}/embeddings",
-                    headers=headers,
-                    json={"model": model, "input": text[:8000]},
-                )
-                response.raise_for_status()
-                return response
-
-            response = cast(
-                httpx.Response,
-                await acall_with_retry(
-                    _do_embed,
-                    config=_RETRY_CONFIG,
-                    what="embedding generation",
-                ),
+        async with httpx.AsyncClient(timeout=emb.timeout) as client:
+            response = await client.post(
+                f"{emb.endpoint}/embeddings",
+                headers=headers,
+                json={"model": emb.model, "input": text[:8000]},
             )
+            response.raise_for_status()
             data = response.json()
         return list(data["data"][0]["embedding"])
     except Exception:
