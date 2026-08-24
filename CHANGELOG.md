@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.11.0](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.10.0...v0.11.0) (2026-08-24)
+
+
+### Features
+
+* Remove S3 storage backend and its settings — keep local storage only (20260823T151301Z-remove-s3-storage-backend-and-its-settin-3adf) ([#249](https://github.com/damien-robotsix/robotsix-file-hub/issues/249)) ([6525682](https://github.com/damien-robotsix/robotsix-file-hub/commit/6525682d94302913621c2eade0df24d3e82ffc38))
+* Route enrichment LLM through robotsix-llmio + canonical Langfuse; reuse the shared bge-m3 embedding server (20260823T152004Z-route-enrichment-llm-through-robotsix-ll-612c) ([#250](https://github.com/damien-robotsix/robotsix-file-hub/issues/250)) ([b014ddb](https://github.com/damien-robotsix/robotsix-file-hub/commit/b014ddb78974112a26e5aa2a155af83ba0f96278))
+
+
+### Bug Fixes
+
+* Adopt robotsix-ui across the file-hub frontend: shared AppShell nav + CSS tokens + settings panel (20260822T173334Z-adopt-robotsix-ui-across-the-file-hub-fr-e62d) ([#248](https://github.com/damien-robotsix/robotsix-file-hub/issues/248)) ([d6605fb](https://github.com/damien-robotsix/robotsix-file-hub/commit/d6605fbd201907e92881740d6babd53578726ca3))
+* CI failure: Publish Docker image on main (20260817T215544Z-ci-failure-publish-docker-image-on-main-0f9c) ([#236](https://github.com/damien-robotsix/robotsix-file-hub/issues/236)) ([c500e4a](https://github.com/damien-robotsix/robotsix-file-hub/commit/c500e4abbe0943ff8ea89652a15d8213da2cb530))
+* ci_fix: out-of-scope CI failure — frontend (TypeScript typecheck: TS2305) in frontend/package.json — restore @robotsix/ui to a version that exports AppShell (e.g. v0.1.40), or update App.tsx to use the current export name. (20260824T074721Z-ci-fix-out-of-scope-ci-failure-frontend-f6cd) ([#256](https://github.com/damien-robotsix/robotsix-file-hub/issues/256)) ([c6b896f](https://github.com/damien-robotsix/robotsix-file-hub/commit/c6b896fe8c53d212fe44926a573e9df1a73ea675))
+* completeness_check scan: 3 findings (2026-08-21) (20260821T001404Z-completeness-check-scan-3-findings-2026-1233) ([#240](https://github.com/damien-robotsix/robotsix-file-hub/issues/240)) ([28b1139](https://github.com/damien-robotsix/robotsix-file-hub/commit/28b113950fa55af4d9cb7237d87f5dccfb56f84f))
+* docker-compose.yml FILE_HUB_* env vars are inert after robotsix_config migration (20260820T234341Z-docker-compose-yml-file-hub-env-vars-are-de52) ([#244](https://github.com/damien-robotsix/robotsix-file-hub/issues/244)) ([6bb03ae](https://github.com/damien-robotsix/robotsix-file-hub/commit/6bb03aea557e6175c024dc0651f2ec29ffb5b89c))
+* Fix unreadable tag chips in dark mode (light-on-light contrast) (20260824T071722Z-fix-unreadable-tag-chips-in-dark-mode-li-aed9) ([#255](https://github.com/damien-robotsix/robotsix-file-hub/issues/255)) ([4455141](https://github.com/damien-robotsix/robotsix-file-hub/commit/44551417a0ff3a3eaba30db2ccb222a5e498f649))
+
+
+### Documentation
+
+* update docs/core/configuration.md for new config blocks (20260823T164419Z-update-docs-core-configuration-md-for-ne-583e) ([#252](https://github.com/damien-robotsix/robotsix-file-hub/issues/252)) ([17b78ab](https://github.com/damien-robotsix/robotsix-file-hub/commit/17b78ab53e09e9475a486828ff1f3670a64de8cc))
+
 ## [0.10.0](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.9.0...v0.10.0) (2026-08-17)
 
 
