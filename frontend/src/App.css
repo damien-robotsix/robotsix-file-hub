@@ -450,8 +450,14 @@
 }
 
 .tag {
+.tag {            /* ~line 452 — used by FilePreview + SearchPage result tags */
   background: var(--rsu-color-gray-100);
   color: var(--rsu-color-text);
+}
+.badge-tag {      /* ~line 705 — used by FilesPage table */
+  background: var(--rsu-color-gray-100);
+  color: var(--rsu-color-text);
+}
   padding: 0.1rem var(--rsu-space-xs);
   border-radius: var(--rsu-radius-sm);
   font-size: var(--rsu-font-size-xs);
