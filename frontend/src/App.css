@@ -450,8 +450,8 @@
 }
 
 .tag {
-  background: var(--rsu-color-gray-100);
-  color: var(--rsu-color-text);
+  background: var(--rsu-color-bg-secondary);
+  color: var(--rsu-color-primary);
   padding: 0.1rem var(--rsu-space-xs);
   border-radius: var(--rsu-radius-sm);
   font-size: var(--rsu-font-size-xs);
@@ -703,8 +703,8 @@
 }
 
 .badge-tag {
-  background: var(--rsu-color-gray-100);
-  color: var(--rsu-color-text);
+  background: var(--rsu-color-bg-secondary);
+  color: var(--rsu-color-primary);
   margin-right: 0.25rem;
   margin-bottom: 0.15rem;
 }
