@@ -69,6 +69,16 @@ Upload a single file.
 - **Content-Type:** `multipart/form-data`
 - **Form field:** `file` (required)
 
+**Query parameters**
+
+| Param | Type | Default | Description |
+|---|---|---|---|
+| `allow_duplicate` | bool | `false` | If `true`, bypasses content-dedup and always stores a new copy; default dedup reuses an existing record when content checksum matches |
+
+By default, uploading the same content twice **deduplicates**: the second
+call returns the existing file's id with `deduplicated: true` and does
+not store additional bytes.
+
 **Response** `200` — [`FileUploadResponse`](#fileuploadresponse)
 
 ```json
@@ -79,7 +89,8 @@ Upload a single file.
   "content_type": "application/pdf",
   "checksum": "sha256hex…",
   "created_at": "2025-01-01T00:00:00Z",
-  "task_id": "uuid"
+  "task_id": "uuid",
+  "deduplicated": false
 }
 ```
 
@@ -94,6 +105,12 @@ Upload multiple files in one request.
 - **Content-Type:** `multipart/form-data`
 - **Form field:** `files` (required, multiple)
 
+**Query parameters**
+
+| Param | Type | Default | Description |
+|---|---|---|---|
+| `allow_duplicate` | bool | `false` | If `true`, bypasses content-dedup for all files in the batch; default dedup reuses existing records on checksum match |
+
 **Response** `200` — [`BatchUploadResponse`](#batchuploadresponse)
 
 ```json
@@ -106,7 +123,8 @@ Upload multiple files in one request.
       "content_type": "application/pdf",
       "checksum": "sha256hex…",
       "created_at": "2025-01-01T00:00:00Z",
-      "task_id": "uuid"
+      "task_id": "uuid",
+      "deduplicated": false
     }
   ]
 }
@@ -323,6 +341,7 @@ individual enrichment jobs completed.
 | `checksum` | string | SHA-256 hex digest |
 | `created_at` | datetime | Upload timestamp (ISO 8601) |
 | `task_id` | string (UUID) \| null | Background enrichment task ID (poll via `GET /tasks/{task_id}`) |
+| `deduplicated` | bool | `true` when the response reuses a pre-existing record (same checksum) instead of storing a new copy; always `false` when `allow_duplicate=true` |
 
 ### `FileMetadataResponse`
 
