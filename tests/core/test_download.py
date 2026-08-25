@@ -36,6 +36,34 @@ async def test_download_file_not_found(test_client: AsyncClient) -> None:
     assert response.json()["detail"] == "File not found"
 
 
+async def test_view_file_inline(test_client: AsyncClient) -> None:
+    """GET /files/{id}/view returns 200 with Content-Disposition: inline."""
+    content = b"%PDF-1.4 fake pdf content"
+    upload_resp = await test_client.post(
+        "/files",
+        files={"file": ("document.pdf", io.BytesIO(content), "application/pdf")},
+    )
+    assert upload_resp.status_code == 200
+    file_id = upload_resp.json()["id"]
+
+    response = await test_client.get(f"/files/{file_id}/view")
+
+    assert response.status_code == 200
+    assert response.content == content
+    assert response.headers["content-type"].startswith("application/pdf")
+    assert "inline" in response.headers["content-disposition"]
+    assert 'filename="document.pdf"' in response.headers["content-disposition"]
+    assert response.headers["content-length"] == str(len(content))
+
+
+async def test_view_file_not_found(test_client: AsyncClient) -> None:
+    """GET /files/{id}/view with unknown id returns 404."""
+    response = await test_client.get("/files/nonexistent-id/view")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "File not found"
+
+
 async def test_get_file_metadata(test_client: AsyncClient) -> None:
     """GET /files/{id}/metadata returns full record as JSON."""
     content = b"metadata test content"

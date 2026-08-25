@@ -318,6 +318,45 @@ async def download_file(
     )
 
 
+@router.get(
+    "/{file_id}/view",
+    responses={404: {"model": ErrorResponse}},
+)
+@limiter.limit(DEFAULT_RATE_LIMIT)
+async def view_file(
+    request: Request,
+    file_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    storage: Annotated[StorageBackend, Depends(_get_storage)],
+) -> Response:
+    """Serve the file with inline disposition for browser rendering.
+
+    Unlike the download endpoint, this sets ``Content-Disposition: inline``
+    so that browsers (and headless-browser render tools) can display the
+    file content directly — PDFs render in-page, images show inline, etc.
+    """
+    record = await db.get(FileRecord, file_id)
+    if record is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+
+    try:
+        content = await storage.get(record.storage_key)
+    except StorageError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Storage failure: {exc}",
+        ) from exc
+
+    return Response(
+        content=content,
+        media_type=record.content_type,
+        headers={
+            "Content-Disposition": f'inline; filename="{record.filename}"',
+            "Content-Length": str(record.size),
+        },
+    )
+
+
 @router.delete(
     "/{file_id}",
     status_code=status.HTTP_204_NO_CONTENT,
