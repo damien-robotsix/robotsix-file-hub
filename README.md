@@ -117,7 +117,8 @@ Base URL: `http://localhost:8000`
 | `POST` | `/files/batch` | Upload multiple files (field `files`) |
 | `GET` | `/files` | List files with pagination and filters (`?category=`, `?tag=`, `?offset=`, `?limit=`, etc.) |
 | `GET` | `/files/categories` | Return distinct, sorted categories across all files |
-| `GET` | `/files/{file_id}` | Download raw file bytes |
+| `GET` | `/files/{file_id}` | Download raw file bytes (forced download, `attachment`) |
+| `GET` | `/files/{file_id}/view` | View file inline in browser (PDF/image rendering, `inline`) |
 | `GET` | `/files/{file_id}/metadata` | Get file metadata (category, tags, summary, etc.) |
 | `DELETE` | `/files/{file_id}` | Delete a file and its stored data |
 | `POST` | `/files/search` | Hybrid NL search — JSON body `{"query":"…","offset":0,"limit":50}` |

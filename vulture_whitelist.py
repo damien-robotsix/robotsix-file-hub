@@ -9,6 +9,7 @@ _.health_live  # FastAPI route
 _.upload_file  # FastAPI route
 _.upload_files_batch  # FastAPI route
 _.download_file  # FastAPI route
+_.view_file  # FastAPI route
 _.get_file_metadata  # FastAPI route
 _.reindex_files  # FastAPI route
 _.reindex_progress  # FastAPI route
