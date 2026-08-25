@@ -180,9 +180,24 @@ Return a sorted list of distinct categories across all files.
 
 ### `GET /files/{file_id}`
 
-Download the raw file bytes.
+Download the raw file bytes (forced download).
 
 - **Response headers** include `Content-Disposition: attachment` and
+  `Content-Length`.
+
+**Response** `200` — binary stream
+
+**Errors:** `404` (file not found), `500` (storage failure)
+
+---
+
+### `GET /files/{file_id}/view`
+
+Serve the file with inline disposition so browsers (and headless-browser
+render tools) display the content in-page — PDFs render in the browser,
+images show inline, etc.
+
+- **Response headers** include `Content-Disposition: inline` and
   `Content-Length`.
 
 **Response** `200` — binary stream
