@@ -84,11 +84,11 @@ async def test_list_files_empty(test_client: AsyncClient) -> None:
 
 async def test_list_files_with_data(test_client: AsyncClient) -> None:
     """GET /files returns paginated list with all uploaded files."""
-    # Upload two files
+    # Upload two files with unique content so dedup doesn't collapse them
     for name in ("first.txt", "second.txt"):
         upload_resp = await test_client.post(
             "/files",
-            files={"file": (name, io.BytesIO(b"data"), "text/plain")},
+            files={"file": (name, io.BytesIO(f"data-{name}".encode()), "text/plain")},
         )
         assert upload_resp.status_code == 200
 
@@ -106,11 +106,11 @@ async def test_list_files_with_data(test_client: AsyncClient) -> None:
 
 async def test_list_files_pagination(test_client: AsyncClient) -> None:
     """GET /files with offset and limit respects pagination."""
-    # Upload 3 files
+    # Upload 3 files with unique content so dedup doesn't collapse them
     for name in ("a.txt", "b.txt", "c.txt"):
         upload_resp = await test_client.post(
             "/files",
-            files={"file": (name, io.BytesIO(b"x"), "text/plain")},
+            files={"file": (name, io.BytesIO(f"x-{name}".encode()), "text/plain")},
         )
         assert upload_resp.status_code == 200
 

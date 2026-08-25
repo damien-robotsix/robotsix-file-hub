@@ -46,8 +46,14 @@ async def _process_upload(
     file: UploadFile,
     storage: StorageBackend,
     db: AsyncSession,
-) -> FileRecord:
+    *,
+    allow_duplicate: bool = False,
+) -> tuple[FileRecord, bool]:
     """Read, validate, store, and stage a single file upload.
+
+    Returns ``(record, is_dedup)`` where *is_dedup* is ``True`` when an
+    existing record with the same checksum was reused instead of storing
+    a new copy.
 
     Does **not** commit the session — callers must commit (or
     rollback) and then refresh the returned record before reading
@@ -75,6 +81,18 @@ async def _process_upload(
     # Compute checksum
     checksum = compute_checksum(content)
 
+    # --- Dedup check ---
+    if not allow_duplicate:
+        stmt = select(FileRecord).where(FileRecord.checksum == checksum).limit(1)
+        existing = (await db.execute(stmt)).scalar_one_or_none()
+        if existing is not None:
+            logger.info(
+                "Dedup: reusing existing file %s for checksum %s",
+                existing.id,
+                checksum,
+            )
+            return existing, True
+
     # Generate file ID
     file_id = str(uuid.uuid4())
 
@@ -98,7 +116,7 @@ async def _process_upload(
     )
     db.add(record)
 
-    return record
+    return record, False
 
 
 @router.post(
@@ -112,23 +130,38 @@ async def upload_file(
     file: Annotated[UploadFile, File()],
     db: Annotated[AsyncSession, Depends(get_db)],
     storage: Annotated[StorageBackend, Depends(_get_storage)],
+    allow_duplicate: Annotated[bool, Query()] = False,
 ) -> FileUploadResponse:
-    """Upload a single file."""
-    record = await _process_upload(file, storage, db)
-    try:
-        await db.commit()
-    except Exception as exc:
-        await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database failure: {exc}",
-        ) from exc
-    await db.refresh(record)
-    task_id = enqueue_enrichment(
-        file_id=record.id,
-        storage_key=record.storage_key,
-        content_type=record.content_type,
+    """Upload a single file.
+
+    By default, if a file with identical content (same checksum) already
+    exists, the existing record is returned instead of storing a second
+    copy (``deduplicated=True``).  Pass ``?allow_duplicate=true`` to
+    bypass this check and always store a new copy.
+    """
+    record, is_dedup = await _process_upload(
+        file,
+        storage,
+        db,
+        allow_duplicate=allow_duplicate,
     )
+    if not is_dedup:
+        try:
+            await db.commit()
+        except Exception as exc:
+            await db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Database failure: {exc}",
+            ) from exc
+    await db.refresh(record)
+    task_id: str | None = None
+    if not is_dedup:
+        task_id = enqueue_enrichment(
+            file_id=record.id,
+            storage_key=record.storage_key,
+            content_type=record.content_type,
+        )
     return FileUploadResponse(
         id=record.id,
         filename=record.filename,
@@ -137,6 +170,7 @@ async def upload_file(
         checksum=record.checksum,
         created_at=record.created_at,
         task_id=task_id,
+        deduplicated=is_dedup,
     )
 
 
@@ -151,47 +185,62 @@ async def upload_files_batch(
     files: Annotated[list[UploadFile], File()],
     db: Annotated[AsyncSession, Depends(get_db)],
     storage: Annotated[StorageBackend, Depends(_get_storage)],
+    allow_duplicate: Annotated[bool, Query()] = False,
 ) -> BatchUploadResponse:
     """Upload multiple files in a single batch request.
 
     All files must succeed — if any file fails the entire batch is
     rolled back (both database records and stored file bytes).
+    Duplicate-content files are deduplicated by default (see
+    ``allow_duplicate``).
     """
     records: list[FileRecord] = []
+    new_records: list[FileRecord] = []
+    results: list[tuple[FileRecord, bool]] = []
     for file in files:
         try:
-            record = await _process_upload(file, storage, db)
+            record, is_dedup = await _process_upload(
+                file,
+                storage,
+                db,
+                allow_duplicate=allow_duplicate,
+            )
         except HTTPException:
             await db.rollback()
-            await _cleanup_storage(storage, records)
+            await _cleanup_storage(storage, new_records)
             raise
         except Exception as exc:
             await db.rollback()
-            await _cleanup_storage(storage, records)
+            await _cleanup_storage(storage, new_records)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Upload failed: {exc}",
             ) from exc
         records.append(record)
+        results.append((record, is_dedup))
+        if not is_dedup:
+            new_records.append(record)
 
-    try:
-        await db.commit()
-    except Exception as exc:
-        await db.rollback()
-        await _cleanup_storage(storage, records)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database failure: {exc}",
-        ) from exc
+    if new_records:
+        try:
+            await db.commit()
+        except Exception as exc:
+            await db.rollback()
+            await _cleanup_storage(storage, new_records)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Database failure: {exc}",
+            ) from exc
 
     task_ids: dict[str, str] = {}
-    for record in records:
+    for record, is_dedup in results:
         await db.refresh(record)
-        task_ids[record.id] = enqueue_enrichment(
-            file_id=record.id,
-            storage_key=record.storage_key,
-            content_type=record.content_type,
-        )
+        if not is_dedup:
+            task_ids[record.id] = enqueue_enrichment(
+                file_id=record.id,
+                storage_key=record.storage_key,
+                content_type=record.content_type,
+            )
 
     return BatchUploadResponse(
         files=[
@@ -203,8 +252,9 @@ async def upload_files_batch(
                 checksum=r.checksum,
                 created_at=r.created_at,
                 task_id=task_ids.get(r.id),
+                deduplicated=dedup,
             )
-            for r in records
+            for r, dedup in results
         ]
     )
 

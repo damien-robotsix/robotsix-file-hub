@@ -39,6 +39,7 @@ class FileUploadResponse(BaseModel):
     checksum: str
     created_at: datetime
     task_id: str | None = None
+    deduplicated: bool = False
 
     model_config = {"from_attributes": True}
 
