@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { search, downloadFileUrl, type SearchResult } from "../api.ts";
+import { search, viewFileUrl, type SearchResult } from "../api.ts";
 import { formatSize } from "../lib/format.ts";
 import FilePreview from "../components/FilePreview.tsx";
 
@@ -116,7 +116,7 @@ export default function SearchPage() {
             <li key={r.id} className="search-result-item">
               <div className="result-thumbnail">
                 {isImage(r.content_type) ? (
-                  <img src={downloadFileUrl(r.id)} alt={r.filename} loading="lazy" />
+                  <img src={viewFileUrl(r.id)} alt={r.filename} loading="lazy" />
                 ) : (
                   <span className="result-file-icon" aria-hidden="true">
                     {r.content_type === "application/pdf"

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { downloadFileUrl } from "../api.ts";
+import { downloadFileUrl, viewFileUrl } from "../api.ts";
 import { formatSize } from "../lib/format.ts";
 import { classifyPreview, escapeHtml } from "../lib/preview.ts";
 import { useFileDetail } from "../hooks/useFileDetail.ts";
@@ -92,7 +92,8 @@ export default function FilePreview({
   }
 
   const previewKind = classifyPreview(metadata.content_type);
-  const fileUrl = downloadFileUrl(metadata.id);
+  const previewUrl = viewFileUrl(metadata.id);
+  const downloadUrl = downloadFileUrl(metadata.id);
 
   return (
     <div className="file-preview-panel">
@@ -100,7 +101,7 @@ export default function FilePreview({
         <div className="file-preview-header">
           <h3 className="file-preview-filename">{metadata.filename}</h3>
           <div className="file-preview-actions">
-            <a href={fileUrl} className="download-btn" download={metadata.filename}>
+            <a href={downloadUrl} className="download-btn" download={metadata.filename}>
               ⬇ Download
             </a>
             <button
@@ -140,16 +141,16 @@ export default function FilePreview({
       <div className="file-preview-content">
         {previewKind === "image" && (
           <div className="preview-image">
-            <img src={fileUrl} alt={metadata.filename} />
+            <img src={previewUrl} alt={metadata.filename} />
           </div>
         )}
 
         {previewKind === "pdf" && (
           <div className="preview-pdf">
-            <object data={fileUrl} type="application/pdf" width="100%" height="600">
+            <object data={previewUrl} type="application/pdf" width="100%" height="600">
               <p>
                 Your browser cannot display PDFs inline.{" "}
-                <a href={fileUrl} download={metadata.filename}>
+                <a href={downloadUrl} download={metadata.filename}>
                   Download the PDF
                 </a>
                 .
@@ -175,7 +176,7 @@ export default function FilePreview({
           <div className="preview-unsupported">
             <div className="fallback-icon" aria-hidden="true">📄</div>
             <p>Preview not available for this file type ({metadata.content_type}).</p>
-            <a href={fileUrl} className="download-btn" download={metadata.filename}>
+            <a href={downloadUrl} className="download-btn" download={metadata.filename}>
               ⬇ Download {metadata.filename}
             </a>
           </div>
