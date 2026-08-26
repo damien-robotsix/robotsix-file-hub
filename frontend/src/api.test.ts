@@ -7,6 +7,7 @@ import {
   healthCheck,
   deleteFile,
   downloadFileUrl,
+  viewFileUrl,
   listCategories,
   triggerReindex,
   getReindexProgress,
@@ -95,6 +96,10 @@ describe("API client", () => {
 
   it("downloadFileUrl returns correct URL", () => {
     expect(downloadFileUrl("abc-123")).toBe("/api/files/abc-123");
+  });
+
+  it("viewFileUrl returns correct URL with /view suffix", () => {
+    expect(viewFileUrl("abc-123")).toBe("/api/files/abc-123/view");
   });
 
   it("uses the /api prefix in dev/test but not in production", () => {

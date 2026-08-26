@@ -207,6 +207,10 @@ export function downloadFileUrl(fileId: string): string {
   return `${API_BASE}/files/${fileId}`;
 }
 
+export function viewFileUrl(fileId: string): string {
+  return `${API_BASE}/files/${fileId}/view`;
+}
+
 export async function search(
   query: string,
   params?: {
