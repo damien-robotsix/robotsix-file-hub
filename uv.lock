@@ -1025,7 +1025,7 @@ requires-dist = [
     { name = "python-multipart", specifier = ">=0.0.19" },
     { name = "robotsix-config", git = "https://github.com/damien-robotsix/robotsix-config.git?rev=feabed320883760ec0f449469870d45f73d87194" },
     { name = "robotsix-http", git = "https://github.com/damien-robotsix/robotsix-http.git?rev=ba90d55ea2bcbd02f605f392e837cea7b485d73d" },
-    { name = "robotsix-llmio", extras = ["openrouter"], git = "https://github.com/damien-robotsix/robotsix-llmio.git?rev=9c973450c8cee550d391df888b16e9efe4493300" },
+    { name = "robotsix-llmio", extras = ["openrouter"], git = "https://github.com/damien-robotsix/robotsix-llmio.git?rev=40ba3fc09efdc5651680f5956468410e20c3c79e" },
     { name = "slowapi", specifier = ">=0.1.9" },
     { name = "sqlalchemy", specifier = ">=2.0.52" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.52.3" },
@@ -1053,8 +1053,8 @@ dependencies = [
 
 [[package]]
 name = "robotsix-llmio"
-version = "0.4.2"
-source = { git = "https://github.com/damien-robotsix/robotsix-llmio.git?rev=9c973450c8cee550d391df888b16e9efe4493300#9c973450c8cee550d391df888b16e9efe4493300" }
+version = "0.5.0"
+source = { git = "https://github.com/damien-robotsix/robotsix-llmio.git?rev=40ba3fc09efdc5651680f5956468410e20c3c79e#40ba3fc09efdc5651680f5956468410e20c3c79e" }
 dependencies = [
     { name = "httpx" },
     { name = "pydantic" },
