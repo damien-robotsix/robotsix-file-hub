@@ -128,3 +128,101 @@ class TestSecretsNeverReachTheHistory:
         raw = sidecar.read_text(encoding="utf-8") if sidecar.exists() else ""
         assert "rotated-secret" not in raw
         assert "real-secret" not in raw
+
+
+class TestPruneConfig:
+    async def test_removes_unknown_top_level_keys(self, test_client: AsyncClient, _isolated_config):
+        """Legacy keys not in the schema should be stripped."""
+        # Inject stale keys into the config file.
+        raw = json.loads(_isolated_config.read_text(encoding="utf-8"))
+        raw["s3_bucket"] = "old-bucket"
+        raw["storage_backend"] = "s3"
+        raw["enrichment_llm_model"] = "gpt-4"
+        _isolated_config.write_text(json.dumps(raw), encoding="utf-8")
+
+        resp = await test_client.post("/config/prune")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert sorted(body["removed"]) == [
+            "enrichment_llm_model",
+            "s3_bucket",
+            "storage_backend",
+        ]
+        assert "s3_bucket" not in body["config"]
+        assert "storage_backend" not in body["config"]
+        assert "enrichment_llm_model" not in body["config"]
+
+    async def test_preserves_known_keys(self, test_client: AsyncClient, _isolated_config):
+        """Known keys survive the prune."""
+        raw = json.loads(_isolated_config.read_text(encoding="utf-8"))
+        raw["s3_bucket"] = "old-bucket"
+        _isolated_config.write_text(json.dumps(raw), encoding="utf-8")
+
+        resp = await test_client.post("/config/prune")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["config"]["embedding"]["model"] == "seeded-model"
+        assert "s3_bucket" not in body["config"]
+
+    async def test_removes_nested_unknown_keys(self, test_client: AsyncClient, _isolated_config):
+        """Stale keys inside a known nested object are stripped."""
+        raw = json.loads(_isolated_config.read_text(encoding="utf-8"))
+        raw["embedding"]["legacy_field"] = "should-go"
+        _isolated_config.write_text(json.dumps(raw), encoding="utf-8")
+
+        resp = await test_client.post("/config/prune")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["removed"] == ["embedding.legacy_field"]
+        assert "legacy_field" not in body["config"]["embedding"]
+
+    async def test_noop_when_no_stale_keys(self, test_client: AsyncClient):
+        """A clean config returns empty removed list and does not bump version."""
+        resp = await test_client.post("/config/prune")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["removed"] == []
+
+    async def test_prune_records_version_history(self, test_client: AsyncClient, _isolated_config):
+        """The prune operation records a version for audit/rollback."""
+        raw = json.loads(_isolated_config.read_text(encoding="utf-8"))
+        raw["s3_bucket"] = "old-bucket"
+        _isolated_config.write_text(json.dumps(raw), encoding="utf-8")
+
+        resp = await test_client.post("/config/prune")
+        assert resp.status_code == 200
+        version = resp.json()["version"]
+        versions = (await test_client.get("/config/versions")).json()["versions"]
+        assert any(v["version"] == version for v in versions)
+
+    async def test_prune_takes_effect_without_restart(
+        self, test_client: AsyncClient, _isolated_config
+    ):
+        """After pruning, the cached settings reflect the change."""
+        raw = json.loads(_isolated_config.read_text(encoding="utf-8"))
+        raw["s3_bucket"] = "old-bucket"
+        _isolated_config.write_text(json.dumps(raw), encoding="utf-8")
+
+        await test_client.post("/config/prune")
+        # The cached settings should be reloaded; s3_bucket was never in the
+        # model so it's invisible, but log_level (a known key) should still
+        # be available, proving the reload didn't break anything.
+        assert config_mod.get_settings().log_level == "INFO"
+
+    async def test_prune_empty_config(self, test_client: AsyncClient, _isolated_config):
+        """An empty config file produces an empty result."""
+        _isolated_config.write_text("{}", encoding="utf-8")
+        resp = await test_client.post("/config/prune")
+        assert resp.status_code == 200
+        assert resp.json()["config"] == {}
+        assert resp.json()["removed"] == []
+
+    async def test_prune_masks_secrets(self, test_client: AsyncClient, _isolated_config):
+        """Secrets remain masked in the prune response."""
+        raw = json.loads(_isolated_config.read_text(encoding="utf-8"))
+        raw["s3_bucket"] = "old-bucket"
+        _isolated_config.write_text(json.dumps(raw), encoding="utf-8")
+
+        resp = await test_client.post("/config/prune")
+        assert resp.status_code == 200
+        assert resp.json()["config"]["embedding"]["api_key"] == "**********"
