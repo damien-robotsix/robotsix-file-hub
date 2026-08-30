@@ -28,7 +28,9 @@ with AI-generated metadata and vector-powered hybrid search.
 - **Storage** — local filesystem storage.
 - **AI Pipeline** — uses **robotsix-llmio** (OpenRouter) for LLM enrichment
   (defaults to tier level 1 for cheap extraction) and a dedicated
-  OpenAI-compatible embedding server (shared bge-m3, 1024-dim).
+  OpenAI-compatible embedding server (shared bge-m3, 1024-dim). Supports
+  text-based files (PDF, DOCX, XLSX, plain text) and images (PNG, JPEG,
+  etc.) via vision-capable LLMs.
 
 For a deeper dive into the internal design, see **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
@@ -164,7 +166,7 @@ The Vite dev server proxies `/api` (stripping the prefix) and `/files` to
 │   ├── schemas.py           # Pydantic request/response models
 │   ├── routes/files.py      # All API endpoints (/files, /search, /reindex)
 │   ├── storage.py           # Local filesystem storage
-│   ├── enrichment.py        # LLM enrichment (text extraction + AI summary)
+│   ├── enrichment.py        # LLM enrichment (text/image extraction + AI summary)
 │   ├── embeddings.py        # Embedding text shaping (delegates to enrichment.py)
 │   ├── tasks.py             # Background worker pool for enrichment
 │   └── search.py            # Hybrid keyword + vector search

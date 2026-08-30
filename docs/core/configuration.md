@@ -43,9 +43,18 @@ never returned in plain text by the `/config` HTTP surface.
 Uses **robotsix-llmio** (OpenRouter transport) for summary, category, and tag generation.
 The LLM tier level selects the model capability (1–4, default 1 for cheap extraction).
 
+**Supported content types:**
+- **Text-based:** plain text, Markdown, code, PDF (text layer), DOCX, XLSX
+- **Images:** PNG, JPEG, GIF, WebP, and other `image/*` types — sent to a vision-capable LLM as multimodal input
+
+> **Note:** Image enrichment requires the configured tier level to resolve to a
+> vision-capable model. If tier 1 does not support vision, set
+> `enrichment_llm_tier_level` to a higher tier (e.g., 2 or 3) that includes
+> vision-capable models in your llmio configuration.
+
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `enrichment_llm_tier_level` | `int` | `1` | Capability tier level for LLM enrichment (1–4). Higher tiers use more capable models. |
+| `enrichment_llm_tier_level` | `int` | `1` | Capability tier level for LLM enrichment (1–4). Higher tiers use more capable models. Must resolve to a vision-capable model for image enrichment. |
 
 ### Langfuse Observability
 

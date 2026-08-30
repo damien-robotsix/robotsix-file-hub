@@ -90,14 +90,22 @@ When a file is uploaded, it is queued for **asynchronous enrichment**:
    - DOCX → `python-docx`
    - XLSX → `openpyxl`
    - Plain text / Markdown / code → direct decode
+   - **Images** (`image/*`) → returns a sentinel value (`IMAGE_SENTINEL`)
+     that triggers the vision LLM path (see step 2)
    - Unsupported types → skipped (enrichment fields left null)
 
-2. **LLM enrichment** — the extracted text is sent to
-   **robotsix-llmio** (OpenRouter transport) at a configurable tier
-   level (default 1 — cheap extraction). The LLM is prompted to
+2. **LLM enrichment** — for text-based content, the extracted text is
+   sent to **robotsix-llmio** (OpenRouter transport) at a configurable
+   tier level (default 1 — cheap extraction). For images, the raw
+   image bytes are sent as `BinaryContent` multimodal input to a
+   vision-capable LLM via `call_llm_vision()`. The LLM is prompted to
    return structured output into an ``EnrichmentModel`` pydantic
    model (``summary``, ``category``, ``tags``) via
    ``PromptedOutput`` — no hand-rolled JSON-fence parsing.
+
+   > **Note:** Image enrichment requires the configured tier level to
+   > resolve to a vision-capable model. If tier 1 does not support
+   > vision, adjust `enrichment_llm_tier_level` accordingly.
 
 3. **Retry** — LLM calls use ``robotsix_llmio.LLMProvider.call_with_retry``
    with built-in retries. Enrichment is best-effort; a failure
