@@ -1,1 +1,0 @@
-Add `Field(description=...)` to every `Settings` property so descriptions appear in the generated JSON Schema and the deploy UI. Regenerated `config/config.schema.json` under the same diff.
