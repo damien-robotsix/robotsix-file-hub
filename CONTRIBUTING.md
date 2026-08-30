@@ -165,6 +165,19 @@ the DOM environment.  Test files live alongside their source
 
 ## Project conventions
 
+### Changelog
+
+This project uses **release-please** with **conventional commits** to
+generate `CHANGELOG.md` automatically. There is no manual changelog
+fragment step.
+
+- **Commit subjects and PR titles** must follow the
+  [Conventional Commits](https://www.conventionalcommits.org/) format:
+  `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, `ci:`.
+- **release-please** parses these on merge to `main` and updates
+  `CHANGELOG.md` as part of the release PR.
+- Do **not** add changelog fragments or towncrier-style files.
+
 ### Python
 
 - **Imports** — use absolute imports from `robotsix_file_hub.*`.  Ruff
