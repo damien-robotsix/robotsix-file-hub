@@ -13,9 +13,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 
 from src.robotsix_file_hub.enrichment import (
+    IMAGE_SENTINEL,
     EnrichmentModel,
     _embedding_input_text,
     call_llm,
+    call_llm_vision,
     enrich_file,
     extract_text,
     generate_embedding,
@@ -473,6 +475,245 @@ def test_extract_text_latin1_fallback() -> None:
     result = extract_text(b"\xff\xfe", "text/plain")
     assert result is not None
     assert len(result) == 2
+
+
+# ── Image extraction tests ─────────────────────────────────────────
+
+
+def test_extract_text_image_png() -> None:
+    """extract_text returns IMAGE_SENTINEL for image/png."""
+    result = extract_text(b"\x89PNG\r\n\x1a\n", "image/png")
+    assert result == IMAGE_SENTINEL
+
+
+def test_extract_text_image_jpeg() -> None:
+    """extract_text returns IMAGE_SENTINEL for image/jpeg."""
+    result = extract_text(b"\xff\xd8\xff", "image/jpeg")
+    assert result == IMAGE_SENTINEL
+
+
+def test_extract_text_image_gif() -> None:
+    """extract_text returns IMAGE_SENTINEL for image/gif."""
+    result = extract_text(b"GIF89a", "image/gif")
+    assert result == IMAGE_SENTINEL
+
+
+def test_extract_text_image_webp() -> None:
+    """extract_text returns IMAGE_SENTINEL for image/webp."""
+    result = extract_text(b"RIFF", "image/webp")
+    assert result == IMAGE_SENTINEL
+
+
+def test_extract_text_image_uppercase() -> None:
+    """extract_text handles uppercase image content types."""
+    result = extract_text(b"data", "IMAGE/PNG")
+    assert result == IMAGE_SENTINEL
+
+
+# ── call_llm_vision tests ──────────────────────────────────────────
+
+
+async def test_call_llm_vision_returns_parsed_fields() -> None:
+    """call_llm_vision uses llmio with BinaryContent and returns fields."""
+    mock_agent = MagicMock()
+    mock_agent.run = AsyncMock()
+    mock_result = MagicMock()
+    mock_result.output = EnrichmentModel(
+        summary="A photo of a sunset over the ocean.",
+        category="photo",
+        tags=["sunset", "ocean", "nature"],
+    )
+    mock_agent.run.return_value = mock_result
+
+    mock_provider = MagicMock()
+    mock_provider.build_agent.return_value = mock_agent
+
+    async def _fake_retry(fn, what):
+        return await fn()
+
+    mock_provider.call_with_retry = AsyncMock(side_effect=_fake_retry)
+
+    with (
+        patch(
+            "src.robotsix_file_hub.enrichment.get_provider_for_level",
+            return_value=mock_provider,
+        ),
+        patch(
+            "src.robotsix_file_hub.enrichment._wire_langfuse_env",
+        ),
+    ):
+        result = await call_llm_vision(b"\x89PNG", "image/png")
+
+    assert result["summary"] == "A photo of a sunset over the ocean."
+    assert result["category"] == "photo"
+    assert result["tags"] == ["sunset", "ocean", "nature"]
+
+    # Verify agent was built with vision enricher name
+    mock_provider.build_agent.assert_called_once()
+    _, kwargs = mock_provider.build_agent.call_args
+    assert kwargs.get("output_type") is EnrichmentModel
+    assert kwargs.get("name") == "file-hub-vision-enricher"
+
+    # Verify agent.run was called with BinaryContent list
+    mock_agent.run.assert_called_once()
+    run_args = mock_agent.run.call_args[0][0]
+    assert len(run_args) == 1
+    from pydantic_ai.messages import BinaryContent
+
+    assert isinstance(run_args[0], BinaryContent)
+    assert run_args[0].data == b"\x89PNG"
+    assert run_args[0].media_type == "image/png"
+
+
+async def test_call_llm_vision_uses_configured_tier_level() -> None:
+    """call_llm_vision passes the configured enrichment_llm_tier_level to the provider."""
+    mock_provider = MagicMock()
+    mock_agent = MagicMock()
+    mock_agent.run = AsyncMock()
+    mock_result = MagicMock()
+    mock_result.output = EnrichmentModel(summary="ok", category="img", tags=["t1"])
+    mock_agent.run.return_value = mock_result
+    mock_provider.build_agent.return_value = mock_agent
+
+    async def _fake_retry(fn, what):
+        return await fn()
+
+    mock_provider.call_with_retry = AsyncMock(side_effect=_fake_retry)
+
+    with (
+        patch(
+            "src.robotsix_file_hub.enrichment.get_provider_for_level",
+            return_value=mock_provider,
+        ) as mock_get_provider,
+        patch(
+            "src.robotsix_file_hub.enrichment._wire_langfuse_env",
+        ),
+    ):
+        import src.robotsix_file_hub.enrichment as enrichment_module
+
+        original = enrichment_module.settings.enrichment_llm_tier_level
+        enrichment_module.settings.enrichment_llm_tier_level = 2
+        try:
+            await call_llm_vision(b"data", "image/jpeg")
+            args, kwargs = mock_get_provider.call_args
+            assert args == (2,)
+        finally:
+            enrichment_module.settings.enrichment_llm_tier_level = original
+
+
+async def test_call_llm_vision_best_effort_on_failure() -> None:
+    """call_llm_vision raises on failure — enrich_file catches it for best-effort."""
+    mock_provider = MagicMock()
+    mock_provider.build_agent.return_value = MagicMock()
+    mock_provider.call_with_retry = AsyncMock(side_effect=RuntimeError("provider down"))
+
+    with (
+        patch(
+            "src.robotsix_file_hub.enrichment.get_provider_for_level",
+            return_value=mock_provider,
+        ),
+        patch(
+            "src.robotsix_file_hub.enrichment._wire_langfuse_env",
+        ),
+    ):
+        result = await enrich_file(b"\x89PNG", "image/png")
+
+    # enrich_file catches the exception → enrichment fields are None
+    assert result["category"] is None
+    assert result["tags"] is None
+    assert result["summary"] is None
+
+
+# ── enrich_file image routing tests ────────────────────────────────
+
+
+async def test_enrich_file_image_uses_vision_path() -> None:
+    """enrich_file routes image content types through call_llm_vision."""
+    with (
+        patch(
+            "src.robotsix_file_hub.enrichment.call_llm_vision",
+            new=AsyncMock(
+                return_value={
+                    "summary": "A beautiful sunset photo.",
+                    "category": "photo",
+                    "tags": ["sunset", "nature"],
+                }
+            ),
+        ) as mock_vision,
+        patch(
+            "src.robotsix_file_hub.enrichment.call_llm",
+            new=AsyncMock(),
+        ) as mock_text,
+        patch(
+            "src.robotsix_file_hub.enrichment.generate_embedding",
+            new=AsyncMock(return_value=[0.1, 0.2]),
+        ),
+    ):
+        result = await enrich_file(b"\x89PNG image data", "image/png")
+
+    # Vision path was called, text path was not
+    mock_vision.assert_called_once_with(b"\x89PNG image data", "image/png")
+    mock_text.assert_not_called()
+
+    assert result["category"] == "photo"
+    assert result["tags"] == "sunset,nature"
+    assert result["summary"] == "A beautiful sunset photo."
+    assert result["embedding"] == json.dumps([0.1, 0.2])
+
+
+async def test_enrich_file_image_sentinel_not_in_metadata() -> None:
+    """The IMAGE_SENTINEL value never appears in enrichment output fields."""
+    with (
+        patch(
+            "src.robotsix_file_hub.enrichment.call_llm_vision",
+            new=AsyncMock(
+                return_value={
+                    "summary": "An image.",
+                    "category": "image",
+                    "tags": ["photo"],
+                }
+            ),
+        ),
+        patch(
+            "src.robotsix_file_hub.enrichment.generate_embedding",
+            new=AsyncMock(return_value=[0.1]),
+        ),
+    ):
+        result = await enrich_file(b"image bytes", "image/jpeg")
+
+    # Sentinel must not leak into any output field
+    for value in result.values():
+        if value is not None:
+            assert IMAGE_SENTINEL not in str(value)
+
+
+async def test_enrich_file_text_path_unchanged() -> None:
+    """enrich_file still uses call_llm (not call_llm_vision) for text content."""
+    with (
+        patch(
+            "src.robotsix_file_hub.enrichment.call_llm",
+            new=AsyncMock(
+                return_value={
+                    "summary": "A text document.",
+                    "category": "document",
+                    "tags": ["text"],
+                }
+            ),
+        ) as mock_text,
+        patch(
+            "src.robotsix_file_hub.enrichment.call_llm_vision",
+            new=AsyncMock(),
+        ) as mock_vision,
+        patch(
+            "src.robotsix_file_hub.enrichment.generate_embedding",
+            new=AsyncMock(return_value=[0.3]),
+        ),
+    ):
+        result = await enrich_file(b"Hello world", "text/plain")
+
+    mock_text.assert_called_once()
+    mock_vision.assert_not_called()
+    assert result["category"] == "document"
 
 
 # ── Config shape tests ─────────────────────────────────────────────

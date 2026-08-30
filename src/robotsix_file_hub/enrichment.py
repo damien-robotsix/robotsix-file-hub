@@ -4,6 +4,9 @@ Extracts text from common file types (PDF, plain text, DOCX, XLSX)
 and calls robotsix-llmio (OpenRouter transport) to generate summary,
 category, and tags via structured output (:class:`EnrichmentModel`).
 
+Images (``image/*``) are handled via a vision-capable LLM call that
+sends the raw image bytes as multimodal content.
+
 Embeddings go to the dedicated ``embedding.endpoint`` (shared bge-m3
 server) — no llmio involvement.
 
@@ -21,9 +24,14 @@ from typing import Any, cast
 
 import httpx
 from pydantic import BaseModel, Field
+from pydantic_ai.messages import BinaryContent
 from robotsix_llmio import get_provider_for_level
 
 from .config import get_settings
+
+# Sentinel returned by :func:`extract_text` for ``image/*`` content types.
+# Signals :func:`enrich_file` to use the vision LLM path instead of text.
+IMAGE_SENTINEL = "__IMAGE__"
 
 logger = logging.getLogger(__name__)
 
@@ -122,6 +130,10 @@ def extract_text(content: bytes, content_type: str) -> str | None:
             logger.warning("Failed to extract text from XLSX", exc_info=True)
             return None
 
+    # ── Images ──────────────────────────────────────────────────────
+    if content_type_lower.startswith("image/"):
+        return IMAGE_SENTINEL
+
     return None
 
 
@@ -214,7 +226,65 @@ async def call_llm(text: str) -> dict[str, Any]:
     }
 
 
-# ── Embedding generation ─────────────────────────────────────────────
+async def call_llm_vision(image_bytes: bytes, content_type: str) -> dict[str, Any]:
+    """Call robotsix-llmio with a vision-capable model for image enrichment.
+
+    Sends the image as :class:`BinaryContent` multimodal input so the LLM
+    can see the image directly.  Returns the same ``EnrichmentModel`` fields
+    as :func:`call_llm`.
+
+    Raises ``Exception`` on failure (best-effort — caller catches).
+    """
+    _wire_langfuse_env()
+
+    level = settings.enrichment_llm_tier_level
+
+    or_key = settings.openrouter.keys.get("robotsix-file-hub")
+    api_key: str | None = None
+    if or_key is not None:
+        api_key = or_key.get_secret_value()
+
+    provider = get_provider_for_level(level, api_key=api_key)
+
+    prompt = (
+        "Analyze the following image and return a JSON object "
+        "with exactly three fields:\n"
+        '  "summary": a 1-3 sentence description of the image,\n'
+        '  "category": a single category label (e.g. "image", "photo", '
+        '"diagram", "screenshot", "document", "chart", "art", "other"),\n'
+        '  "tags": a list of up to 10 keyword tags (strings).\n'
+        "Respond with only the JSON object, no other text."
+    )
+
+    agent = provider.build_agent(
+        level=level,
+        system_prompt=prompt,
+        output_type=EnrichmentModel,
+        name="file-hub-vision-enricher",
+        retries=2,
+        builtin_tools=False,
+        web_tools=False,
+    )
+
+    image_content = BinaryContent(data=image_bytes, media_type=content_type)
+
+    async def _run() -> EnrichmentModel:
+        result = await agent.run([image_content])
+        return cast(EnrichmentModel, result.output)
+
+    model_result = cast(
+        EnrichmentModel,
+        await provider.call_with_retry(
+            _run,
+            what="LLM vision enrichment",
+        ),
+    )
+
+    return {
+        "summary": model_result.summary or "",
+        "category": model_result.category or "",
+        "tags": model_result.tags or [],
+    }
 
 
 async def generate_embedding(text: str) -> list[float] | None:
@@ -267,7 +337,10 @@ async def enrich_file(content: bytes, content_type: str) -> dict[str, str | None
         return {"category": None, "tags": None, "summary": None, "embedding": None}
 
     try:
-        llm_result = await call_llm(text)
+        if text == IMAGE_SENTINEL:
+            llm_result = await call_llm_vision(content, content_type)
+        else:
+            llm_result = await call_llm(text)
         summary_text = llm_result.get("summary", "")
         category = llm_result["category"] or None
         tags = ",".join(llm_result["tags"]) or None
