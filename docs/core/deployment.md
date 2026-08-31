@@ -62,6 +62,29 @@ server {
 
 ---
 
+## System Dependencies
+
+The enrichment pipeline uses `pdf2image` to render scanned/image-based
+PDFs to page images for vision-LLM enrichment. `pdf2image` shells out to
+the Poppler PDF rendering library (specifically the `pdftoppm` binary).
+
+- **Docker:** The `poppler-utils` package is installed automatically in
+  the runtime image — no action needed.
+- **Bare-metal / venv:** Install Poppler with your system package manager:
+
+  | Distribution | Command |
+  |---|---|
+  | Debian / Ubuntu | `apt-get install -y poppler-utils` |
+  | Fedora / RHEL | `dnf install -y poppler-utils` |
+  | Alpine | `apk add poppler-utils` |
+  | macOS (Homebrew) | `brew install poppler` |
+
+  Verify with `which pdftoppm`. If Poppler is missing, enrichment of
+  scanned PDFs will fail gracefully (enrichment fields are left null), but
+  no exception is raised to the uploader.
+
+---
+
 ## Storage
 
 ### Local filesystem (default)

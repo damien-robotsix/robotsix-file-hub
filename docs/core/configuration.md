@@ -45,16 +45,22 @@ The LLM tier level selects the model capability (1–4, default 1 for cheap extr
 
 **Supported content types:**
 - **Text-based:** plain text, Markdown, code, PDF (text layer), DOCX, XLSX
+- **Scanned / image-based PDFs:** PDFs where pypdf extracts no embedded text
+  are detected automatically and rendered page-by-page via `pdf2image`
+  (Poppler `pdftoppm`), then fed through the same vision LLM pipeline as
+  `image/*` content. Multi-page PDFs are sent to the vision LLM one page at
+  a time and the per-page results are merged (summaries joined, first
+  category taken, tags deduplicated).
 - **Images:** PNG, JPEG, GIF, WebP, and other `image/*` types — sent to a vision-capable LLM as multimodal input
 
-> **Note:** Image enrichment requires the configured tier level to resolve to a
-> vision-capable model. If tier 1 does not support vision, set
-> `enrichment_llm_tier_level` to a higher tier (e.g., 2 or 3) that includes
-> vision-capable models in your llmio configuration.
+> **Note:** Image and scanned-PDF enrichment requires the configured tier
+> level to resolve to a vision-capable model. If tier 1 does not support
+> vision, set `enrichment_llm_tier_level` to a higher tier (e.g., 2 or 3)
+> that includes vision-capable models in your llmio configuration.
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `enrichment_llm_tier_level` | `int` | `1` | Capability tier level for LLM enrichment (1–4). Higher tiers use more capable models. Must resolve to a vision-capable model for image enrichment. |
+| `enrichment_llm_tier_level` | `int` | `1` | Capability tier level for LLM enrichment (1–4). Higher tiers use more capable models. Must resolve to a vision-capable model for image/scanned-PDF enrichment. |
 
 ### Langfuse Observability
 
