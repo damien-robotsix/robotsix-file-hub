@@ -418,6 +418,66 @@ async def test_reindex_all_filtered_by_file_ids(tasks_test_env) -> None:
         tasks_module.enqueue_enrichment = original_enqueue
 
 
+async def test_reindex_all_filtered_by_enrichment_status_empty(tasks_test_env) -> None:
+    """enqueue_reindex_all with enrichment_status='empty' selects only unenriched files."""
+    import src.robotsix_file_hub.tasks as tasks_module
+
+    session_factory, _storage = tasks_test_env
+
+    async with session_factory() as session:
+        session.add_all(
+            [
+                FileRecord(
+                    id="r1",
+                    filename="a.txt",
+                    size=10,
+                    content_type="text/plain",
+                    checksum="aa",
+                    storage_key="/tmp/a.txt",
+                    # No summary/embedding — should be selected
+                ),
+                FileRecord(
+                    id="r2",
+                    filename="b.png",
+                    size=20,
+                    content_type="image/png",
+                    checksum="bb",
+                    storage_key="/tmp/b.png",
+                    summary="A photo of a cat",
+                ),
+                FileRecord(
+                    id="r3",
+                    filename="c.txt",
+                    size=30,
+                    content_type="text/plain",
+                    checksum="cc",
+                    storage_key="/tmp/c.txt",
+                    # No summary/embedding — should be selected
+                ),
+            ]
+        )
+        await session.commit()
+
+    enqueued: list[tuple[str, str, str]] = []
+    original_enqueue = tasks_module.enqueue_enrichment
+
+    def _capture_enqueue(*, file_id: str, storage_key: str, content_type: str) -> None:
+        enqueued.append((file_id, storage_key, content_type))
+
+    tasks_module.enqueue_enrichment = _capture_enqueue  # type: ignore[assignment]
+
+    try:
+        result = await tasks_module.enqueue_reindex_all(enrichment_status="empty")
+
+        assert result["enqueued"] == 2
+        assert len(enqueued) == 2
+        file_ids = {e[0] for e in enqueued}
+        assert file_ids == {"r1", "r3"}
+
+    finally:
+        tasks_module.enqueue_enrichment = original_enqueue
+
+
 async def test_reindex_progress_tracking(tasks_test_env) -> None:
     """Progress counters update as enrichment jobs complete in a reindex batch.
 

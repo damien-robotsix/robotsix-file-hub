@@ -196,11 +196,15 @@ async def enqueue_reindex_all(
     category: str | None = None,
     content_type: str | None = None,
     file_ids: Sequence[str] | None = None,
+    enrichment_status: str | None = None,
 ) -> dict[str, int | str]:
     """Enqueue enrichment jobs for every file currently in the database.
 
     Accepts optional filters to limit which files are re-indexed.
     Resets the global progress counters before enqueuing.
+
+    When *enrichment_status* is ``"empty"``, only files whose
+    enrichment was skipped (``summary`` is ``NULL``) are selected.
 
     Returns a count of how many jobs were enqueued.
     """
@@ -213,6 +217,8 @@ async def enqueue_reindex_all(
         stmt = stmt.where(FileRecord.content_type == content_type)
     if file_ids is not None:
         stmt = stmt.where(FileRecord.id.in_(list(file_ids)))
+    if enrichment_status == "empty":
+        stmt = stmt.where(FileRecord.summary.is_(None))
 
     async with async_session_factory() as session:
         result = await session.execute(stmt)
