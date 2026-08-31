@@ -445,11 +445,19 @@ async def reindex_files(
     file_ids: Annotated[
         str | None, Query(description="Comma-separated file IDs to re-index")
     ] = None,
+    enrichment_status: Annotated[
+        str | None,
+        Query(
+            description="Filter by enrichment status. "
+            "Use 'empty' to select only files that were never enriched."
+        ),
+    ] = None,
 ) -> dict[str, int | str]:
     """Enqueue enrichment jobs for existing files, optionally filtered.
 
-    Query parameters allow filtering by category, content_type, or
-    a comma-separated list of specific file IDs.
+    Query parameters allow filtering by category, content_type,
+    a comma-separated list of specific file IDs, or enrichment_status
+    (``empty`` selects files with no summary/embedding).
     """
     parsed_file_ids: list[str] | None = None
     if file_ids is not None:
@@ -459,6 +467,7 @@ async def reindex_files(
         category=category,
         content_type=content_type,
         file_ids=parsed_file_ids,
+        enrichment_status=enrichment_status,
     )
 
 
