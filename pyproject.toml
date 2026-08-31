@@ -11,6 +11,9 @@ requires-python = ">=3.14"
 dependencies = [
     "robotsix-config @ git+https://github.com/damien-robotsix/robotsix-config.git@feabed320883760ec0f449469870d45f73d87194",
     "robotsix-llmio[openrouter]>=0.4.0",
+    # enrichment.py imports pydantic_ai directly (vision path, PR #273) — declare
+    # it explicitly instead of leaning on robotsix-llmio's transitive pin (deptry DEP003).
+    "pydantic-ai-slim>=2.33.0",
     "aiosqlite>=0.20.0",
     "asyncpg>=0.30.0",
     "fastapi>=0.141.1",
