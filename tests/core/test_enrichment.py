@@ -14,8 +14,11 @@ import httpx
 
 from src.robotsix_file_hub.enrichment import (
     IMAGE_SENTINEL,
+    SCANNED_PDF_SENTINEL,
     EnrichmentModel,
     _embedding_input_text,
+    _merge_page_results,
+    _render_pdf_pages,
     call_llm,
     call_llm_vision,
     enrich_file,
@@ -510,7 +513,139 @@ def test_extract_text_image_uppercase() -> None:
     assert result == IMAGE_SENTINEL
 
 
-# ── call_llm_vision tests ──────────────────────────────────────────
+# ── Scanned PDF extraction tests ───────────────────────────────────
+
+
+def test_extract_text_scanned_pdf_returns_sentinel() -> None:
+    """extract_text returns SCANNED_PDF_SENTINEL for scanned/image-based PDFs."""
+    mock_page = MagicMock()
+    mock_page.extract_text.return_value = ""
+
+    mock_reader = MagicMock()
+    mock_reader.pages = [mock_page]
+
+    with patch("pypdf.PdfReader", return_value=mock_reader):
+        result = extract_text(b"%PDF-1.4 fake content", "application/pdf")
+
+    assert result == SCANNED_PDF_SENTINEL
+
+
+def test_extract_text_scanned_pdf_whitespace_only() -> None:
+    """extract_text returns SCANNED_PDF_SENTINEL when pypdf extracts only whitespace."""
+    mock_page = MagicMock()
+    mock_page.extract_text.return_value = "   \n\t  "
+
+    mock_reader = MagicMock()
+    mock_reader.pages = [mock_page]
+
+    with patch("pypdf.PdfReader", return_value=mock_reader):
+        result = extract_text(b"%PDF-1.4 fake", "application/pdf")
+
+    assert result == SCANNED_PDF_SENTINEL
+
+
+def test_extract_text_pdf_with_embedded_text() -> None:
+    """extract_text returns extracted text for PDFs with embedded text (no regression)."""
+    mock_page = MagicMock()
+    mock_page.extract_text.return_value = "This is embedded text."
+
+    mock_reader = MagicMock()
+    mock_reader.pages = [mock_page]
+
+    with patch("pypdf.PdfReader", return_value=mock_reader):
+        result = extract_text(b"%PDF-1.4 fake", "application/pdf")
+
+    assert result == "This is embedded text."
+    assert result != SCANNED_PDF_SENTINEL
+
+
+# ── _render_pdf_pages tests ────────────────────────────────────────
+
+
+def test_render_pdf_pages_returns_png_bytes() -> None:
+    """_render_pdf_pages converts PDF pages to PNG bytes."""
+    from PIL import Image
+
+    img = Image.new("RGB", (10, 10), color="red")
+
+    with patch("pdf2image.convert_from_bytes", return_value=[img]):
+        result = _render_pdf_pages(b"%PDF-1.4 fake")
+
+    assert len(result) == 1
+    # Verify it's valid PNG bytes (PNG magic bytes)
+    assert result[0][:4] == b"\x89PNG"
+
+
+def test_render_pdf_pages_multi_page() -> None:
+    """_render_pdf_pages handles multiple pages."""
+    from PIL import Image
+
+    img1 = Image.new("RGB", (10, 10), color="red")
+    img2 = Image.new("RGB", (10, 10), color="blue")
+    img3 = Image.new("RGB", (10, 10), color="green")
+
+    with patch("pdf2image.convert_from_bytes", return_value=[img1, img2, img3]):
+        result = _render_pdf_pages(b"%PDF-1.4 fake")
+
+    assert len(result) == 3
+    for page_bytes in result:
+        assert page_bytes[:4] == b"\x89PNG"
+
+
+# ── _merge_page_results tests ─────────────────────────────────────
+
+
+def test_merge_page_results_all_fields() -> None:
+    """_merge_page_results merges summaries, takes first category, deduplicates tags."""
+    page_results = [
+        {"summary": "Page 1.", "category": "document", "tags": ["tag1", "tag2"]},
+        {"summary": "Page 2.", "category": "image", "tags": ["tag2", "tag3"]},
+    ]
+    result = _merge_page_results(page_results)
+    assert result["summary"] == "Page 1. Page 2."
+    assert result["category"] == "document"
+    assert result["tags"] == ["tag1", "tag2", "tag3"]
+
+
+def test_merge_page_results_empty() -> None:
+    """_merge_page_results returns empty result for empty input."""
+    result = _merge_page_results([])
+    assert result["summary"] == ""
+    assert result["category"] is None
+    assert result["tags"] == []
+
+
+def test_merge_page_results_single_page() -> None:
+    """_merge_page_results passes through single page results."""
+    page_results = [
+        {"summary": "Only page.", "category": "photo", "tags": ["sunset"]},
+    ]
+    result = _merge_page_results(page_results)
+    assert result["summary"] == "Only page."
+    assert result["category"] == "photo"
+    assert result["tags"] == ["sunset"]
+
+
+def test_merge_page_results_tags_capped_at_10() -> None:
+    """_merge_page_results caps deduplicated tags at 10."""
+    page_results = [
+        {"summary": "p1", "category": "doc", "tags": [f"tag{i}" for i in range(8)]},
+        {"summary": "p2", "category": "doc", "tags": [f"tag{i}" for i in range(5, 15)]},
+    ]
+    result = _merge_page_results(page_results)
+    assert len(result["tags"]) == 10
+
+
+def test_merge_page_results_missing_fields() -> None:
+    """_merge_page_results handles pages with missing fields gracefully."""
+    page_results = [
+        {"summary": "", "category": None, "tags": []},
+        {"summary": "Page 2.", "category": "document", "tags": ["tag1"]},
+    ]
+    result = _merge_page_results(page_results)
+    assert result["summary"] == "Page 2."
+    assert result["category"] == "document"
+    assert result["tags"] == ["tag1"]
 
 
 async def test_call_llm_vision_returns_parsed_fields() -> None:
@@ -716,7 +851,174 @@ async def test_enrich_file_text_path_unchanged() -> None:
     assert result["category"] == "document"
 
 
-# ── Config shape tests ─────────────────────────────────────────────
+# ── enrich_file scanned PDF routing tests ──────────────────────────
+
+
+async def test_enrich_file_scanned_pdf_uses_vision_path() -> None:
+    """enrich_file routes scanned PDFs through the vision LLM path."""
+    with (
+        patch(
+            "src.robotsix_file_hub.enrichment.extract_text",
+            return_value=SCANNED_PDF_SENTINEL,
+        ),
+        patch(
+            "src.robotsix_file_hub.enrichment._render_pdf_pages",
+            return_value=[b"page1_png", b"page2_png"],
+        ),
+        patch(
+            "src.robotsix_file_hub.enrichment.call_llm_vision",
+            new=AsyncMock(
+                return_value={
+                    "summary": "Page content.",
+                    "category": "document",
+                    "tags": ["pdf", "scanned"],
+                }
+            ),
+        ) as mock_vision,
+        patch(
+            "src.robotsix_file_hub.enrichment.call_llm",
+            new=AsyncMock(),
+        ) as mock_text,
+        patch(
+            "src.robotsix_file_hub.enrichment.generate_embedding",
+            new=AsyncMock(return_value=[0.1, 0.2]),
+        ),
+    ):
+        result = await enrich_file(b"%PDF-1.4 fake", "application/pdf")
+
+    # Vision was called for each page, text path was not
+    assert mock_vision.call_count == 2
+    mock_text.assert_not_called()
+
+    assert result["category"] == "document"
+    assert result["tags"] == "pdf,scanned"
+    assert result["summary"] == "Page content. Page content."
+    assert result["embedding"] == json.dumps([0.1, 0.2])
+
+
+async def test_enrich_file_scanned_pdf_multi_page_merge() -> None:
+    """enrich_file merges results from multiple scanned PDF pages."""
+    page_results = [
+        {
+            "summary": "Page 1 content.",
+            "category": "document",
+            "tags": ["page1", "common"],
+        },
+        {
+            "summary": "Page 2 content.",
+            "category": "document",
+            "tags": ["page2", "common"],
+        },
+    ]
+
+    call_count = 0
+
+    async def mock_vision_call(image_bytes: bytes, content_type: str) -> dict:
+        nonlocal call_count
+        result = page_results[call_count]
+        call_count += 1
+        return result
+
+    with (
+        patch(
+            "src.robotsix_file_hub.enrichment.extract_text",
+            return_value=SCANNED_PDF_SENTINEL,
+        ),
+        patch(
+            "src.robotsix_file_hub.enrichment._render_pdf_pages",
+            return_value=[b"page1", b"page2"],
+        ),
+        patch(
+            "src.robotsix_file_hub.enrichment.call_llm_vision",
+            side_effect=mock_vision_call,
+        ),
+        patch(
+            "src.robotsix_file_hub.enrichment.generate_embedding",
+            new=AsyncMock(return_value=[0.1]),
+        ),
+    ):
+        result = await enrich_file(b"%PDF-1.4 fake", "application/pdf")
+
+    assert result["summary"] == "Page 1 content. Page 2 content."
+    assert result["category"] == "document"
+    # Tags should be deduplicated: page1, common, page2
+    assert result["tags"] == "page1,common,page2"
+
+
+async def test_enrich_file_scanned_pdf_failure_graceful() -> None:
+    """enrich_file returns None fields when scanned PDF rendering fails."""
+    with (
+        patch(
+            "src.robotsix_file_hub.enrichment.extract_text",
+            return_value=SCANNED_PDF_SENTINEL,
+        ),
+        patch(
+            "src.robotsix_file_hub.enrichment._render_pdf_pages",
+            side_effect=RuntimeError("poppler not installed"),
+        ),
+    ):
+        result = await enrich_file(b"%PDF-1.4 fake", "application/pdf")
+
+    assert result["category"] is None
+    assert result["tags"] is None
+    assert result["summary"] is None
+    assert result["embedding"] is None
+
+
+async def test_enrich_file_scanned_pdf_vision_failure_graceful() -> None:
+    """enrich_file returns None fields when vision LLM fails for scanned PDF."""
+    with (
+        patch(
+            "src.robotsix_file_hub.enrichment.extract_text",
+            return_value=SCANNED_PDF_SENTINEL,
+        ),
+        patch(
+            "src.robotsix_file_hub.enrichment._render_pdf_pages",
+            return_value=[b"page1"],
+        ),
+        patch(
+            "src.robotsix_file_hub.enrichment.call_llm_vision",
+            new=AsyncMock(side_effect=RuntimeError("vision model down")),
+        ),
+    ):
+        result = await enrich_file(b"%PDF-1.4 fake", "application/pdf")
+
+    assert result["category"] is None
+    assert result["tags"] is None
+    assert result["summary"] is None
+
+
+async def test_enrich_file_pdf_with_text_uses_text_path() -> None:
+    """enrich_file uses the text LLM path for PDFs with embedded text (no regression)."""
+    with (
+        patch(
+            "src.robotsix_file_hub.enrichment.extract_text",
+            return_value="Extracted PDF text content",
+        ),
+        patch(
+            "src.robotsix_file_hub.enrichment.call_llm",
+            new=AsyncMock(
+                return_value={
+                    "summary": "A PDF document.",
+                    "category": "document",
+                    "tags": ["pdf"],
+                }
+            ),
+        ) as mock_text,
+        patch(
+            "src.robotsix_file_hub.enrichment.call_llm_vision",
+            new=AsyncMock(),
+        ) as mock_vision,
+        patch(
+            "src.robotsix_file_hub.enrichment.generate_embedding",
+            new=AsyncMock(return_value=[0.1]),
+        ),
+    ):
+        result = await enrich_file(b"%PDF-1.4 fake", "application/pdf")
+
+    mock_text.assert_called_once()
+    mock_vision.assert_not_called()
+    assert result["category"] == "document"
 
 
 class TestConfigShape:

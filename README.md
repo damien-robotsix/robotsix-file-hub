@@ -29,8 +29,9 @@ with AI-generated metadata and vector-powered hybrid search.
 - **AI Pipeline** — uses **robotsix-llmio** (OpenRouter) for LLM enrichment
   (defaults to tier level 1 for cheap extraction) and a dedicated
   OpenAI-compatible embedding server (shared bge-m3, 1024-dim). Supports
-  text-based files (PDF, DOCX, XLSX, plain text) and images (PNG, JPEG,
-  etc.) via vision-capable LLMs.
+  text-based files (PDF, DOCX, XLSX, plain text), text-bearing PDFs via
+  pypdf extraction, scanned/image-based PDFs via pdf2image page rendering,
+  and images (PNG, JPEG, etc.) via vision-capable LLMs.
 
 For a deeper dive into the internal design, see **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
@@ -45,6 +46,12 @@ For a deeper dive into the internal design, see **[ARCHITECTURE.md](ARCHITECTURE
   backend)
 - (Optional) [Ollama](https://ollama.com/) or any OpenAI-compatible LLM API
   for file enrichment
+- System libraries: `poppler-utils` (provides `pdftoppm`, required by
+  `pdf2image` for scanned PDF page rendering). Installed automatically in
+  the Docker image. For manual setup, install with your package manager:
+  - Debian/Ubuntu: `apt-get install poppler-utils`
+  - macOS: `brew install poppler`
+  - Fedora/RHEL: `dnf install poppler-utils`
 
 ### Docker Compose (recommended)
 
@@ -198,23 +205,3 @@ The Vite dev server proxies `/api` (stripping the prefix) and `/files` to
 
 ## Testing conventions
 
-All test files must use the shared fixtures from [`tests/core/conftest.py`](tests/core/conftest.py)
-(`test_client`, `test_db_session`, `test_storage`, `test_session_factory`)
-instead of duplicating SQLAlchemy engine/session/client/storage setup inline.
-File-local fixtures are acceptable only when monkey-patching module globals
-(e.g., `tasks_module.async_session_factory`) — otherwise they create
-maintenance duplication.
-
-## Deployment
-
-See [`docs/core/deployment.md`](docs/core/deployment.md) for production deployment
-considerations (database migration, reverse proxy setup).
-
-## Contributing
-
-See **[CONTRIBUTING.md](CONTRIBUTING.md)** for developer setup, coding
-conventions, and the pull request process.
-
-## License
-
-Proprietary — Robotsix internal.

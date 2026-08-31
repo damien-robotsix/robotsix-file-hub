@@ -29,6 +29,7 @@ modules:
       - docs/core/API.md
       - docs/core/configuration.md
       - docs/core/deployment.md
+      - docs/guides/scanned-pdf-prep.md
       - docs/modules.yaml
       - migrations/env.py
       - migrations/script.py.mako

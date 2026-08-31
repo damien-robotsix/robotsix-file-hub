@@ -30,6 +30,12 @@ RUN uv sync --no-dev --frozen
 # Stage 3: Runtime
 FROM python:3.14-slim@sha256:ce40764625a4ff50df3548277632e7f96c4e77fe75fa848aae9885476e7df5a4 AS runtime
 RUN useradd --create-home --uid 1000 app
+# poppler-utils provides pdftoppm, required by pdf2image for scanned PDF page
+# rendering.  Installed in the runtime stage only (not the builder).
+# hadolint ignore=DL3008
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /home/app
 
 # Copy Python venv and source.  uv is deliberately NOT copied here: `uv run`

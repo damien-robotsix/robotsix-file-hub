@@ -928,7 +928,7 @@ async def test_extract_text_unsupported() -> None:
 
 async def test_extract_text_pdf_empty() -> None:
     """extract_text handles PDFs gracefully even if empty/corrupt."""
-    from src.robotsix_file_hub.enrichment import extract_text
+    from src.robotsix_file_hub.enrichment import SCANNED_PDF_SENTINEL, extract_text
 
     # Minimal valid PDF
     pdf_bytes = (
@@ -941,5 +941,5 @@ async def test_extract_text_pdf_empty() -> None:
         b"trailer\n<< /Size 4 /Root 1 0 R >>\nstartxref\n190\n%%EOF"
     )
     result = extract_text(pdf_bytes, "application/pdf")
-    # PDF has no text content, so result should be None or empty string
-    assert result is None or result == ""
+    # PDF has no embedded text → classified as scanned/image-based PDF
+    assert result == SCANNED_PDF_SENTINEL
