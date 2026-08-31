@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.12.0](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.11.0...v0.12.0) (2026-08-31)
+
+
+### Features
+
+* Deduplicate uploads: reject or reuse when an identical file already exists (checksum match) (20260825T070613Z-deduplicate-uploads-reject-or-reuse-when-85ef) ([#257](https://github.com/damien-robotsix/robotsix-file-hub/issues/257)) ([70a093f](https://github.com/damien-robotsix/robotsix-file-hub/commit/70a093f129736e7aa1a8169bed0d4fe9ebe50f8a))
+* File-hub config write cannot delete stale keys (20260824T071603Z-file-hub-config-write-cannot-delete-stal-0830) ([#264](https://github.com/damien-robotsix/robotsix-file-hub/issues/264)) ([119179a](https://github.com/damien-robotsix/robotsix-file-hub/commit/119179a6b1827a21678a8bbfac44f0b690189620))
+* robotsix-file-hub: Enable trace_review periodic workflow (20260828T164926Z-robotsix-file-hub-enable-trace-review-pe-dd87) ([#265](https://github.com/damien-robotsix/robotsix-file-hub/issues/265)) ([8811eee](https://github.com/damien-robotsix/robotsix-file-hub/commit/8811eeefd719963262ad99c359fe8f3c300e6e83))
+* Serve files inline for preview (Content-Disposition: inline) so PDFs can be rendered in a browser (20260825T191038Z-serve-files-inline-for-preview-content-d-a024) ([#260](https://github.com/damien-robotsix/robotsix-file-hub/issues/260)) ([a8851da](https://github.com/damien-robotsix/robotsix-file-hub/commit/a8851daffa6f89f61cd2ec997383826b6e0d1a46))
+
+
+### Bug Fixes
+
+* **deps:** declare pydantic-ai-slim — enrichment imports it directly ([#275](https://github.com/damien-robotsix/robotsix-file-hub/issues/275)) ([7e039f6](https://github.com/damien-robotsix/robotsix-file-hub/commit/7e039f6c8268c4f1e7d161406d9efae8c58faa9a))
+* Expose inline PDF preview in file-hub to support visual verification workflows (20260825T210259Z-expose-inline-pdf-preview-in-file-hub-to-a9f1) ([#261](https://github.com/damien-robotsix/robotsix-file-hub/issues/261)) ([fb2cec7](https://github.com/damien-robotsix/robotsix-file-hub/commit/fb2cec7b22b99f9f70b9a60f8d376250a8845b26))
+
 ## [0.11.0](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.10.0...v0.11.0) (2026-08-24)
 
 
