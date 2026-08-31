@@ -7,7 +7,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # Stage 2: Build Python dependencies
-FROM python:3.14-slim@sha256:ce40764625a4ff50df3548277632e7f96c4e77fe75fa848aae9885476e7df5a4 AS builder
+FROM python:3.14-slim@sha256:cae66f2ef0ec51a9891263eeee7f987dacf0a9879e8aa9353d5606e0530619a5 AS builder
 # git is required at BUILD time only: robotsix-http is a git dependency
 # (pyproject.toml [tool.uv.sources]), and uv shells out to git to fetch it.
 # python:*-slim ships without git, so `uv sync` fails with "Git executable not
@@ -28,7 +28,7 @@ COPY src/ ./src/
 RUN uv sync --no-dev --frozen
 
 # Stage 3: Runtime
-FROM python:3.14-slim@sha256:ce40764625a4ff50df3548277632e7f96c4e77fe75fa848aae9885476e7df5a4 AS runtime
+FROM python:3.14-slim@sha256:cae66f2ef0ec51a9891263eeee7f987dacf0a9879e8aa9353d5606e0530619a5 AS runtime
 RUN useradd --create-home --uid 1000 app
 # poppler-utils provides pdftoppm, required by pdf2image for scanned PDF page
 # rendering.  Installed in the runtime stage only (not the builder).
