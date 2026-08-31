@@ -7,6 +7,10 @@ category, and tags via structured output (:class:`EnrichmentModel`).
 Images (``image/*``) are handled via a vision-capable LLM call that
 sends the raw image bytes as multimodal content.
 
+Scanned/image-based PDFs (where pypdf extracts no embedded text) are
+rendered to page images via ``pdf2image`` and fed through the same
+vision LLM pipeline as images.
+
 Embeddings go to the dedicated ``embedding.endpoint`` (shared bge-m3
 server) — no llmio involvement.
 
@@ -32,6 +36,11 @@ from .config import get_settings
 # Sentinel returned by :func:`extract_text` for ``image/*`` content types.
 # Signals :func:`enrich_file` to use the vision LLM path instead of text.
 IMAGE_SENTINEL = "__IMAGE__"
+
+# Sentinel returned by :func:`extract_text` for scanned/image-based PDFs
+# where pypdf extracts no embedded text.  Signals :func:`enrich_file` to
+# render pages to images and use the vision LLM path.
+SCANNED_PDF_SENTINEL = "__SCANNED_PDF__"
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +96,10 @@ def extract_text(content: bytes, content_type: str) -> str | None:
                 if page_text:
                     parts.append(page_text)
             text = "\n".join(parts).strip()
-            return text or None
+            if text:
+                return text
+            # Empty text → scanned/image-based PDF
+            return SCANNED_PDF_SENTINEL
         except Exception:
             logger.warning("Failed to extract text from PDF", exc_info=True)
             return None
@@ -135,6 +147,57 @@ def extract_text(content: bytes, content_type: str) -> str | None:
         return IMAGE_SENTINEL
 
     return None
+
+
+# ── Scanned PDF helpers ────────────────────────────────────────────
+
+
+def _render_pdf_pages(content: bytes) -> list[bytes]:
+    """Render each page of a PDF to PNG bytes using pdf2image.
+
+    Requires the ``poppler`` system library to be installed.
+    Raises ``Exception`` on failure (best-effort — caller catches).
+    """
+    from io import BytesIO
+
+    from pdf2image import convert_from_bytes
+
+    images = convert_from_bytes(content, fmt="png")
+    page_images: list[bytes] = []
+    for img in images:
+        buf = BytesIO()
+        img.save(buf, format="PNG")
+        page_images.append(buf.getvalue())
+    return page_images
+
+
+def _merge_page_results(page_results: list[dict[str, Any]]) -> dict[str, Any]:
+    """Merge enrichment results from multiple PDF pages.
+
+    Combines summaries by joining, takes the first category, and
+    deduplicates tags (preserving order, capped at 10).
+    """
+    if not page_results:
+        return {"summary": "", "category": None, "tags": []}
+
+    summaries = [r.get("summary", "") for r in page_results if r.get("summary")]
+    categories = [r.get("category") for r in page_results if r.get("category")]
+    all_tags: list[str] = []
+    for r in page_results:
+        all_tags.extend(r.get("tags", []))
+
+    seen: set[str] = set()
+    unique_tags: list[str] = []
+    for tag in all_tags:
+        if tag not in seen:
+            seen.add(tag)
+            unique_tags.append(tag)
+
+    return {
+        "summary": " ".join(summaries),
+        "category": categories[0] if categories else None,
+        "tags": unique_tags[:10],
+    }
 
 
 # ── Langfuse environment wiring ────────────────────────────────────
@@ -339,6 +402,13 @@ async def enrich_file(content: bytes, content_type: str) -> dict[str, str | None
     try:
         if text == IMAGE_SENTINEL:
             llm_result = await call_llm_vision(content, content_type)
+        elif text == SCANNED_PDF_SENTINEL:
+            page_images = _render_pdf_pages(content)
+            page_results = []
+            for page_bytes in page_images:
+                result = await call_llm_vision(page_bytes, "image/png")
+                page_results.append(result)
+            llm_result = _merge_page_results(page_results)
         else:
             llm_result = await call_llm(text)
         summary_text = llm_result.get("summary", "")
