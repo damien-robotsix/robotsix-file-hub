@@ -51,16 +51,18 @@ The LLM tier level selects the model capability (1–4, default 1 for cheap extr
   `image/*` content. Multi-page PDFs are sent to the vision LLM one page at
   a time and the per-page results are merged (summaries joined, first
   category taken, tags deduplicated).
-- **Images:** PNG, JPEG, GIF, WebP, and other `image/*` types — sent to a vision-capable LLM as multimodal input
-
-> **Note:** Image and scanned-PDF enrichment requires the configured tier
-> level to resolve to a vision-capable model. If tier 1 does not support
-> vision, set `enrichment_llm_tier_level` to a higher tier (e.g., 2 or 3)
-> that includes vision-capable models in your llmio configuration.
+- **Images:** PNG, JPEG, GIF, WebP, SVG, and other `image/*` types — sent to a
+  vision-capable LLM. SVG inputs are rasterized to PNG first.
+- **Vision pipeline (two-step):** the image is first captioned by the
+  `enrichment_vision_model` (a dedicated vision-capable model, by default
+  Gemini 2.0 Flash), then the caption is fed through the text classifier to
+  produce summary/category/tags. Scanned-PDF page images go through this same
+  vision caption → text classify path.
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `enrichment_llm_tier_level` | `int` | `1` | Capability tier level for LLM enrichment (1–4). Higher tiers use more capable models. Must resolve to a vision-capable model for image/scanned-PDF enrichment. |
+| `enrichment_llm_tier_level` | `int` | `1` | Capability tier level for text classification (1–4). Higher tiers use more capable models for summary/tag generation. |
+| `enrichment_vision_model` | `str` | `openrouter-google/gemini-2.0-flash` | Combined provider-model identifier of the vision-capable model used to caption raster images and scanned-PDF pages (default: Gemini 2.0 Flash). |
 
 ### Langfuse Observability
 

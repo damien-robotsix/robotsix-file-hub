@@ -141,6 +141,12 @@
       "title": "Enrichment Llm Tier Level",
       "type": "integer"
     },
+    "enrichment_vision_model": {
+      "default": "openrouter-google/gemini-2.0-flash",
+      "description": "Combined provider-model identifier of the vision-capable model used to caption raster images and scanned-PDF pages before the text classifier produces summary/tags (default: Gemini 2.0 Flash via OpenRouter).",
+      "title": "Enrichment Vision Model",
+      "type": "string"
+    },
     "embedding": {
       "$ref": "#/$defs/EmbeddingSettings"
     },

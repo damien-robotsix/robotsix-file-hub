@@ -18,6 +18,7 @@ from src.robotsix_file_hub.enrichment import (
     EnrichmentModel,
     _embedding_input_text,
     _merge_page_results,
+    _rasterize_svg,
     _render_pdf_pages,
     call_llm,
     call_llm_vision,
@@ -649,15 +650,40 @@ def test_merge_page_results_missing_fields() -> None:
 
 
 async def test_call_llm_vision_returns_parsed_fields() -> None:
-    """call_llm_vision uses llmio with BinaryContent and returns fields."""
+    """call_llm_vision two-step: caption via vision model, then text classifier."""
+    with (
+        patch(
+            "src.robotsix_file_hub.enrichment._vision_caption",
+            new=AsyncMock(return_value="A photo of a sunset over the ocean."),
+        ) as mock_caption,
+        patch(
+            "src.robotsix_file_hub.enrichment.call_llm",
+            new=AsyncMock(
+                return_value={
+                    "summary": "A photo of a sunset over the ocean.",
+                    "category": "photo",
+                    "tags": ["sunset", "ocean", "nature"],
+                }
+            ),
+        ) as mock_text,
+    ):
+        result = await call_llm_vision(b"\x89PNG", "image/png")
+
+    assert result["summary"] == "A photo of a sunset over the ocean."
+    assert result["category"] == "photo"
+    assert result["tags"] == ["sunset", "ocean", "nature"]
+
+    # Vision caption step saw the raw image bytes; classify step saw the caption.
+    mock_caption.assert_awaited_once_with(b"\x89PNG", "image/png")
+    mock_text.assert_awaited_once_with("A photo of a sunset over the ocean.")
+
+
+async def test_vision_caption_uses_configured_vision_model() -> None:
+    """_vision_caption resolves the enrich_vision_model identifier and sends image bytes."""
     mock_agent = MagicMock()
     mock_agent.run = AsyncMock()
     mock_result = MagicMock()
-    mock_result.output = EnrichmentModel(
-        summary="A photo of a sunset over the ocean.",
-        category="photo",
-        tags=["sunset", "ocean", "nature"],
-    )
+    mock_result.output = "A photo of a sunset over the ocean."
     mock_agent.run.return_value = mock_result
 
     mock_provider = MagicMock()
@@ -670,26 +696,39 @@ async def test_call_llm_vision_returns_parsed_fields() -> None:
 
     with (
         patch(
-            "src.robotsix_file_hub.enrichment.get_provider_for_level",
+            "src.robotsix_file_hub.enrichment.get_provider_for_identifier",
             return_value=mock_provider,
-        ),
+        ) as mock_get_provider,
         patch(
             "src.robotsix_file_hub.enrichment._wire_langfuse_env",
         ),
     ):
-        result = await call_llm_vision(b"\x89PNG", "image/png")
+        import src.robotsix_file_hub.enrichment as enrichment_module
 
-    assert result["summary"] == "A photo of a sunset over the ocean."
-    assert result["category"] == "photo"
-    assert result["tags"] == ["sunset", "ocean", "nature"]
+        original = enrichment_module.settings.enrichment_vision_model
+        original_key = enrichment_module.settings.openrouter.keys.get("robotsix-file-hub")
+        enrichment_module.settings.enrichment_vision_model = "openrouter-google/gemini-2.0-flash"
+        enrichment_module.settings.openrouter.keys["robotsix-file-hub"] = None
+        try:
+            caption = await enrichment_module._vision_caption(b"\x89PNG", "image/png")
+        finally:
+            enrichment_module.settings.enrichment_vision_model = original
+            if original_key is not None:
+                enrichment_module.settings.openrouter.keys["robotsix-file-hub"] = original_key
 
-    # Verify agent was built with vision enricher name
-    mock_provider.build_agent.assert_called_once()
+    assert caption == "A photo of a sunset over the ocean."
+
+    # Vision provider resolved from the configured model identifier.
+    id_args, id_kwargs = mock_get_provider.call_args
+    assert id_args == ("openrouter-google/gemini-2.0-flash",)
+
+    # Agent built for caption output (str) with the vision model's bare name.
     _, kwargs = mock_provider.build_agent.call_args
-    assert kwargs.get("output_type") is EnrichmentModel
-    assert kwargs.get("name") == "file-hub-vision-enricher"
+    assert kwargs.get("output_type") is str
+    assert kwargs.get("model") == "google/gemini-2.0-flash"
+    assert kwargs.get("name") == "file-hub-vision-captioner"
 
-    # Verify agent.run was called with BinaryContent list
+    # agent.run received the image as a single BinaryContent part.
     mock_agent.run.assert_called_once()
     run_args = mock_agent.run.call_args[0][0]
     assert len(run_args) == 1
@@ -700,40 +739,51 @@ async def test_call_llm_vision_returns_parsed_fields() -> None:
     assert run_args[0].media_type == "image/png"
 
 
-async def test_call_llm_vision_uses_configured_tier_level() -> None:
-    """call_llm_vision passes the configured enrichment_llm_tier_level to the provider."""
-    mock_provider = MagicMock()
-    mock_agent = MagicMock()
-    mock_agent.run = AsyncMock()
-    mock_result = MagicMock()
-    mock_result.output = EnrichmentModel(summary="ok", category="img", tags=["t1"])
-    mock_agent.run.return_value = mock_result
-    mock_provider.build_agent.return_value = mock_agent
-
-    async def _fake_retry(fn, what):
-        return await fn()
-
-    mock_provider.call_with_retry = AsyncMock(side_effect=_fake_retry)
+async def test_call_llm_vision_rasterizes_svg() -> None:
+    """call_llm_vision rasterizes SVG inputs to PNG before captioning."""
+    png_bytes = b"\x89PNG rasterized"
 
     with (
         patch(
-            "src.robotsix_file_hub.enrichment.get_provider_for_level",
-            return_value=mock_provider,
-        ) as mock_get_provider,
+            "src.robotsix_file_hub.enrichment._rasterize_svg",
+            return_value=png_bytes,
+        ) as mock_raster,
         patch(
-            "src.robotsix_file_hub.enrichment._wire_langfuse_env",
+            "src.robotsix_file_hub.enrichment._vision_caption",
+            new=AsyncMock(return_value="An SVG diagram."),
+        ) as mock_caption,
+        patch(
+            "src.robotsix_file_hub.enrichment.call_llm",
+            new=AsyncMock(
+                return_value={
+                    "summary": "An SVG diagram.",
+                    "category": "image",
+                    "tags": ["svg", "diagram"],
+                }
+            ),
         ),
     ):
-        import src.robotsix_file_hub.enrichment as enrichment_module
+        result = await call_llm_vision(b"<svg/>", "image/svg+xml")
 
-        original = enrichment_module.settings.enrichment_llm_tier_level
-        enrichment_module.settings.enrichment_llm_tier_level = 2
-        try:
-            await call_llm_vision(b"data", "image/jpeg")
-            args, kwargs = mock_get_provider.call_args
-            assert args == (2,)
-        finally:
-            enrichment_module.settings.enrichment_llm_tier_level = original
+    mock_raster.assert_called_once_with(b"<svg/>")
+    # Vision step received the rasterized PNG, not the raw SVG.
+    mock_caption.assert_awaited_once_with(png_bytes, "image/png")
+    assert result["category"] == "image"
+    assert result["tags"] == ["svg", "diagram"]
+
+
+def test_rasterize_svg_returns_png_bytes() -> None:
+    """_rasterize_svg delegates to cairosvg.svg2png and returns PNG bytes."""
+    # cairosvg imports cairocffi, which dlopens libcairo at import time and is
+    # unavailable in the test sandbox — stub the module in sys.modules instead.
+    from types import SimpleNamespace
+
+    fake_cairosvg = SimpleNamespace(svg2png=MagicMock(return_value=b"\x89PNG png bytes"))
+    with patch.dict("sys.modules", {"cairosvg": fake_cairosvg}):
+        result = _rasterize_svg(b"<svg/>")
+
+    fake_cairosvg.svg2png.assert_called_once_with(bytestring=b"<svg/>")
+    assert result == b"\x89PNG png bytes"
 
 
 async def test_call_llm_vision_best_effort_on_failure() -> None:
@@ -744,7 +794,7 @@ async def test_call_llm_vision_best_effort_on_failure() -> None:
 
     with (
         patch(
-            "src.robotsix_file_hub.enrichment.get_provider_for_level",
+            "src.robotsix_file_hub.enrichment.get_provider_for_identifier",
             return_value=mock_provider,
         ),
         patch(
