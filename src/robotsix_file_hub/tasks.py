@@ -35,6 +35,7 @@ class EnrichmentJob:
     storage_key: str
     content_type: str
     task_id: str
+    force: bool = False
 
 
 @dataclass
@@ -141,10 +142,23 @@ async def _process_enrichment(job: EnrichmentJob) -> bool:
         if record is None:
             logger.warning("Enrichment skipped: file %s not found", job.file_id)
             return False
+
+        # Clobber protection: never silently overwrite agent/manual-curated
+        # metadata with model output.  A curated record is a no-op for
+        # enrichment unless the job was explicitly forced.
+        if record.metadata_source in {"agent", "manual"} and not job.force:
+            logger.info(
+                "Enrichment skipped: file %s has %s-curated metadata (use force to overwrite)",
+                job.file_id,
+                record.metadata_source,
+            )
+            return True
+
         record.category = enrichment["category"]
         record.tags = enrichment["tags"]
         record.summary = enrichment["summary"]
         record.source = "upload"
+        record.metadata_source = "enrichment"
 
         # Generate embedding from the now-enriched metadata
         embedding_text = build_embedding_text(
@@ -173,11 +187,19 @@ async def _process_enrichment(job: EnrichmentJob) -> bool:
 # ── Public API ─────────────────────────────────────────────────────
 
 
-def enqueue_enrichment(*, file_id: str, storage_key: str, content_type: str) -> str:
+def enqueue_enrichment(
+    *,
+    file_id: str,
+    storage_key: str,
+    content_type: str,
+    force: bool = False,
+) -> str:
     """Fire-and-forget: schedule enrichment for a newly uploaded file.
 
     Returns the ``task_id`` that can be used with ``GET /tasks/{id}``
-    to poll for completion.
+    to poll for completion.  When *force* is ``False`` (default), a
+    record whose metadata is agent/manual-curated is skipped rather
+    than overwritten.
     """
     task_id = str(uuid.uuid4())
     _tasks[task_id] = TaskInfo(
@@ -190,6 +212,7 @@ def enqueue_enrichment(*, file_id: str, storage_key: str, content_type: str) -> 
         storage_key=storage_key,
         content_type=content_type,
         task_id=task_id,
+        force=force,
     )
     _queue.put_nowait(job)
     return task_id
@@ -201,6 +224,7 @@ async def enqueue_reindex_all(
     content_type: str | None = None,
     file_ids: Sequence[str] | None = None,
     enrichment_status: str | None = None,
+    force: bool = False,
 ) -> dict[str, int | str]:
     """Enqueue enrichment jobs for every file currently in the database.
 
@@ -209,6 +233,9 @@ async def enqueue_reindex_all(
 
     When *enrichment_status* is ``"empty"``, only files whose
     enrichment was skipped (``summary`` is ``NULL``) are selected.
+    Unless *force* is ``True``, records whose metadata is
+    agent/manual-curated (``metadata_source`` is ``agent``/``manual``)
+    are skipped rather than overwritten.
 
     Returns a count of how many jobs were enqueued.
     """
@@ -252,6 +279,7 @@ async def enqueue_reindex_all(
             file_id=record.id,
             storage_key=record.storage_key,
             content_type=record.content_type,
+            force=force,
         )
     logger.info("Re-index queued %d files", _reindex_total)
     return {"enqueued": _reindex_total, "task_id": _reindex_task_id}

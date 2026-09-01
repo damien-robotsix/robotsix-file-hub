@@ -174,7 +174,9 @@ async def test_upload_enqueues_enrichment(
     enqueued: list[tuple[str, str, str]] = []
     original_enqueue = routes_module.enqueue_enrichment
 
-    def _capture_enqueue(*, file_id: str, storage_key: str, content_type: str) -> None:
+    def _capture_enqueue(
+        *, file_id: str, storage_key: str, content_type: str, force: bool = False
+    ) -> None:
         enqueued.append((file_id, storage_key, content_type))
 
     routes_module.enqueue_enrichment = _capture_enqueue  # type: ignore[assignment]
@@ -232,7 +234,9 @@ async def test_reindex_all_enqueues_all_files(tasks_test_env) -> None:
     enqueued: list[tuple[str, str, str]] = []
     original_enqueue = tasks_module.enqueue_enrichment
 
-    def _capture_enqueue(*, file_id: str, storage_key: str, content_type: str) -> None:
+    def _capture_enqueue(
+        *, file_id: str, storage_key: str, content_type: str, force: bool = False
+    ) -> None:
         enqueued.append((file_id, storage_key, content_type))
 
     tasks_module.enqueue_enrichment = _capture_enqueue  # type: ignore[assignment]
@@ -279,7 +283,9 @@ async def test_reindex_all_caps_batch_at_20_files(tasks_test_env) -> None:
     enqueued: list[tuple[str, str, str]] = []
     original_enqueue = tasks_module.enqueue_enrichment
 
-    def _capture_enqueue(*, file_id: str, storage_key: str, content_type: str) -> None:
+    def _capture_enqueue(
+        *, file_id: str, storage_key: str, content_type: str, force: bool = False
+    ) -> None:
         enqueued.append((file_id, storage_key, content_type))
 
     tasks_module.enqueue_enrichment = _capture_enqueue  # type: ignore[assignment]
@@ -339,7 +345,9 @@ async def test_reindex_all_filtered_by_category(tasks_test_env) -> None:
     enqueued: list[tuple[str, str, str]] = []
     original_enqueue = tasks_module.enqueue_enrichment
 
-    def _capture_enqueue(*, file_id: str, storage_key: str, content_type: str) -> None:
+    def _capture_enqueue(
+        *, file_id: str, storage_key: str, content_type: str, force: bool = False
+    ) -> None:
         enqueued.append((file_id, storage_key, content_type))
 
     tasks_module.enqueue_enrichment = _capture_enqueue  # type: ignore[assignment]
@@ -388,7 +396,9 @@ async def test_reindex_all_filtered_by_content_type(tasks_test_env) -> None:
     enqueued: list[tuple[str, str, str]] = []
     original_enqueue = tasks_module.enqueue_enrichment
 
-    def _capture_enqueue(*, file_id: str, storage_key: str, content_type: str) -> None:
+    def _capture_enqueue(
+        *, file_id: str, storage_key: str, content_type: str, force: bool = False
+    ) -> None:
         enqueued.append((file_id, storage_key, content_type))
 
     tasks_module.enqueue_enrichment = _capture_enqueue  # type: ignore[assignment]
@@ -444,7 +454,9 @@ async def test_reindex_all_filtered_by_file_ids(tasks_test_env) -> None:
     enqueued: list[tuple[str, str, str]] = []
     original_enqueue = tasks_module.enqueue_enrichment
 
-    def _capture_enqueue(*, file_id: str, storage_key: str, content_type: str) -> None:
+    def _capture_enqueue(
+        *, file_id: str, storage_key: str, content_type: str, force: bool = False
+    ) -> None:
         enqueued.append((file_id, storage_key, content_type))
 
     tasks_module.enqueue_enrichment = _capture_enqueue  # type: ignore[assignment]
@@ -504,7 +516,9 @@ async def test_reindex_all_filtered_by_enrichment_status_empty(tasks_test_env) -
     enqueued: list[tuple[str, str, str]] = []
     original_enqueue = tasks_module.enqueue_enrichment
 
-    def _capture_enqueue(*, file_id: str, storage_key: str, content_type: str) -> None:
+    def _capture_enqueue(
+        *, file_id: str, storage_key: str, content_type: str, force: bool = False
+    ) -> None:
         enqueued.append((file_id, storage_key, content_type))
 
     tasks_module.enqueue_enrichment = _capture_enqueue  # type: ignore[assignment]
