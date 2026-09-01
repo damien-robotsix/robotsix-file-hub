@@ -209,11 +209,54 @@ images show inline, etc.
 ### `GET /files/{file_id}/metadata`
 
 Return the full metadata record for a stored file, including enrichment
-fields (category, tags, summary, source) after the AI pipeline completes.
+fields (category, tags, summary, source, and the `metadata_source`
+provenance marker) after the AI pipeline completes.
 
 **Response** `200` — [`FileMetadataResponse`](#filemetadataresponse)
 
 **Errors:** `404`
+
+---
+
+### `PATCH /files/{file_id}/metadata`
+
+Set or overwrite a single file's **curated** enrichment metadata directly,
+bypassing the automatic AI pipeline.  Useful when an agent or operator
+knows the correct values (or needs to correct/fill fields the model left
+null or wrong).
+
+**Request body** — any subset of the fields below.  Omitted fields are
+left unchanged; an explicit `null` clears a field.
+
+| Field | Type | Description |
+|---|---|---|
+| `summary` | string \| null | Curated summary |
+| `category` | string \| null | Curated category |
+| `tags` | string[] \| null | Curated tags (ordered, max 10, stored comma-separated) |
+| `metadata_source` | `"agent"` \| `"manual"` | Provenance of the curated values; defaults to `"manual"` |
+
+**Example**
+
+```json
+{
+  "summary": "Q4 board report",
+  "category": "legal",
+  "tags": ["report", "2024"],
+  "metadata_source": "manual"
+}
+```
+
+**Response** `200` — [`FileMetadataResponse`](#filemetadataresponse), with
+`metadata_source` reflecting the provenance.
+
+**Errors:** `400` (no data fields provided, or only a `metadata_source`
+with no data change), `422` (invalid body shape — e.g. a non-string
+`summary` or empty `tags` entry, per FastAPI's standard validation
+semantics), `404` (file not found)
+
+> Curated values are protected: a later automatic enrichment/reindex pass
+> will **not** overwrite them (see `POST /files/reindex` and its `force`
+> parameter).
 
 ---
 
@@ -291,6 +334,13 @@ via `GET /tasks/{task_id}` for overall batch progress.
 | `category` | string | Only reindex files with this category |
 | `content_type` | string | Only reindex files with this MIME type |
 | `file_ids` | string | Comma-separated file IDs to reindex |
+| `enrichment_status` | string | Filter by status; `empty` selects only files never enriched |
+| `force` | bool | When `true`, overwrite agent/manual-curated metadata fields. By default curated records are left untouched |
+
+> By default, records whose metadata was curated by an agent or operator
+> (`metadata_source` is `agent`/`manual`) are **skipped** by a reindex so
+> their values are never silently clobbered.  Pass `force=true` to
+> deliberately overwrite them.
 
 **Response** `200`
 
@@ -379,6 +429,7 @@ All fields from `FileUploadResponse` plus:
 | `tags` | string \| null | AI-assigned comma-separated tags |
 | `summary` | string \| null | AI-generated summary |
 | `source` | string \| null | Uploader / source identifier |
+| `metadata_source` | string \| null | Provenance of the enrichment fields: `"enrichment"` (written by the automatic pipeline) or `"agent"`/`"manual"` (written via `PATCH /files/{id}/metadata`) |
 
 ### `FileListResponse`
 

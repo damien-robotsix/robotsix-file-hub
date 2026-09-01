@@ -22,11 +22,16 @@ class Base(DeclarativeBase):
 class FileRecord(Base):
     """Central persistence entity for uploaded files.
 
-    Maps to the ``file_records`` table with 13 columns including metadata,
-    enrichment fields (category, tags, summary, source, embedding), and
-    timestamps.  The ``embedding`` column dimension is coupled to
-    ``EMBEDDING_DIMENSIONS``; enrichment fields are nullable until the
-    enrichment task runs.
+    Maps to the ``file_records`` table with 14 columns including metadata,
+    enrichment fields (category, tags, summary, source, metadata_source,
+    embedding), and timestamps.  The ``embedding`` column dimension is
+    coupled to ``EMBEDDING_DIMENSIONS``; enrichment fields are nullable
+    until the enrichment task runs.  ``metadata_source`` records the
+    provenance of the enrichment fields — ``"enrichment"`` for values
+    written by the automatic pipeline, ``"agent"``/``"manual"`` for
+    curated values written via ``PATCH /files/{id}/metadata`` — and a
+    curated record is skipped by subsequent enrichment passes unless
+    explicitly forced.
     """
 
     __tablename__ = "file_records"
@@ -41,6 +46,7 @@ class FileRecord(Base):
     tags: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     summary: Mapped[str | None] = mapped_column(String(4096), nullable=True)
     source: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    metadata_source: Mapped[str | None] = mapped_column(String(16), nullable=True)
     embedding: Mapped[list[float] | None] = mapped_column(
         Vector(EMBEDDING_DIMENSIONS), nullable=True
     )

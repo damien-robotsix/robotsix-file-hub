@@ -174,7 +174,9 @@ async def test_upload_enqueues_enrichment(
     enqueued: list[tuple[str, str, str]] = []
     original_enqueue = routes_module.enqueue_enrichment
 
-    def _capture_enqueue(*, file_id: str, storage_key: str, content_type: str) -> None:
+    def _capture_enqueue(
+        *, file_id: str, storage_key: str, content_type: str, force: bool = False
+    ) -> None:
         enqueued.append((file_id, storage_key, content_type))
 
     routes_module.enqueue_enrichment = _capture_enqueue  # type: ignore[assignment]
@@ -232,7 +234,9 @@ async def test_reindex_all_enqueues_all_files(tasks_test_env) -> None:
     enqueued: list[tuple[str, str, str]] = []
     original_enqueue = tasks_module.enqueue_enrichment
 
-    def _capture_enqueue(*, file_id: str, storage_key: str, content_type: str) -> None:
+    def _capture_enqueue(
+        *, file_id: str, storage_key: str, content_type: str, force: bool = False
+    ) -> None:
         enqueued.append((file_id, storage_key, content_type))
 
     tasks_module.enqueue_enrichment = _capture_enqueue  # type: ignore[assignment]
@@ -248,6 +252,69 @@ async def test_reindex_all_enqueues_all_files(tasks_test_env) -> None:
         # Progress counters should be set
         assert tasks_module._reindex_total == 2
         assert tasks_module._reindex_active is True
+
+    finally:
+        tasks_module.enqueue_enrichment = original_enqueue
+
+
+async def test_reindex_all_skips_curated_without_force(tasks_test_env) -> None:
+    """Enqueue-time curation filter: a non-forced reindex skips curated records.
+
+    Curated (agent/manual) records are excluded up front so the ``enqueued``
+    count reflects real work instead of jobs the worker would only no-op.
+    ``force=True`` deliberately re-includes them for an override reindex.
+    """
+    import src.robotsix_file_hub.tasks as tasks_module
+
+    session_factory, _storage = tasks_test_env
+
+    async with session_factory() as session:
+        session.add_all(
+            [
+                FileRecord(
+                    id="c1",
+                    filename="curated.txt",
+                    size=10,
+                    content_type="text/plain",
+                    checksum="aa",
+                    storage_key="/tmp/c1.txt",
+                    summary="Curated summary",
+                    metadata_source="manual",
+                ),
+                FileRecord(
+                    id="p1",
+                    filename="plain.txt",
+                    size=10,
+                    content_type="text/plain",
+                    checksum="bb",
+                    storage_key="/tmp/p1.txt",
+                ),
+            ]
+        )
+        await session.commit()
+
+    enqueued: list[tuple[str, str, str]] = []
+    original_enqueue = tasks_module.enqueue_enrichment
+
+    def _capture_enqueue(
+        *, file_id: str, storage_key: str, content_type: str, force: bool = False
+    ) -> None:
+        enqueued.append((file_id, storage_key, content_type))
+
+    tasks_module.enqueue_enrichment = _capture_enqueue  # type: ignore[assignment]
+
+    try:
+        # Default reindex: the curated record is excluded at enqueue time.
+        result = await tasks_module.enqueue_reindex_all()
+        assert result["enqueued"] == 1
+        assert [e[0] for e in enqueued] == ["p1"]
+        assert tasks_module._reindex_total == 1
+
+        # Forced reindex deliberately re-includes curated records.
+        enqueued.clear()
+        result = await tasks_module.enqueue_reindex_all(force=True)
+        assert result["enqueued"] == 2
+        assert {e[0] for e in enqueued} == {"c1", "p1"}
 
     finally:
         tasks_module.enqueue_enrichment = original_enqueue
@@ -279,7 +346,9 @@ async def test_reindex_all_caps_batch_at_20_files(tasks_test_env) -> None:
     enqueued: list[tuple[str, str, str]] = []
     original_enqueue = tasks_module.enqueue_enrichment
 
-    def _capture_enqueue(*, file_id: str, storage_key: str, content_type: str) -> None:
+    def _capture_enqueue(
+        *, file_id: str, storage_key: str, content_type: str, force: bool = False
+    ) -> None:
         enqueued.append((file_id, storage_key, content_type))
 
     tasks_module.enqueue_enrichment = _capture_enqueue  # type: ignore[assignment]
@@ -339,7 +408,9 @@ async def test_reindex_all_filtered_by_category(tasks_test_env) -> None:
     enqueued: list[tuple[str, str, str]] = []
     original_enqueue = tasks_module.enqueue_enrichment
 
-    def _capture_enqueue(*, file_id: str, storage_key: str, content_type: str) -> None:
+    def _capture_enqueue(
+        *, file_id: str, storage_key: str, content_type: str, force: bool = False
+    ) -> None:
         enqueued.append((file_id, storage_key, content_type))
 
     tasks_module.enqueue_enrichment = _capture_enqueue  # type: ignore[assignment]
@@ -388,7 +459,9 @@ async def test_reindex_all_filtered_by_content_type(tasks_test_env) -> None:
     enqueued: list[tuple[str, str, str]] = []
     original_enqueue = tasks_module.enqueue_enrichment
 
-    def _capture_enqueue(*, file_id: str, storage_key: str, content_type: str) -> None:
+    def _capture_enqueue(
+        *, file_id: str, storage_key: str, content_type: str, force: bool = False
+    ) -> None:
         enqueued.append((file_id, storage_key, content_type))
 
     tasks_module.enqueue_enrichment = _capture_enqueue  # type: ignore[assignment]
@@ -444,7 +517,9 @@ async def test_reindex_all_filtered_by_file_ids(tasks_test_env) -> None:
     enqueued: list[tuple[str, str, str]] = []
     original_enqueue = tasks_module.enqueue_enrichment
 
-    def _capture_enqueue(*, file_id: str, storage_key: str, content_type: str) -> None:
+    def _capture_enqueue(
+        *, file_id: str, storage_key: str, content_type: str, force: bool = False
+    ) -> None:
         enqueued.append((file_id, storage_key, content_type))
 
     tasks_module.enqueue_enrichment = _capture_enqueue  # type: ignore[assignment]
@@ -504,7 +579,9 @@ async def test_reindex_all_filtered_by_enrichment_status_empty(tasks_test_env) -
     enqueued: list[tuple[str, str, str]] = []
     original_enqueue = tasks_module.enqueue_enrichment
 
-    def _capture_enqueue(*, file_id: str, storage_key: str, content_type: str) -> None:
+    def _capture_enqueue(
+        *, file_id: str, storage_key: str, content_type: str, force: bool = False
+    ) -> None:
         enqueued.append((file_id, storage_key, content_type))
 
     tasks_module.enqueue_enrichment = _capture_enqueue  # type: ignore[assignment]

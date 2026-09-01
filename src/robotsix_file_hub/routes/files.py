@@ -32,6 +32,7 @@ from ..schemas import (
     FileListResponse,
     FileMetadataResponse,
     FileUploadResponse,
+    MetadataUpdateRequest,
 )
 from ..storage import StorageBackend, StorageError, _get_storage, compute_checksum
 from ..tasks import enqueue_enrichment, enqueue_reindex_all, get_reindex_progress
@@ -428,6 +429,61 @@ async def get_file_metadata(
     return FileMetadataResponse.model_validate(record)
 
 
+@router.patch(
+    "/{file_id}/metadata",
+    response_model=FileMetadataResponse,
+    responses={400: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
+)
+@limiter.limit(DEFAULT_RATE_LIMIT)
+async def update_file_metadata(
+    request: Request,
+    file_id: str,
+    body: MetadataUpdateRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> FileMetadataResponse:
+    """Set or overwrite a single file's curated enrichment metadata.
+
+    Accepts a partial body — any subset of ``summary``/``category``/
+    ``tags``.  Omitted fields are left unchanged; an explicit ``null``
+    clears the field.  The record's ``metadata_source`` marker records
+    the provenance of the updated values (default ``"manual"``, or
+    ``"agent"`` when the caller passes it), so later automatic
+    enrichment/reindex passes will not clobber the curated values
+    unless explicitly forced.
+    """
+    record = await db.get(FileRecord, file_id)
+    if record is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+
+    provided = body.model_fields_set
+    data_fields = provided & {"summary", "category", "tags"}
+    if not data_fields:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Provide at least one of summary, category, or tags",
+        )
+
+    if "summary" in data_fields:
+        record.summary = body.summary
+    if "category" in data_fields:
+        record.category = body.category
+    if "tags" in data_fields:
+        record.tags = ",".join(body.tags) if body.tags else None
+
+    record.metadata_source = body.metadata_source or "manual"
+
+    try:
+        await db.commit()
+    except Exception as exc:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database failure: {exc}",
+        ) from exc
+    await db.refresh(record)
+    return FileMetadataResponse.model_validate(record)
+
+
 @router.post(
     "/reindex",
     responses={500: {"model": ErrorResponse}},
@@ -452,12 +508,23 @@ async def reindex_files(
             "Use 'empty' to select only files that were never enriched."
         ),
     ] = None,
+    force: Annotated[
+        bool,
+        Query(
+            description=(
+                "Overwrite agent/manual-curated metadata fields. "
+                "By default curated records are left untouched."
+            ),
+        ),
+    ] = False,
 ) -> dict[str, int | str]:
     """Enqueue enrichment jobs for existing files, optionally filtered.
 
     Query parameters allow filtering by category, content_type,
     a comma-separated list of specific file IDs, or enrichment_status
-    (``empty`` selects files with no summary/embedding).
+    (``empty`` selects files with no summary/embedding).  Unless
+    ``force=true``, records whose metadata was curated by an agent or
+    operator (``metadata_source`` is ``agent``/``manual``) are skipped.
     """
     parsed_file_ids: list[str] | None = None
     if file_ids is not None:
@@ -468,6 +535,7 @@ async def reindex_files(
         content_type=content_type,
         file_ids=parsed_file_ids,
         enrichment_status=enrichment_status,
+        force=force,
     )
 
 

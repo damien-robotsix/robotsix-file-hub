@@ -39,6 +39,7 @@ modules:
       - config/config.json
       - config/config.schema.json
       - migrations/versions/0003_embedding_dim_1024.py
+      - migrations/versions/0004_metadata_source.py
       - pyproject.toml
       - release-please-config.json
       - uv.lock
