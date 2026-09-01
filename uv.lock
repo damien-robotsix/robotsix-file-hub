@@ -1221,8 +1221,8 @@ requires-dist = [
     { name = "python-json-logger", specifier = ">=3.3.0" },
     { name = "python-multipart", specifier = ">=0.0.19" },
     { name = "robotsix-config", git = "https://github.com/damien-robotsix/robotsix-config.git?rev=feabed320883760ec0f449469870d45f73d87194" },
-    { name = "robotsix-http", git = "https://github.com/damien-robotsix/robotsix-http.git?rev=cdfd4d1c42679fef73081439562872792e202dc4" },
-    { name = "robotsix-llmio", extras = ["openrouter"], git = "https://github.com/damien-robotsix/robotsix-llmio.git?rev=276b076ca3305bbd3e3f1b1b338ed689b226bef7" },
+    { name = "robotsix-http", git = "https://github.com/damien-robotsix/robotsix-http.git?rev=c57947232685f4e4798a61e2bc53d747d3dbc75d" },
+    { name = "robotsix-llmio", extras = ["openrouter"], git = "https://github.com/damien-robotsix/robotsix-llmio.git?rev=7eee4cf3726daadab6870bf5acbfede81675ce86" },
     { name = "slowapi", specifier = ">=0.1.9" },
     { name = "sqlalchemy", specifier = ">=2.0.52" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.52.3" },
@@ -1242,16 +1242,16 @@ dev = [
 
 [[package]]
 name = "robotsix-http"
-version = "0.3.2"
-source = { git = "https://github.com/damien-robotsix/robotsix-http.git?rev=cdfd4d1c42679fef73081439562872792e202dc4#cdfd4d1c42679fef73081439562872792e202dc4" }
+version = "0.3.3"
+source = { git = "https://github.com/damien-robotsix/robotsix-http.git?rev=c57947232685f4e4798a61e2bc53d747d3dbc75d#c57947232685f4e4798a61e2bc53d747d3dbc75d" }
 dependencies = [
     { name = "httpx" },
 ]
 
 [[package]]
 name = "robotsix-llmio"
-version = "0.6.0"
-source = { git = "https://github.com/damien-robotsix/robotsix-llmio.git?rev=276b076ca3305bbd3e3f1b1b338ed689b226bef7#276b076ca3305bbd3e3f1b1b338ed689b226bef7" }
+version = "0.7.0"
+source = { git = "https://github.com/damien-robotsix/robotsix-llmio.git?rev=7eee4cf3726daadab6870bf5acbfede81675ce86#7eee4cf3726daadab6870bf5acbfede81675ce86" }
 dependencies = [
     { name = "httpx" },
     { name = "pydantic" },
