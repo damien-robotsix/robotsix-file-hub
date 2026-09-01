@@ -24,7 +24,10 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.execute("ALTER TABLE file_records ADD COLUMN metadata_source VARCHAR(16)")
+    # IF NOT EXISTS guards against the column already being present when
+    # init_db/create_all (which creates the full ORM schema, including
+    # metadata_source) ran before this migration on the same database.
+    op.execute("ALTER TABLE file_records ADD COLUMN IF NOT EXISTS metadata_source VARCHAR(16)")
 
 
 def downgrade() -> None:

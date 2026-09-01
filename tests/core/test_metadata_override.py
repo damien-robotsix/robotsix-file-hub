@@ -116,18 +116,18 @@ async def test_patch_metadata_empty_body_400(test_client: AsyncClient) -> None:
     assert response.status_code == 400
 
 
-async def test_patch_metadata_invalid_body_400(test_client: AsyncClient) -> None:
-    """A body with the wrong shape (non-string summary) is a 400 client error."""
+async def test_patch_metadata_invalid_body_422(test_client: AsyncClient) -> None:
+    """A body with the wrong shape (non-string summary) is a 422 validation error."""
     file_id = await _upload(test_client)
 
     response = await test_client.patch(f"/files/{file_id}/metadata", json={"summary": 1234})
-    assert response.status_code == 400
+    assert response.status_code == 422
 
     # Empty tags entries are rejected.
     response = await test_client.patch(
         f"/files/{file_id}/metadata", json={"tags": ["ok", "", "bad"]}
     )
-    assert response.status_code == 400
+    assert response.status_code == 422
 
 
 # ── Clobber-protection: enrichment must not overwrite curated values ──

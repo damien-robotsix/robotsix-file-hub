@@ -6,8 +6,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request, Response, status
-from fastapi.exceptions import RequestValidationError
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse, JSONResponse
 from pythonjsonlogger.json import JsonFormatter
 from slowapi.errors import RateLimitExceeded
@@ -84,27 +83,6 @@ async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) 
             "instance": str(request.url),
         },
         headers={"Content-Type": "application/problem+json"},
-    )
-
-
-@app.exception_handler(RequestValidationError)
-async def request_validation_error_handler(
-    request: Request, exc: RequestValidationError
-) -> JSONResponse:
-    """Return 400 for malformed request bodies/params.
-
-    FastAPI's default for schema-validation failures is 422; this service
-    treats an invalid request shape as a client error and reports it with
-    the same ``{"detail": ...}`` envelope as the other error responses.
-    """
-    try:
-        first = exc.errors()[0]
-        detail = f"{'.'.join(str(loc) for loc in first['loc'])}: {first['msg']}"
-    except IndexError, KeyError, TypeError:
-        detail = "Invalid request"
-    return JSONResponse(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        content={"detail": detail},
     )
 
 

@@ -235,7 +235,10 @@ async def enqueue_reindex_all(
     enrichment was skipped (``summary`` is ``NULL``) are selected.
     Unless *force* is ``True``, records whose metadata is
     agent/manual-curated (``metadata_source`` is ``agent``/``manual``)
-    are skipped rather than overwritten.
+    are excluded up front, so the enqueued count reflects real work and
+    no jobs are wasted on records that would only be skipped by the
+    worker.  The enrichment worker additionally guards against
+    overwriting curated values as a safety net.
 
     Returns a count of how many jobs were enqueued.
     """
@@ -250,6 +253,14 @@ async def enqueue_reindex_all(
         stmt = stmt.where(FileRecord.id.in_(list(file_ids)))
     if enrichment_status == "empty":
         stmt = stmt.where(FileRecord.summary.is_(None))
+    if not force:
+        # Skip agent/manual-curated records by default: their metadata is
+        # human-authored and re-enriching them would be a wasted job that
+        # the worker would only no-op.  force=True deliberately re-includes
+        # them so an operator can overwrite curated values.
+        stmt = stmt.where(
+            (FileRecord.metadata_source.is_(None)) | (FileRecord.metadata_source == "enrichment")
+        )
 
     async with async_session_factory() as session:
         result = await session.execute(stmt)

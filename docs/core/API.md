@@ -249,8 +249,10 @@ left unchanged; an explicit `null` clears a field.
 **Response** `200` — [`FileMetadataResponse`](#filemetadataresponse), with
 `metadata_source` reflecting the provenance.
 
-**Errors:** `400` (no data fields provided, or invalid body shape), `404`
-(file not found)
+**Errors:** `400` (no data fields provided, or only a `metadata_source`
+with no data change), `422` (invalid body shape — e.g. a non-string
+`summary` or empty `tags` entry, per FastAPI's standard validation
+semantics), `404` (file not found)
 
 > Curated values are protected: a later automatic enrichment/reindex pass
 > will **not** overwrite them (see `POST /files/reindex` and its `force`
