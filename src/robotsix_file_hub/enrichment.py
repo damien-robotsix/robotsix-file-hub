@@ -163,9 +163,9 @@ def _rasterize_svg(content: bytes) -> bytes:
     the ``libcairo2`` system library).  Raises ``Exception`` on failure
     (best-effort — caller catches).
     """
-    import cairosvg
+    import cairosvg  # type: ignore[import-untyped]
 
-    return cairosvg.svg2png(bytestring=content)
+    return cairosvg.svg2png(bytestring=content)  # type: ignore[no-any-return]
 
 
 # ── Scanned PDF helpers ────────────────────────────────────────────
