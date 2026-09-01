@@ -278,6 +278,12 @@ Re-enqueue enrichment jobs for existing files.  Useful after changing the
 LLM model or enrichment logic.  Returns a `task_id` that can be polled
 via `GET /tasks/{task_id}` for overall batch progress.
 
+> **Warning:** a single reindex request enqueues at most
+> `REINDEX_BATCH_SIZE` (20) files.  This guard prevents an accidental
+> full-hub reindex from hammering the enrichment queue.  To reindex more
+> than 20 files, repeat the request — use the optional filters below (or
+> `GET /files/reindex/progress`) to work through the backlog in batches.
+
 **Query parameters**
 
 | Param | Type | Description |
@@ -289,8 +295,11 @@ via `GET /tasks/{task_id}` for overall batch progress.
 **Response** `200`
 
 ```json
-{"enqueued": 100, "task_id": "uuid"}
+{"enqueued": 20, "task_id": "uuid"}
 ```
+
+The `enqueued` count is capped at 20 per request.  A request matching
+no files returns `{"enqueued": 0, "task_id": "uuid"}`.
 
 **Errors:** `500`
 
