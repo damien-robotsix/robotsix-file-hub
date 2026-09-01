@@ -31,10 +31,11 @@ RUN uv sync --no-dev --frozen
 FROM python:3.14-slim@sha256:cae66f2ef0ec51a9891263eeee7f987dacf0a9879e8aa9353d5606e0530619a5 AS runtime
 RUN useradd --create-home --uid 1000 app
 # poppler-utils provides pdftoppm, required by pdf2image for scanned PDF page
-# rendering.  Installed in the runtime stage only (not the builder).
+# rendering; libcairo2 is required by cairosvg for SVG rasterization.  Both
+# installed in the runtime stage only (not the builder).
 # hadolint ignore=DL3008
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends poppler-utils \
+    && apt-get install -y --no-install-recommends poppler-utils libcairo2 \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /home/app
 

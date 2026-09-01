@@ -151,6 +151,15 @@ class Settings(ConfigModel):
         description="Capability tier for chat enrichment (1–4; default 1 for cheap extraction).",
     )
 
+    enrichment_vision_model: str = Field(
+        "openrouter-google/gemini-2.0-flash",
+        description=(
+            "Combined provider-model identifier of the vision-capable model used to "
+            "caption raster images and scanned-PDF pages before the text classifier "
+            "produces summary/tags (default: Gemini 2.0 Flash via OpenRouter)."
+        ),
+    )
+
     # ── Dedicated embedding block ──
 
     embedding: EmbeddingSettings = Field(

@@ -4,12 +4,13 @@ Extracts text from common file types (PDF, plain text, DOCX, XLSX)
 and calls robotsix-llmio (OpenRouter transport) to generate summary,
 category, and tags via structured output (:class:`EnrichmentModel`).
 
-Images (``image/*``) are handled via a vision-capable LLM call that
-sends the raw image bytes as multimodal content.
-
+Images (``image/*``) and scanned/image-based PDFs are handled via a
+two-step vision pipeline: a vision-capable model (``enrichment_vision_model``,
+by default Gemini 2.0 Flash) first produces a plain-text caption of the image,
+then the caption is fed through the text classifier for summary/category/tags.
+SVG inputs are rasterized to PNG before being sent to the vision model.
 Scanned/image-based PDFs (where pypdf extracts no embedded text) are
-rendered to page images via ``pdf2image`` and fed through the same
-vision LLM pipeline as images.
+rendered to page images via ``pdf2image`` first.
 
 Embeddings go to the dedicated ``embedding.endpoint`` (shared bge-m3
 server) — no llmio involvement.
@@ -30,6 +31,8 @@ import httpx
 from pydantic import BaseModel, Field
 from pydantic_ai.messages import BinaryContent
 from robotsix_llmio import get_provider_for_level
+from robotsix_llmio.core.factory import get_provider_for_identifier
+from robotsix_llmio.core.identifier import parse_model_identifier
 
 from .config import get_settings
 
@@ -147,6 +150,22 @@ def extract_text(content: bytes, content_type: str) -> str | None:
         return IMAGE_SENTINEL
 
     return None
+
+
+# ── SVG rasterization helper ──────────────────────────────────────
+
+
+def _rasterize_svg(content: bytes) -> bytes:
+    """Rasterize an SVG document to PNG bytes so the vision model can read it.
+
+    Vision models receive raster ``image/*`` bytes; an ``image/svg+xml``
+    upload must first be converted to a bitmap.  Uses ``cairosvg`` (requires
+    the ``libcairo2`` system library).  Raises ``Exception`` on failure
+    (best-effort — caller catches).
+    """
+    import cairosvg
+
+    return cairosvg.svg2png(bytestring=content)
 
 
 # ── Scanned PDF helpers ────────────────────────────────────────────
@@ -289,41 +308,38 @@ async def call_llm(text: str) -> dict[str, Any]:
     }
 
 
-async def call_llm_vision(image_bytes: bytes, content_type: str) -> dict[str, Any]:
-    """Call robotsix-llmio with a vision-capable model for image enrichment.
+async def _vision_caption(image_bytes: bytes, content_type: str) -> str:
+    """Call the configured vision model to produce a plain-text caption.
 
-    Sends the image as :class:`BinaryContent` multimodal input so the LLM
-    can see the image directly.  Returns the same ``EnrichmentModel`` fields
-    as :func:`call_llm`.
+    Sends *image_bytes* as :class:`BinaryContent` multimodal input to the
+    model bound by the ``enrichment_vision_model`` setting and returns the
+    model's raw caption (``str``) — no structured fields.
 
     Raises ``Exception`` on failure (best-effort — caller catches).
     """
     _wire_langfuse_env()
-
-    level = settings.enrichment_llm_tier_level
 
     or_key = settings.openrouter.keys.get("robotsix-file-hub")
     api_key: str | None = None
     if or_key is not None:
         api_key = or_key.get_secret_value()
 
-    provider = get_provider_for_level(level, api_key=api_key)
+    identifier = settings.enrichment_vision_model
+    provider = get_provider_for_identifier(identifier, api_key=api_key)
+    model_name = parse_model_identifier(identifier).model_name
 
     prompt = (
-        "Analyze the following image and return a JSON object "
-        "with exactly three fields:\n"
-        '  "summary": a 1-3 sentence description of the image,\n'
-        '  "category": a single category label (e.g. "image", "photo", '
-        '"diagram", "screenshot", "document", "chart", "art", "other"),\n'
-        '  "tags": a list of up to 10 keyword tags (strings).\n'
-        "Respond with only the JSON object, no other text."
+        "Analyze the image and write a concise, factual caption describing "
+        "what is visible. Respond with only the caption — a single paragraph "
+        "of 1-3 sentences — with no JSON, labels, or extra commentary."
     )
 
     agent = provider.build_agent(
-        level=level,
+        level=1,
+        model=model_name,
         system_prompt=prompt,
-        output_type=EnrichmentModel,
-        name="file-hub-vision-enricher",
+        output_type=str,
+        name="file-hub-vision-captioner",
         retries=2,
         builtin_tools=False,
         web_tools=False,
@@ -331,23 +347,39 @@ async def call_llm_vision(image_bytes: bytes, content_type: str) -> dict[str, An
 
     image_content = BinaryContent(data=image_bytes, media_type=content_type)
 
-    async def _run() -> EnrichmentModel:
+    async def _run() -> str:
         result = await agent.run([image_content])
-        return cast(EnrichmentModel, result.output)
+        return cast(str, result.output)
 
-    model_result = cast(
-        EnrichmentModel,
+    return cast(
+        str,
         await provider.call_with_retry(
             _run,
-            what="LLM vision enrichment",
+            what="LLM vision caption",
         ),
     )
 
-    return {
-        "summary": model_result.summary or "",
-        "category": model_result.category or "",
-        "tags": model_result.tags or [],
-    }
+
+async def call_llm_vision(image_bytes: bytes, content_type: str) -> dict[str, Any]:
+    """Enrich a raster image (or scanned-PDF page) via a two-step pipeline.
+
+    Step 1 drives the image through the configured ``enrichment_vision_model``
+    to obtain a plain-text caption.  SVG inputs are rasterized to PNG first
+    (vision models read bitmaps).  Step 2 feeds that caption to the text
+    classifier (:func:`call_llm`) which produces the standard
+    ``EnrichmentModel`` summary/category/tags.
+
+    Returns the same ``EnrichmentModel`` fields as :func:`call_llm`.
+
+    Raises ``Exception`` on failure (best-effort — caller catches).
+    """
+    content_type_lower = content_type.lower()
+    if content_type_lower in {"image/svg", "image/svg+xml", "application/svg+xml"}:
+        image_bytes = _rasterize_svg(image_bytes)
+        content_type = "image/png"
+
+    caption = await _vision_caption(image_bytes, content_type)
+    return await call_llm(caption)
 
 
 async def generate_embedding(text: str) -> list[float] | None:
