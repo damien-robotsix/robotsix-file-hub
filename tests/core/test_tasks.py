@@ -253,6 +253,49 @@ async def test_reindex_all_enqueues_all_files(tasks_test_env) -> None:
         tasks_module.enqueue_enrichment = original_enqueue
 
 
+async def test_reindex_all_caps_batch_at_20_files(tasks_test_env) -> None:
+    """enqueue_reindex_all enqueues at most REINDEX_BATCH_SIZE files."""
+    import src.robotsix_file_hub.tasks as tasks_module
+
+    session_factory, _storage = tasks_test_env
+
+    # Pre-populate DB with more records than the batch cap
+    async with session_factory() as session:
+        session.add_all(
+            [
+                FileRecord(
+                    id=f"cap-{i:03d}",
+                    filename=f"f{i:03d}.txt",
+                    size=10,
+                    content_type="text/plain",
+                    checksum=f"c{i:03d}",
+                    storage_key=f"/tmp/f{i:03d}.txt",
+                )
+                for i in range(tasks_module.REINDEX_BATCH_SIZE + 5)
+            ]
+        )
+        await session.commit()
+
+    enqueued: list[tuple[str, str, str]] = []
+    original_enqueue = tasks_module.enqueue_enrichment
+
+    def _capture_enqueue(*, file_id: str, storage_key: str, content_type: str) -> None:
+        enqueued.append((file_id, storage_key, content_type))
+
+    tasks_module.enqueue_enrichment = _capture_enqueue  # type: ignore[assignment]
+
+    try:
+        result = await tasks_module.enqueue_reindex_all()
+
+        assert result["enqueued"] == tasks_module.REINDEX_BATCH_SIZE
+        assert len(enqueued) == tasks_module.REINDEX_BATCH_SIZE
+        assert tasks_module._reindex_total == tasks_module.REINDEX_BATCH_SIZE
+        assert tasks_module._reindex_active is True
+
+    finally:
+        tasks_module.enqueue_enrichment = original_enqueue
+
+
 async def test_reindex_all_filtered_by_category(tasks_test_env) -> None:
     """enqueue_reindex_all with category filter only enqueues matching files."""
     import src.robotsix_file_hub.tasks as tasks_module

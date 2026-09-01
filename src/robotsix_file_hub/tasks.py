@@ -67,6 +67,10 @@ _reindex_failed: int = 0
 _reindex_active: bool = False
 _reindex_task_id: str | None = None
 
+# Maximum number of files a single reindex batch will enqueue.  Guards
+# against an accidental full-hub reindex hammering the enrichment queue.
+REINDEX_BATCH_SIZE = 20
+
 
 def _update_task(task_id: str, *, status: TaskStatus, error: str | None = None) -> None:
     """Update the status (and optional error) of a tracked task."""
@@ -223,6 +227,10 @@ async def enqueue_reindex_all(
     async with async_session_factory() as session:
         result = await session.execute(stmt)
         records = result.scalars().all()
+
+    # Cap the batch so an accidental full-hub reindex cannot enqueue
+    # unbounded enrichment work in a single pass.
+    records = records[:REINDEX_BATCH_SIZE]
 
     # Reset progress counters and mark batch active before enqueuing
     # so workers see the flag when they pick up jobs.
