@@ -1,0 +1,5 @@
+{
+  "database_url": "postgresql+asyncpg://file_hub:file_hub@localhost:5432/file_hub",
+  "local_storage_path": "./test_uploads",
+  "log_level": "INFO"
+}
