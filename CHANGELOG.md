@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.2](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.12.1...v0.12.2) (2026-09-04)
+
+
+### Bug Fixes
+
+* reconcile missing ORM columns at startup — create_all never alters existing tables ([#293](https://github.com/damien-robotsix/robotsix-file-hub/issues/293)) ([9943ffc](https://github.com/damien-robotsix/robotsix-file-hub/commit/9943ffc405b4ad31bb26e2d09335685fa81b9a57))
+
 ## [0.12.1](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.12.0...v0.12.1) (2026-09-04)
 
 
