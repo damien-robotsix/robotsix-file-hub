@@ -24,7 +24,7 @@
   "embedding": {
     "provider": "openai_compatible",
     "model": "bge-m3",
-    "endpoint": "http://localhost:11434/v1",
+    "endpoint": "http://ollama:11434/v1",
     "dimensions": 1024,
     "api_key": "ollama",
     "timeout": 30.0
