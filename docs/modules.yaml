@@ -38,6 +38,7 @@ modules:
       - config/config.docker.json
       - config/config.json
       - config/config.schema.json
+      - config/config.test.json
       - migrations/versions/0003_embedding_dim_1024.py
       - migrations/versions/0004_metadata_source.py
       - pyproject.toml
