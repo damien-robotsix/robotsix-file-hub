@@ -285,18 +285,19 @@ async def list_categories(
     return CategoriesResponse(categories=sorted(c for c in rows if c is not None))
 
 
-@router.get(
-    "/{file_id}",
-    responses={404: {"model": ErrorResponse}},
-)
-@limiter.limit(DEFAULT_RATE_LIMIT)
-async def download_file(
-    request: Request,
+async def _stream_file(
     file_id: str,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    storage: Annotated[StorageBackend, Depends(_get_storage)],
+    disposition: str,
+    db: AsyncSession,
+    storage: StorageBackend,
 ) -> Response:
-    """Stream the raw file bytes for a stored file."""
+    """Build a streaming response for a stored file.
+
+    Resolves the file record (404 when missing), reads its bytes from
+    storage (500 on ``StorageError``), and constructs the response with
+    the given ``Content-Disposition`` disposition word — ``"attachment"``
+    for downloads, ``"inline"`` for in-browser rendering.
+    """
     record = await db.get(FileRecord, file_id)
     if record is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
@@ -313,10 +314,25 @@ async def download_file(
         content=content,
         media_type=record.content_type,
         headers={
-            "Content-Disposition": f'attachment; filename="{record.filename}"',
+            "Content-Disposition": f'{disposition}; filename="{record.filename}"',
             "Content-Length": str(record.size),
         },
     )
+
+
+@router.get(
+    "/{file_id}",
+    responses={404: {"model": ErrorResponse}},
+)
+@limiter.limit(DEFAULT_RATE_LIMIT)
+async def download_file(
+    request: Request,
+    file_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    storage: Annotated[StorageBackend, Depends(_get_storage)],
+) -> Response:
+    """Stream the raw file bytes for a stored file."""
+    return await _stream_file(file_id, "attachment", db, storage)
 
 
 @router.get(
@@ -336,26 +352,7 @@ async def view_file(
     so that browsers (and headless-browser render tools) can display the
     file content directly — PDFs render in-page, images show inline, etc.
     """
-    record = await db.get(FileRecord, file_id)
-    if record is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
-
-    try:
-        content = await storage.get(record.storage_key)
-    except StorageError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Storage failure: {exc}",
-        ) from exc
-
-    return Response(
-        content=content,
-        media_type=record.content_type,
-        headers={
-            "Content-Disposition": f'inline; filename="{record.filename}"',
-            "Content-Length": str(record.size),
-        },
-    )
+    return await _stream_file(file_id, "inline", db, storage)
 
 
 @router.delete(
