@@ -157,6 +157,9 @@ the DOM environment.  Test files live alongside their source
    - **Quality** — duplicate of lint + type-check + test (runs as a
      standalone job).
    - **Frontend** — TypeScript type-check + ESLint lint.
+   - **Migrations** — applies all Alembic migrations against a clean
+     pgvector Postgres database, then exercises the full downgrade path
+     and re-applies them.
 
 6. **Review** — a maintainer will review your PR.  Address feedback by
    pushing additional commits; squash-merging is done on acceptance.
@@ -204,6 +207,21 @@ fragment step.
 
 - **Backend** — use shared fixtures from `tests/core/conftest.py`.  Do not
   duplicate SQLAlchemy engine/session/client setup in individual test
+  files.
+- **Frontend** — prefer `@testing-library/react` queries (`getByRole`,
+  `getByText`) over direct DOM manipulation.  Use `happy-dom` (already
+  configured).
+
+---
+
+## Further reading
+
+- [README](README.md) — project overview, quick start, API reference.
+- [ARCHITECTURE.md](ARCHITECTURE.md) — internal design and module layout.
+- [docs/core/API.md](docs/core/API.md) — detailed request/response schemas.
+- [docs/core/deployment.md](docs/core/deployment.md) — production deployment.
+- [docs/core/configuration.md](docs/core/configuration.md) — configuration reference.
+dividual test
   files.
 - **Frontend** — prefer `@testing-library/react` queries (`getByRole`,
   `getByText`) over direct DOM manipulation.  Use `happy-dom` (already

@@ -42,6 +42,53 @@ jobs:
       # rather than a baseline ratchet.
       mypy-advisory: false
 
+  migrations:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    # The migrations are Postgres-specific (pgvector ``CREATE EXTENSION
+    # vector`` + ``vector(N)`` columns in 0002/0003), so a plain SQLite test
+    # database cannot run them. Match docker-compose.yml: pgvector image with
+    # file_hub/file_hub/file_hub credentials, so config/config.test.json works
+    # both here and against a local ``docker compose up postgres``.
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: file_hub
+          POSTGRES_PASSWORD: file_hub
+          POSTGRES_DB: file_hub
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U file_hub -d file_hub"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
+        with:
+          # Must match required-version in pyproject.toml ([tool.uv]).
+          version: "0.12.5"
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Validate Alembic migrations
+        env:
+          # Database migrations, not the pytest suite, use this config.
+          ROBOTSIX_CONFIG_FILE: config/config.test.json
+        run: |
+          # Apply all forward migrations against a clean database.
+          uv run alembic upgrade head
+          # Exercise the full downgrade path, then re-apply so CI leaves a
+          # consistent schema behind.
+          uv run alembic downgrade base
+          uv run alembic upgrade head
+
   supply-chain:
     runs-on: ubuntu-latest
     permissions:

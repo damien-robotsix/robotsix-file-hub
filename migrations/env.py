@@ -7,7 +7,7 @@ from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from robotsix_file_hub.config import Settings
+from robotsix_file_hub.config import get_settings
 from robotsix_file_hub.models import Base
 
 # Alembic Config object, which provides access to values within alembic.ini
@@ -18,7 +18,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Override sqlalchemy.url from application settings
-settings = Settings()
+settings = get_settings()
 config.set_main_option("sqlalchemy.url", settings.database_url)
 
 target_metadata = Base.metadata
