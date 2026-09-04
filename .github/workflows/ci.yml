@@ -103,6 +103,9 @@ jobs:
       - name: Type check (mypy)
         run: uv run mypy src/
 
+      - name: Dead code (vulture)
+        run: uv run vulture src/ vulture_whitelist.py --ignore-decorators "@field_validator,@model_validator"
+
       - name: Test (pytest)
         run: uv run pytest
 
