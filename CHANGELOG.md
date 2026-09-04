@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.1](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.12.0...v0.12.1) (2026-09-04)
+
+
+### Bug Fixes
+
+* **deps:** refresh first-party git pin revs (2026-09-01 caretaker sweep) ([#283](https://github.com/damien-robotsix/robotsix-file-hub/issues/283)) ([53fb87c](https://github.com/damien-robotsix/robotsix-file-hub/commit/53fb87c55cc7b842436fa8d4bbf25ed3a6048c0f))
+
 ## [0.12.0](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.11.0...v0.12.0) (2026-08-31)
 
 
