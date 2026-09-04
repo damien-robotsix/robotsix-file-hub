@@ -90,10 +90,8 @@ Dedicated OpenAI-compatible embedding server (shared bge-m3, 1024 dimensions).
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `embedding.provider` | `str` | `openai_compatible` | Embedding provider identifier. |
 | `embedding.model` | `str` | `bge-m3` | Embedding model name — must emit 1024-dim vectors matching the pgvector column. |
 | `embedding.endpoint` | `str` | `http://localhost:11434/v1` | Base URL of the shared Ollama bge-m3 embedding server. |
-| `embedding.dimensions` | `int` | `1024` | Dimensionality of the embedding vector. |
 | `embedding.api_key` | `str` | `ollama` | API key for the embedding endpoint. |
 | `embedding.timeout` | `float` | `30.0` | Request timeout in seconds for embedding calls. |
 

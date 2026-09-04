@@ -78,10 +78,6 @@ class OpenRouterConfig(BaseModel):
 class EmbeddingSettings(BaseModel):
     """Dedicated embedding configuration pointing at the shared bge-m3 server."""
 
-    provider: str = Field(
-        "openai_compatible",
-        description="Embedding provider identifier (openai_compatible).",
-    )
     model: str = Field(
         "bge-m3",
         description="Embedding model name — must emit 1024-dim vectors.",
@@ -89,10 +85,6 @@ class EmbeddingSettings(BaseModel):
     endpoint: str = Field(
         "http://localhost:11434/v1",
         description="Base URL of the shared Ollama bge-m3 embedding server.",
-    )
-    dimensions: int = Field(
-        1024,
-        description="Dimensionality of the embedding vector (must match pgvector column).",
     )
     api_key: SecretStr = Field(
         SecretStr("ollama"),
@@ -164,10 +156,8 @@ class Settings(ConfigModel):
 
     embedding: EmbeddingSettings = Field(
         default_factory=lambda: EmbeddingSettings(
-            provider="openai_compatible",
             model="bge-m3",
             endpoint="http://localhost:11434/v1",
-            dimensions=1024,
             api_key=SecretStr("ollama"),
             timeout=30.0,
         ),

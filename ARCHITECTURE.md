@@ -124,9 +124,11 @@ Embeddings come from a **dedicated OpenAI-compatible embedding server**
 (the shared bge-m3 instance used by robotsix-chat's cognee memory).
 
 The ``embedding`` config block mirrors robotsix-chat's
-``MemoryEmbeddingSettings``: ``provider=openai_compatible``,
-``model=bge-m3``, ``dimensions=1024``, ``endpoint`` (operator-set),
-``api_key`` (default ``ollama``).
+``MemoryEmbeddingSettings``: ``model=bge-m3``, ``endpoint``
+(operator-set), ``api_key`` (default ``ollama``), ``timeout``. The
+1024-dim vector width is not configurable — it is fixed by the
+``EMBEDDING_DIMENSIONS`` constant in ``models.py``, which is coupled to
+the pgvector column and its migration.
 
 After enrichment, ``_embedding_input_text()`` concatenates summary,
 category, and tags into a single text string. This text is sent to

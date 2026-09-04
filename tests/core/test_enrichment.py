@@ -1099,15 +1099,13 @@ class TestConfigShape:
         assert or_block.keys["robotsix-file-hub"].get_secret_value() == "sk-or-..."
 
     def test_embedding_block_has_bge_m3_defaults(self) -> None:
-        """The embedding block defaults to bge-m3 with 1024 dimensions."""
+        """The embedding block defaults to the bge-m3 endpoint config."""
         from src.robotsix_file_hub.config import EmbeddingSettings, get_settings
 
         settings = get_settings()
         emb = settings.embedding
         assert isinstance(emb, EmbeddingSettings)
-        assert emb.provider == "openai_compatible"
         assert emb.model == "bge-m3"
-        assert emb.dimensions == 1024
         assert emb.api_key.get_secret_value() == "ollama"
 
     def test_enrichment_llm_tier_level_defaults_to_1(self) -> None:
