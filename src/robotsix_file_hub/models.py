@@ -4,7 +4,7 @@ import uuid
 from datetime import UTC, datetime
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import DateTime, Integer, String, func
+from sqlalchemy import DateTime, Integer, String, Text, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 # Width of the stored embedding vector. Must match the model named by
@@ -22,11 +22,16 @@ class Base(DeclarativeBase):
 class FileRecord(Base):
     """Central persistence entity for uploaded files.
 
-    Maps to the ``file_records`` table with 14 columns including metadata,
+    Maps to the ``file_records`` table with 15 columns including metadata,
     enrichment fields (category, tags, summary, source, metadata_source,
-    embedding), and timestamps.  The ``embedding`` column dimension is
+    embedding), the caller-supplied ``upload_metadata`` payload, and
+    timestamps.  The ``embedding`` column dimension is
     coupled to ``EMBEDDING_DIMENSIONS``; enrichment fields are nullable
-    until the enrichment task runs.  ``metadata_source`` records the
+    until the enrichment task runs.  ``upload_metadata`` holds the
+    optional JSON provenance/context payload a pushing component supplied
+    at upload time (free-text ``context``, ``tags``, and a ``provenance``
+    map); it is preserved verbatim and fed into the enrichment
+    classifier.  ``metadata_source`` records the
     provenance of the enrichment fields — ``"enrichment"`` for values
     written by the automatic pipeline, ``"agent"``/``"manual"`` for
     curated values written via ``PATCH /files/{id}/metadata`` — and a
@@ -47,6 +52,7 @@ class FileRecord(Base):
     summary: Mapped[str | None] = mapped_column(String(4096), nullable=True)
     source: Mapped[str | None] = mapped_column(String(256), nullable=True)
     metadata_source: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    upload_metadata: Mapped[str | None] = mapped_column(Text, nullable=True)
     embedding: Mapped[list[float] | None] = mapped_column(
         Vector(EMBEDDING_DIMENSIONS), nullable=True
     )

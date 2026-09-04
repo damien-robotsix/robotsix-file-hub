@@ -67,7 +67,14 @@ No authentication is required.
 Upload a single file.
 
 - **Content-Type:** `multipart/form-data`
-- **Form field:** `file` (required)
+- **Form fields:**
+  - `file` (required)
+  - `metadata` (optional) — a JSON object with caller-supplied
+    provenance/context, see [`UploadMetadata`](#uploadmetadata)
+
+By default, uploading the same content twice **deduplicates**: the second
+call returns the existing file's id with `deduplicated: true` and does
+not store additional bytes.
 
 **Query parameters**
 
@@ -75,9 +82,20 @@ Upload a single file.
 |---|---|---|---|
 | `allow_duplicate` | bool | `false` | If `true`, bypasses content-dedup and always stores a new copy; default dedup reuses an existing record when content checksum matches |
 
-By default, uploading the same content twice **deduplicates**: the second
-call returns the existing file's id with `deduplicated: true` and does
-not store additional bytes.
+**Supplying metadata.** A pushing component (e.g. `robotsix-auto-mail`
+forwarding an unzipped mail attachment) can attach a `metadata` form
+field holding a JSON object with optional `context`, `tags`, and a
+`provenance`/`source` map. The payload is persisted verbatim, exposed on
+the read/detail endpoint, and fed into the enrichment classifier (see
+[How supplied metadata influences classification](#how-supplied-metadata-influences-classification)).
+Omitting the field is fully backward-compatible. A malformed payload is
+rejected with `400`.
+
+```console
+curl -F 'file=@Old_structure.stl' \
+     -F 'metadata={"context":"STL structure export from mail","tags":["cad","structure"],"provenance":{"source_component":"robotsix-auto-mail","container_zip":"Old_structure.stl.zip"}}' \
+     http://localhost:8000/files
+```
 
 **Response** `200` — [`FileUploadResponse`](#fileuploadresponse)
 
@@ -103,7 +121,12 @@ not store additional bytes.
 Upload multiple files in one request.
 
 - **Content-Type:** `multipart/form-data`
-- **Form field:** `files` (required, multiple)
+- **Form fields:**
+  - `files` (required, multiple)
+  - `metadata` (optional) — a JSON **array** of per-file
+    [`UploadMetadata`](#uploadmetadata) objects (`null` entries allowed),
+    index-aligned with `files`. A shorter array is padded with `null`;
+    an array with more entries than files is rejected with `400`.
 
 **Query parameters**
 
@@ -131,6 +154,35 @@ Upload multiple files in one request.
 ```
 
 **Errors:** `413`, `500`
+
+---
+
+### How supplied metadata influences classification
+
+File-hub enriches every newly uploaded file with an LLM classifier that
+assigns a `category`, `tags`, and a `summary`.  When an upload carries
+[`UploadMetadata`](#uploadmetadata), the enrichment pipeline renders the
+supplied `context`, `tags`, and `provenance` map into a short preamble
+and injects it into the classification prompt, so the model weighs the
+declared origin and purpose — not just the filename and extracted bytes —
+when choosing the category and tags.
+
+Two consequences:
+
+- **Opaque or binary files still get classified.** If a file yields no
+  extractable text (e.g. an STL/CAD export with an opaque filename) but
+  provenance/context is present, the classifier runs on the metadata
+  alone.  A file whose `context`/`provenance` indicates a CAD/STL
+  structure export is categorised accordingly even when the filename
+  tells the model nothing.
+- **The supplied payload is preserved verbatim.** `upload_metadata` is
+  stored as-is and exposed on read; it is never overwritten by the
+  enrichment pass, which writes only the derived `category`/`tags`/
+  `summary` fields.
+
+The same rendered metadata is forwarded through the image/scanned-PDF
+vision path, so provenance influences classification regardless of file
+type.
 
 ---
 
@@ -430,6 +482,19 @@ All fields from `FileUploadResponse` plus:
 | `summary` | string \| null | AI-generated summary |
 | `source` | string \| null | Uploader / source identifier |
 | `metadata_source` | string \| null | Provenance of the enrichment fields: `"enrichment"` (written by the automatic pipeline) or `"agent"`/`"manual"` (written via `PATCH /files/{id}/metadata`) |
+| `upload_metadata` | [`UploadMetadata`](#uploadmetadata) \| null | Caller-supplied provenance/context payload attached at upload time, or `null` when none was supplied |
+
+### `UploadMetadata`
+
+Optional provenance/context payload a pushing component may attach on
+upload (via the `metadata` form field).  Every field is optional; an
+upload with no metadata is fully backward-compatible.
+
+| Field | Type | Description |
+|---|---|---|
+| `context` | string \| null | Free-text note describing where the file came from (e.g. an operator context or the mail body excerpt) |
+| `tags` | string[] \| null | Keyword tags the source already knows |
+| `provenance` | object (string→string) \| null | Arbitrary source detail map, e.g. `source_component`, `source_account`, `source_folder`, `mail_subject`, `mail_sender`, `mail_date`, `original_filename`, `container_zip`. Also accepted under the alias `source` |
 
 ### `FileListResponse`
 

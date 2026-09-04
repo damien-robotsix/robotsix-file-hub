@@ -1,6 +1,7 @@
 """Tests for file upload endpoints."""
 
 import io
+import json
 
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -26,6 +27,119 @@ async def test_upload_single_file(test_client: AsyncClient) -> None:
     assert len(data["checksum"]) == 64
     assert "id" in data
     assert "created_at" in data
+
+
+async def test_upload_with_metadata_persists_and_exposes(
+    test_client: AsyncClient,
+    test_session_factory: async_sessionmaker,
+) -> None:
+    """POST /files with a ``metadata`` form field persists the payload.
+
+    The supplied context/tags/provenance must be stored on the record and
+    exposed on the metadata read endpoint.
+    """
+    metadata = {
+        "context": "Extracted from Old_structure.stl.zip mail attachment",
+        "tags": ["cad", "structure"],
+        "provenance": {
+            "source_component": "robotsix-auto-mail",
+            "mail_subject": "New structure export",
+            "container_zip": "Old_structure.stl.zip",
+        },
+    }
+    response = await test_client.post(
+        "/files",
+        files={"file": ("opaque.stl", io.BytesIO(b"solid model"), "application/octet-stream")},
+        data={"metadata": json.dumps(metadata)},
+    )
+    assert response.status_code == 200
+    file_id = response.json()["id"]
+
+    detail = await test_client.get(f"/files/{file_id}/metadata")
+    assert detail.status_code == 200
+    body = detail.json()
+    assert body["upload_metadata"]["context"] == metadata["context"]
+    assert body["upload_metadata"]["tags"] == ["cad", "structure"]
+    assert body["upload_metadata"]["provenance"]["container_zip"] == "Old_structure.stl.zip"
+
+    # Persisted verbatim on the record as a JSON string.
+    async with test_session_factory() as session:
+        record = await session.get(FileRecord, file_id)
+        assert record is not None
+        assert record.upload_metadata is not None
+        stored = json.loads(record.upload_metadata)
+        assert stored["provenance"]["source_component"] == "robotsix-auto-mail"
+
+
+async def test_upload_metadata_accepts_source_alias(
+    test_client: AsyncClient,
+) -> None:
+    """The provenance map is also accepted under the ``source`` alias."""
+    metadata = {"source": {"source_component": "robotsix-auto-mail"}}
+    response = await test_client.post(
+        "/files",
+        files={"file": ("x.txt", io.BytesIO(b"hello"), "text/plain")},
+        data={"metadata": json.dumps(metadata)},
+    )
+    assert response.status_code == 200
+    file_id = response.json()["id"]
+
+    detail = await test_client.get(f"/files/{file_id}/metadata")
+    assert detail.status_code == 200
+    assert detail.json()["upload_metadata"]["provenance"] == {
+        "source_component": "robotsix-auto-mail"
+    }
+
+
+async def test_upload_without_metadata_is_backward_compatible(
+    test_client: AsyncClient,
+) -> None:
+    """Omitting ``metadata`` leaves ``upload_metadata`` null on read."""
+    response = await test_client.post(
+        "/files",
+        files={"file": ("plain.txt", io.BytesIO(b"data"), "text/plain")},
+    )
+    assert response.status_code == 200
+    file_id = response.json()["id"]
+
+    detail = await test_client.get(f"/files/{file_id}/metadata")
+    assert detail.status_code == 200
+    assert detail.json()["upload_metadata"] is None
+
+
+async def test_upload_invalid_metadata_returns_400(
+    test_client: AsyncClient,
+) -> None:
+    """A malformed ``metadata`` payload is rejected with 400."""
+    response = await test_client.post(
+        "/files",
+        files={"file": ("plain.txt", io.BytesIO(b"data"), "text/plain")},
+        data={"metadata": json.dumps({"tags": "not-a-list"})},
+    )
+    assert response.status_code == 400
+
+
+async def test_upload_batch_with_metadata(
+    test_client: AsyncClient,
+) -> None:
+    """POST /files/batch accepts a JSON array of per-file metadata."""
+    files = [
+        ("files", ("a.txt", io.BytesIO(b"aaa"), "text/plain")),
+        ("files", ("b.txt", io.BytesIO(b"bbbbb"), "text/plain")),
+    ]
+    metadata = [{"context": "first"}, None]
+    response = await test_client.post(
+        "/files/batch",
+        files=files,
+        data={"metadata": json.dumps(metadata)},
+    )
+    assert response.status_code == 200
+    ids = [f["id"] for f in response.json()["files"]]
+
+    first = (await test_client.get(f"/files/{ids[0]}/metadata")).json()
+    second = (await test_client.get(f"/files/{ids[1]}/metadata")).json()
+    assert first["upload_metadata"]["context"] == "first"
+    assert second["upload_metadata"] is None
 
 
 async def test_upload_file_too_large(test_client: AsyncClient) -> None:

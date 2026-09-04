@@ -1,10 +1,11 @@
 """Pydantic request/response schemas."""
 
+import json
 from datetime import datetime
 from enum import StrEnum
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import AliasChoices, BaseModel, Field, field_validator
 
 
 class TaskType(StrEnum):
@@ -30,6 +31,60 @@ class TaskResponse(BaseModel):
     error: str | None = None
     created_at: datetime
     updated_at: datetime
+
+
+class UploadMetadata(BaseModel):
+    """Optional provenance/context metadata supplied alongside an upload.
+
+    A pushing component (e.g. ``robotsix-auto-mail`` forwarding an
+    unzipped mail attachment) can attach:
+
+    - ``context``: a free-text note describing where the file came from,
+    - ``tags``: a list of keyword strings the source already knows,
+    - ``provenance``: an arbitrary ``key -> value`` string map of source
+      details (e.g. ``source_component``, ``source_account``,
+      ``source_folder``, ``mail_subject``, ``mail_sender``, ``mail_date``,
+      ``original_filename``, ``container_zip``).
+
+    Every field is optional — an upload with no metadata is fully
+    backward-compatible.  The ``provenance`` field also accepts the alias
+    ``source`` so callers can send either key.
+    """
+
+    context: str | None = None
+    tags: list[str] | None = Field(default=None, max_length=20)
+    provenance: dict[str, str] | None = Field(
+        default=None,
+        validation_alias=AliasChoices("provenance", "source"),
+        serialization_alias="provenance",
+        description="Arbitrary key->value string map of source details.",
+    )
+
+    model_config = {"populate_by_name": True}
+
+    @field_validator("tags")
+    @classmethod
+    def _clean_tags(cls, tags: list[str] | None) -> list[str] | None:
+        """Strip whitespace and drop empty tags."""
+        if tags is None:
+            return tags
+        cleaned = [tag.strip() for tag in tags if tag.strip()]
+        return cleaned or None
+
+
+def _coerce_upload_metadata(value: Any) -> Any:
+    """Parse a stored JSON string into an :class:`UploadMetadata` mapping.
+
+    ``FileRecord.upload_metadata`` persists the supplied payload as a JSON
+    string; when a response model is built from the ORM object the raw
+    string must be decoded back into a mapping before validation.
+    """
+    if isinstance(value, str):
+        stripped = value.strip()
+        if not stripped:
+            return None
+        return json.loads(stripped)
+    return value
 
 
 class FileUploadResponse(BaseModel):
@@ -63,8 +118,14 @@ class _FileMetadataBase(BaseModel):
     summary: str | None = None
     source: str | None = None
     metadata_source: str | None = None
+    upload_metadata: UploadMetadata | None = None
 
     model_config = {"from_attributes": True}
+
+    @field_validator("upload_metadata", mode="before")
+    @classmethod
+    def _decode_upload_metadata(cls, value: Any) -> Any:
+        return _coerce_upload_metadata(value)
 
 
 class FileMetadataResponse(_FileMetadataBase):

@@ -35,6 +35,7 @@ from robotsix_llmio.core.factory import get_provider_for_identifier
 from robotsix_llmio.core.identifier import parse_model_identifier
 
 from .config import get_settings
+from .schemas import UploadMetadata
 
 # Sentinel returned by :func:`extract_text` for ``image/*`` content types.
 # Signals :func:`enrich_file` to use the vision LLM path instead of text.
@@ -244,15 +245,45 @@ def _wire_langfuse_env() -> None:
     os.environ.setdefault("LANGFUSE_BASE_URL", lf.host)
 
 
+# ── Supplied provenance/context metadata ──────────────────────────
+
+
+def _build_metadata_context(upload_metadata: UploadMetadata | None) -> str | None:
+    """Render caller-supplied upload metadata into a prompt preamble.
+
+    Flattens the optional ``context`` note, ``tags`` list, and
+    ``provenance`` (source) map into a short human-readable block that is
+    injected into the classification prompt so the LLM weighs the
+    supplied provenance — not just the filename and bytes — when
+    assigning a category and tags.  Returns ``None`` when no usable
+    metadata was supplied.
+    """
+    if upload_metadata is None:
+        return None
+    parts: list[str] = []
+    if upload_metadata.context:
+        parts.append(f"Operator context: {upload_metadata.context}")
+    if upload_metadata.tags:
+        parts.append("Supplied tags: " + ", ".join(upload_metadata.tags))
+    if upload_metadata.provenance:
+        prov = "; ".join(f"{key}={value}" for key, value in upload_metadata.provenance.items())
+        parts.append(f"Provenance: {prov}")
+    return "\n".join(parts) or None
+
+
 # ── LLM call (chat enrichment via robotsix-llmio) ───────────────────
 
 
-async def call_llm(text: str) -> dict[str, Any]:
+async def call_llm(text: str, context: str | None = None) -> dict[str, Any]:
     """Call robotsix-llmio for structured enrichment.
 
     Builds a provider and agent at the configured ``enrichment_llm_tier_level``
     (default 1) with ``output_type=EnrichmentModel``.  PromptedOutput wraps the
     model for JSON-in-text structured output — no hand-rolled fence parsing.
+
+    When *context* is provided (rendered caller-supplied provenance/context
+    metadata) it is injected into the prompt so the classifier takes it
+    into account alongside the extracted text.
 
     Raises ``Exception`` on failure (best-effort — caller catches).
     """
@@ -268,14 +299,25 @@ async def call_llm(text: str) -> dict[str, Any]:
 
     provider = get_provider_for_level(level, api_key=api_key)
 
+    context_block = ""
+    if context:
+        context_block = (
+            "The file was supplied with the following provenance/context metadata "
+            "from the pushing component. Take it into account when assigning the "
+            "category and tags — it may reveal the file's origin and purpose even "
+            "when the filename and bytes are opaque:\n"
+            f"{context}\n\n"
+        )
+
     prompt = (
-        "Analyze the following text content from a file and return a JSON object "
+        "Analyze the following file content and return a JSON object "
         "with exactly three fields:\n"
         '  "summary": a 1-3 sentence summary of the content,\n'
         '  "category": a single category label (e.g. "document", "image", "code", '
         '"spreadsheet", "presentation", "legal", "financial", "scientific", "other"),\n'
         '  "tags": a list of up to 10 keyword tags (strings).\n'
         "Respond with only the JSON object, no other text.\n\n"
+        f"{context_block}"
         f"TEXT:\n{text[:8000]}"
     )
 
@@ -360,7 +402,9 @@ async def _vision_caption(image_bytes: bytes, content_type: str) -> str:
     )
 
 
-async def call_llm_vision(image_bytes: bytes, content_type: str) -> dict[str, Any]:
+async def call_llm_vision(
+    image_bytes: bytes, content_type: str, context: str | None = None
+) -> dict[str, Any]:
     """Enrich a raster image (or scanned-PDF page) via a two-step pipeline.
 
     Step 1 drives the image through the configured ``enrichment_vision_model``
@@ -368,6 +412,10 @@ async def call_llm_vision(image_bytes: bytes, content_type: str) -> dict[str, An
     (vision models read bitmaps).  Step 2 feeds that caption to the text
     classifier (:func:`call_llm`) which produces the standard
     ``EnrichmentModel`` summary/category/tags.
+
+    When *context* is provided (rendered caller-supplied provenance/context
+    metadata) it is forwarded to the text classifier so the category/tags
+    reflect the supplied provenance too.
 
     Returns the same ``EnrichmentModel`` fields as :func:`call_llm`.
 
@@ -379,7 +427,7 @@ async def call_llm_vision(image_bytes: bytes, content_type: str) -> dict[str, An
         content_type = "image/png"
 
     caption = await _vision_caption(image_bytes, content_type)
-    return await call_llm(caption)
+    return await call_llm(caption, context=context)
 
 
 async def generate_embedding(text: str) -> list[float] | None:
@@ -415,34 +463,49 @@ async def generate_embedding(text: str) -> list[float] | None:
 # ── Orchestration ───────────────────────────────────────────────────
 
 
-async def enrich_file(content: bytes, content_type: str) -> dict[str, str | None]:
+async def enrich_file(
+    content: bytes,
+    content_type: str,
+    upload_metadata: UploadMetadata | None = None,
+) -> dict[str, str | None]:
     """Extract text and call the LLM for enrichment.
 
     Returns a dict with ``category``, ``tags`` (comma-separated),
     ``summary``, and ``embedding`` (JSON-serialised list of floats)
     — all nullable.  If text extraction yields nothing or the LLM
     call fails, fields are returned as ``None`` (best-effort).
+
+    When *upload_metadata* is supplied (caller-provided provenance/context),
+    its rendered form is injected into the classification prompt so the
+    category/tags reflect the supplied context and provenance — not just
+    the filename and bytes.  If text extraction yields nothing but
+    metadata is present, the file is still classified from the metadata
+    alone (e.g. an opaque CAD/STL export whose provenance names it).
     """
     text = extract_text(content, content_type)
-    if not text:
+    context = _build_metadata_context(upload_metadata)
+
+    if not text and not context:
         logger.info(
-            "No text extracted for content_type=%s, skipping LLM enrichment",
+            "No text extracted and no metadata for content_type=%s, skipping LLM enrichment",
             content_type,
         )
         return {"category": None, "tags": None, "summary": None, "embedding": None}
 
     try:
         if text == IMAGE_SENTINEL:
-            llm_result = await call_llm_vision(content, content_type)
+            llm_result = await call_llm_vision(content, content_type, context=context)
         elif text == SCANNED_PDF_SENTINEL:
             page_images = _render_pdf_pages(content)
             page_results = []
             for page_bytes in page_images:
-                result = await call_llm_vision(page_bytes, "image/png")
+                result = await call_llm_vision(page_bytes, "image/png", context=context)
                 page_results.append(result)
             llm_result = _merge_page_results(page_results)
         else:
-            llm_result = await call_llm(text)
+            # ``text`` may be ``None`` here when only metadata is present —
+            # classify from the provenance/context block alone.
+            llm_result = await call_llm(text or "", context=context)
         summary_text = llm_result.get("summary", "")
         category = llm_result["category"] or None
         tags = ",".join(llm_result["tags"]) or None

@@ -15,13 +15,14 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
+from pydantic import ValidationError
 from sqlalchemy import select
 
 from .database import async_session_factory
 from .embeddings import build_embedding_text, generate_embedding
 from .enrichment import enrich_file
 from .models import FileRecord
-from .schemas import TaskStatus, TaskType
+from .schemas import TaskStatus, TaskType, UploadMetadata
 from .storage import StorageError, _get_storage
 
 logger = logging.getLogger(__name__)
@@ -36,6 +37,7 @@ class EnrichmentJob:
     content_type: str
     task_id: str
     force: bool = False
+    upload_metadata: str | None = None
 
 
 @dataclass
@@ -135,7 +137,16 @@ async def _process_enrichment(job: EnrichmentJob) -> bool:
         logger.warning("Enrichment skipped: storage read failed for file_id=%s", job.file_id)
         return False
 
-    enrichment = await enrich_file(content, job.content_type)
+    upload_metadata: UploadMetadata | None = None
+    if job.upload_metadata:
+        try:
+            upload_metadata = UploadMetadata.model_validate_json(job.upload_metadata)
+        except ValidationError:
+            logger.warning(
+                "Ignoring malformed upload_metadata for file_id=%s", job.file_id, exc_info=True
+            )
+
+    enrichment = await enrich_file(content, job.content_type, upload_metadata=upload_metadata)
 
     async with async_session_factory() as session:
         record = await session.get(FileRecord, job.file_id)
@@ -193,6 +204,7 @@ def enqueue_enrichment(
     storage_key: str,
     content_type: str,
     force: bool = False,
+    upload_metadata: str | None = None,
 ) -> str:
     """Fire-and-forget: schedule enrichment for a newly uploaded file.
 
@@ -213,6 +225,7 @@ def enqueue_enrichment(
         content_type=content_type,
         task_id=task_id,
         force=force,
+        upload_metadata=upload_metadata,
     )
     _queue.put_nowait(job)
     return task_id
@@ -291,6 +304,7 @@ async def enqueue_reindex_all(
             storage_key=record.storage_key,
             content_type=record.content_type,
             force=force,
+            upload_metadata=record.upload_metadata,
         )
     logger.info("Re-index queued %d files", _reindex_total)
     return {"enqueued": _reindex_total, "task_id": _reindex_task_id}
