@@ -175,7 +175,12 @@ async def test_upload_enqueues_enrichment(
     original_enqueue = routes_module.enqueue_enrichment
 
     def _capture_enqueue(
-        *, file_id: str, storage_key: str, content_type: str, force: bool = False
+        *,
+        file_id: str,
+        storage_key: str,
+        content_type: str,
+        force: bool = False,
+        upload_metadata: str | None = None,
     ) -> None:
         enqueued.append((file_id, storage_key, content_type))
 
@@ -235,7 +240,12 @@ async def test_reindex_all_enqueues_all_files(tasks_test_env) -> None:
     original_enqueue = tasks_module.enqueue_enrichment
 
     def _capture_enqueue(
-        *, file_id: str, storage_key: str, content_type: str, force: bool = False
+        *,
+        file_id: str,
+        storage_key: str,
+        content_type: str,
+        force: bool = False,
+        upload_metadata: str | None = None,
     ) -> None:
         enqueued.append((file_id, storage_key, content_type))
 
@@ -297,7 +307,12 @@ async def test_reindex_all_skips_curated_without_force(tasks_test_env) -> None:
     original_enqueue = tasks_module.enqueue_enrichment
 
     def _capture_enqueue(
-        *, file_id: str, storage_key: str, content_type: str, force: bool = False
+        *,
+        file_id: str,
+        storage_key: str,
+        content_type: str,
+        force: bool = False,
+        upload_metadata: str | None = None,
     ) -> None:
         enqueued.append((file_id, storage_key, content_type))
 
@@ -347,7 +362,12 @@ async def test_reindex_all_caps_batch_at_20_files(tasks_test_env) -> None:
     original_enqueue = tasks_module.enqueue_enrichment
 
     def _capture_enqueue(
-        *, file_id: str, storage_key: str, content_type: str, force: bool = False
+        *,
+        file_id: str,
+        storage_key: str,
+        content_type: str,
+        force: bool = False,
+        upload_metadata: str | None = None,
     ) -> None:
         enqueued.append((file_id, storage_key, content_type))
 
@@ -409,7 +429,12 @@ async def test_reindex_all_filtered_by_category(tasks_test_env) -> None:
     original_enqueue = tasks_module.enqueue_enrichment
 
     def _capture_enqueue(
-        *, file_id: str, storage_key: str, content_type: str, force: bool = False
+        *,
+        file_id: str,
+        storage_key: str,
+        content_type: str,
+        force: bool = False,
+        upload_metadata: str | None = None,
     ) -> None:
         enqueued.append((file_id, storage_key, content_type))
 
@@ -460,7 +485,12 @@ async def test_reindex_all_filtered_by_content_type(tasks_test_env) -> None:
     original_enqueue = tasks_module.enqueue_enrichment
 
     def _capture_enqueue(
-        *, file_id: str, storage_key: str, content_type: str, force: bool = False
+        *,
+        file_id: str,
+        storage_key: str,
+        content_type: str,
+        force: bool = False,
+        upload_metadata: str | None = None,
     ) -> None:
         enqueued.append((file_id, storage_key, content_type))
 
@@ -518,7 +548,12 @@ async def test_reindex_all_filtered_by_file_ids(tasks_test_env) -> None:
     original_enqueue = tasks_module.enqueue_enrichment
 
     def _capture_enqueue(
-        *, file_id: str, storage_key: str, content_type: str, force: bool = False
+        *,
+        file_id: str,
+        storage_key: str,
+        content_type: str,
+        force: bool = False,
+        upload_metadata: str | None = None,
     ) -> None:
         enqueued.append((file_id, storage_key, content_type))
 
@@ -580,7 +615,12 @@ async def test_reindex_all_filtered_by_enrichment_status_empty(tasks_test_env) -
     original_enqueue = tasks_module.enqueue_enrichment
 
     def _capture_enqueue(
-        *, file_id: str, storage_key: str, content_type: str, force: bool = False
+        *,
+        file_id: str,
+        storage_key: str,
+        content_type: str,
+        force: bool = False,
+        upload_metadata: str | None = None,
     ) -> None:
         enqueued.append((file_id, storage_key, content_type))
 
@@ -997,7 +1037,13 @@ async def test_upload_response_includes_task_id(test_client: AsyncClient) -> Non
 
     original_enqueue = routes_module.enqueue_enrichment
 
-    def _fake_enqueue(*, file_id: str, storage_key: str, content_type: str) -> str:
+    def _fake_enqueue(
+        *,
+        file_id: str,
+        storage_key: str,
+        content_type: str,
+        upload_metadata: str | None = None,
+    ) -> str:
         return "test-task-123"
 
     routes_module.enqueue_enrichment = _fake_enqueue  # type: ignore[assignment]

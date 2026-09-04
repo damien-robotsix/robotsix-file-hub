@@ -1,6 +1,7 @@
 """File endpoints: upload, download, metadata, and listing."""
 
 import contextlib
+import json
 import logging
 import uuid
 from datetime import datetime
@@ -10,6 +11,7 @@ from fastapi import (
     APIRouter,
     Depends,
     File,
+    Form,
     Header,
     HTTPException,
     Query,
@@ -18,6 +20,7 @@ from fastapi import (
     UploadFile,
     status,
 )
+from pydantic import ValidationError
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -33,6 +36,7 @@ from ..schemas import (
     FileMetadataResponse,
     FileUploadResponse,
     MetadataUpdateRequest,
+    UploadMetadata,
 )
 from ..storage import StorageBackend, StorageError, _get_storage, compute_checksum
 from ..tasks import enqueue_enrichment, enqueue_reindex_all, get_reindex_progress
@@ -43,12 +47,79 @@ router = APIRouter(prefix="/files", tags=["files"])
 MAX_FILE_SIZE = get_settings().max_file_size
 
 
+def _parse_upload_metadata(raw: str | None) -> UploadMetadata | None:
+    """Parse the optional ``metadata`` upload form field.
+
+    Accepts a JSON object string carrying the caller-supplied
+    ``context``/``tags``/``provenance`` payload.  Returns ``None`` when
+    the field is absent or blank (fully backward-compatible), and raises
+    ``400`` when the payload is not valid JSON matching
+    :class:`UploadMetadata`.
+    """
+    if raw is None or raw.strip() == "":
+        return None
+    try:
+        return UploadMetadata.model_validate_json(raw)
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid metadata payload: {exc}",
+        ) from exc
+
+
+def _parse_batch_metadata(raw: str | None, count: int) -> list[UploadMetadata | None]:
+    """Parse the optional batch ``metadata`` form field.
+
+    Accepts a JSON array of per-file metadata objects (``null`` entries
+    allowed), index-aligned with the uploaded ``files``.  A shorter array
+    is padded with ``None``; an absent field yields an all-``None`` list.
+    Raises ``400`` when the payload is not a JSON array, has more entries
+    than files, or an entry does not match :class:`UploadMetadata`.
+    """
+    if raw is None or raw.strip() == "":
+        return [None] * count
+    try:
+        decoded = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid metadata payload: {exc}",
+        ) from exc
+    if not isinstance(decoded, list):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Batch metadata must be a JSON array aligned with files",
+        )
+    if len(decoded) > count:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Batch metadata has {len(decoded)} entries but only {count} files were uploaded"
+            ),
+        )
+    parsed: list[UploadMetadata | None] = []
+    for entry in decoded:
+        if entry is None:
+            parsed.append(None)
+            continue
+        try:
+            parsed.append(UploadMetadata.model_validate(entry))
+        except ValidationError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid metadata payload: {exc}",
+            ) from exc
+    parsed.extend([None] * (count - len(parsed)))
+    return parsed
+
+
 async def _process_upload(
     file: UploadFile,
     storage: StorageBackend,
     db: AsyncSession,
     *,
     allow_duplicate: bool = False,
+    metadata: UploadMetadata | None = None,
 ) -> tuple[FileRecord, bool]:
     """Read, validate, store, and stage a single file upload.
 
@@ -114,6 +185,11 @@ async def _process_upload(
         content_type=content_type,
         checksum=checksum,
         storage_key=storage_key,
+        upload_metadata=(
+            metadata.model_dump_json(exclude_none=True, by_alias=True)
+            if metadata is not None
+            else None
+        ),
     )
     db.add(record)
 
@@ -132,6 +208,7 @@ async def upload_file(
     db: Annotated[AsyncSession, Depends(get_db)],
     storage: Annotated[StorageBackend, Depends(_get_storage)],
     allow_duplicate: Annotated[bool, Query()] = False,
+    metadata: Annotated[str | None, Form()] = None,
 ) -> FileUploadResponse:
     """Upload a single file.
 
@@ -139,12 +216,19 @@ async def upload_file(
     exists, the existing record is returned instead of storing a second
     copy (``deduplicated=True``).  Pass ``?allow_duplicate=true`` to
     bypass this check and always store a new copy.
+
+    The optional ``metadata`` form field carries a JSON object with
+    caller-supplied provenance/context (``context``, ``tags``,
+    ``provenance``); it is persisted with the file and fed into the
+    enrichment classifier.  Omitting it is fully backward-compatible.
     """
+    parsed_metadata = _parse_upload_metadata(metadata)
     record, is_dedup = await _process_upload(
         file,
         storage,
         db,
         allow_duplicate=allow_duplicate,
+        metadata=parsed_metadata,
     )
     if not is_dedup:
         try:
@@ -162,6 +246,7 @@ async def upload_file(
             file_id=record.id,
             storage_key=record.storage_key,
             content_type=record.content_type,
+            upload_metadata=record.upload_metadata,
         )
     return FileUploadResponse(
         id=record.id,
@@ -187,6 +272,7 @@ async def upload_files_batch(
     db: Annotated[AsyncSession, Depends(get_db)],
     storage: Annotated[StorageBackend, Depends(_get_storage)],
     allow_duplicate: Annotated[bool, Query()] = False,
+    metadata: Annotated[str | None, Form()] = None,
 ) -> BatchUploadResponse:
     """Upload multiple files in a single batch request.
 
@@ -194,17 +280,25 @@ async def upload_files_batch(
     rolled back (both database records and stored file bytes).
     Duplicate-content files are deduplicated by default (see
     ``allow_duplicate``).
+
+    The optional ``metadata`` form field carries a JSON array of
+    per-file provenance/context objects (``null`` entries allowed),
+    index-aligned with ``files``; each is persisted with its file and
+    fed into the enrichment classifier.  Omitting it is fully
+    backward-compatible.
     """
+    per_file_metadata = _parse_batch_metadata(metadata, len(files))
     records: list[FileRecord] = []
     new_records: list[FileRecord] = []
     results: list[tuple[FileRecord, bool]] = []
-    for file in files:
+    for file, file_metadata in zip(files, per_file_metadata, strict=True):
         try:
             record, is_dedup = await _process_upload(
                 file,
                 storage,
                 db,
                 allow_duplicate=allow_duplicate,
+                metadata=file_metadata,
             )
         except HTTPException:
             await db.rollback()
@@ -241,6 +335,7 @@ async def upload_files_batch(
                 file_id=record.id,
                 storage_key=record.storage_key,
                 content_type=record.content_type,
+                upload_metadata=record.upload_metadata,
             )
 
     return BatchUploadResponse(

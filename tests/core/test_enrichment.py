@@ -16,6 +16,7 @@ from src.robotsix_file_hub.enrichment import (
     IMAGE_SENTINEL,
     SCANNED_PDF_SENTINEL,
     EnrichmentModel,
+    _build_metadata_context,
     _embedding_input_text,
     _merge_page_results,
     _rasterize_svg,
@@ -26,6 +27,7 @@ from src.robotsix_file_hub.enrichment import (
     extract_text,
     generate_embedding,
 )
+from src.robotsix_file_hub.schemas import UploadMetadata
 
 # ── call_llm tests ────────────────────────────────────────────────
 
@@ -174,6 +176,95 @@ async def test_call_llm_best_effort_on_failure() -> None:
     assert result["category"] is None
     assert result["tags"] is None
     assert result["summary"] is None
+
+
+# ── supplied metadata / classification tests ──────────────────────
+
+
+def test_build_metadata_context_renders_all_fields() -> None:
+    """_build_metadata_context flattens context, tags, and provenance."""
+    meta = UploadMetadata(
+        context="Extracted from a mail attachment",
+        tags=["cad", "structure"],
+        provenance={"container_zip": "Old_structure.stl.zip", "mail_sender": "eng@example.com"},
+    )
+    rendered = _build_metadata_context(meta)
+    assert rendered is not None
+    assert "Extracted from a mail attachment" in rendered
+    assert "cad, structure" in rendered
+    assert "container_zip=Old_structure.stl.zip" in rendered
+    assert "mail_sender=eng@example.com" in rendered
+
+
+def test_build_metadata_context_none_when_empty() -> None:
+    """No usable metadata renders to None."""
+    assert _build_metadata_context(None) is None
+    assert _build_metadata_context(UploadMetadata()) is None
+
+
+async def test_enrich_file_classifies_from_metadata_when_no_text() -> None:
+    """An opaque file with no extractable text is still classified via metadata.
+
+    The provenance/context names it a CAD/STL structure export, so the
+    classifier must run (and receive the rendered context) even though
+    ``extract_text`` returns ``None`` and the filename is opaque.
+    """
+    captured: dict[str, str | None] = {}
+
+    async def fake_call_llm(text, context=None):
+        captured["text"] = text
+        captured["context"] = context
+        return {"summary": "STL structure export", "category": "cad", "tags": ["stl", "cad"]}
+
+    meta = UploadMetadata(
+        context="STL structure export unzipped from mail",
+        provenance={"container_zip": "Old_structure.stl.zip"},
+    )
+
+    with (
+        patch("src.robotsix_file_hub.enrichment.call_llm", side_effect=fake_call_llm),
+        patch(
+            "src.robotsix_file_hub.enrichment.generate_embedding",
+            new=AsyncMock(return_value=None),
+        ),
+    ):
+        result = await enrich_file(b"\x00\x01binary", "application/octet-stream", meta)
+
+    assert result["category"] == "cad"
+    assert result["tags"] == "stl,cad"
+    assert captured["context"] is not None
+    assert "container_zip=Old_structure.stl.zip" in captured["context"]
+
+
+async def test_enrich_file_no_text_no_metadata_returns_null() -> None:
+    """With neither text nor metadata, enrichment fields stay null."""
+    result = await enrich_file(b"\x00\x01binary", "application/octet-stream")
+    assert result == {"category": None, "tags": None, "summary": None, "embedding": None}
+
+
+async def test_enrich_file_passes_context_alongside_extracted_text() -> None:
+    """Extracted text and supplied context are both fed to the classifier."""
+    captured: dict[str, str | None] = {}
+
+    async def fake_call_llm(text, context=None):
+        captured["text"] = text
+        captured["context"] = context
+        return {"summary": "s", "category": "document", "tags": ["t"]}
+
+    meta = UploadMetadata(context="from finance folder")
+
+    with (
+        patch("src.robotsix_file_hub.enrichment.call_llm", side_effect=fake_call_llm),
+        patch(
+            "src.robotsix_file_hub.enrichment.generate_embedding",
+            new=AsyncMock(return_value=None),
+        ),
+    ):
+        result = await enrich_file(b"hello text body", "text/plain", meta)
+
+    assert result["category"] == "document"
+    assert captured["text"] == "hello text body"
+    assert captured["context"] == "Operator context: from finance folder"
 
 
 # ── generate_embedding tests ──────────────────────────────────────
@@ -675,7 +766,7 @@ async def test_call_llm_vision_returns_parsed_fields() -> None:
 
     # Vision caption step saw the raw image bytes; classify step saw the caption.
     mock_caption.assert_awaited_once_with(b"\x89PNG", "image/png")
-    mock_text.assert_awaited_once_with("A photo of a sunset over the ocean.")
+    mock_text.assert_awaited_once_with("A photo of a sunset over the ocean.", context=None)
 
 
 async def test_vision_caption_uses_configured_vision_model() -> None:
@@ -837,7 +928,7 @@ async def test_enrich_file_image_uses_vision_path() -> None:
         result = await enrich_file(b"\x89PNG image data", "image/png")
 
     # Vision path was called, text path was not
-    mock_vision.assert_called_once_with(b"\x89PNG image data", "image/png")
+    mock_vision.assert_called_once_with(b"\x89PNG image data", "image/png", context=None)
     mock_text.assert_not_called()
 
     assert result["category"] == "photo"
@@ -963,7 +1054,7 @@ async def test_enrich_file_scanned_pdf_multi_page_merge() -> None:
 
     call_count = 0
 
-    async def mock_vision_call(image_bytes: bytes, content_type: str) -> dict:
+    async def mock_vision_call(image_bytes: bytes, content_type: str, context=None) -> dict:
         nonlocal call_count
         result = page_results[call_count]
         call_count += 1
