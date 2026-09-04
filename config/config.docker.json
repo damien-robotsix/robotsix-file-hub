@@ -22,10 +22,8 @@
   },
   "enrichment_llm_tier_level": 1,
   "embedding": {
-    "provider": "openai_compatible",
     "model": "bge-m3",
     "endpoint": "http://ollama:11434/v1",
-    "dimensions": 1024,
     "api_key": "ollama",
     "timeout": 30.0
   }

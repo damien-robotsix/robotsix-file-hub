@@ -3,12 +3,6 @@
     "EmbeddingSettings": {
       "description": "Dedicated embedding configuration pointing at the shared bge-m3 server.",
       "properties": {
-        "provider": {
-          "default": "openai_compatible",
-          "description": "Embedding provider identifier (openai_compatible).",
-          "title": "Provider",
-          "type": "string"
-        },
         "model": {
           "default": "bge-m3",
           "description": "Embedding model name \u2014 must emit 1024-dim vectors.",
@@ -20,12 +14,6 @@
           "description": "Base URL of the shared Ollama bge-m3 embedding server.",
           "title": "Endpoint",
           "type": "string"
-        },
-        "dimensions": {
-          "default": 1024,
-          "description": "Dimensionality of the embedding vector (must match pgvector column).",
-          "title": "Dimensions",
-          "type": "integer"
         },
         "api_key": {
           "default": "**********",

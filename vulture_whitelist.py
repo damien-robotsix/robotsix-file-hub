@@ -21,5 +21,4 @@ _.get_task_status  # FastAPI route
 _.detail  # Pydantic schema field
 _.relevance  # Pydantic schema field
 _.deduplicated  # Pydantic schema field — FileUploadResponse
-_.dimensions  # EmbeddingSettings documentation constraint — assert match with pgvector
 _.get_settings  # FastAPI Depends callable — not traced by vulture
