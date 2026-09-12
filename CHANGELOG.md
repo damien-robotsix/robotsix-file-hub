@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.0](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.12.2...v0.13.0) (2026-09-12)
+
+
+### Features
+
+* Use robotsix-http RetryClient for outbound embedding call in robotsix-file-hub (dep declared but unused) (20260911T213052Z-use-robotsix-http-retryclient-for-outbou-c903) ([#304](https://github.com/damien-robotsix/robotsix-file-hub/issues/304)) ([981b205](https://github.com/damien-robotsix/robotsix-file-hub/commit/981b205f37a2cf41ce3c00b8284a3f9d4e401ec4))
+
 ## [0.12.2](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.12.1...v0.12.2) (2026-09-04)
 
 
