@@ -30,6 +30,7 @@ from typing import Any, cast
 import httpx
 from pydantic import BaseModel, Field
 from pydantic_ai.messages import BinaryContent
+from robotsix_http import RetryClient, RetryConfig
 from robotsix_llmio import get_provider_for_level
 from robotsix_llmio.core.factory import get_provider_for_identifier
 from robotsix_llmio.core.identifier import parse_model_identifier
@@ -447,12 +448,12 @@ async def generate_embedding(text: str) -> list[float] | None:
 
     try:
         async with httpx.AsyncClient(timeout=emb.timeout) as client:
-            response = await client.post(
+            retry_client = RetryClient(client, config=RetryConfig())
+            response = await retry_client.post(
                 f"{emb.endpoint}/embeddings",
                 headers=headers,
                 json={"model": emb.model, "input": text[:8000]},
             )
-            response.raise_for_status()
             data = response.json()
         return list(data["data"][0]["embedding"])
     except Exception:

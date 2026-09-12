@@ -276,10 +276,10 @@ async def test_generate_embedding_returns_vector() -> None:
     mock_response.json.return_value = {"data": [{"embedding": [0.1, 0.2, 0.3, 0.4]}]}
     mock_response.raise_for_status = MagicMock()
 
-    async def fake_post(*args, **kwargs):
+    async def fake_request(method, url, **kwargs):
         return mock_response
 
-    with patch.object(httpx.AsyncClient, "post", side_effect=fake_post):
+    with patch.object(httpx.AsyncClient, "request", side_effect=fake_request):
         result = await generate_embedding("embed this text")
 
     assert result == [0.1, 0.2, 0.3, 0.4]
@@ -288,13 +288,41 @@ async def test_generate_embedding_returns_vector() -> None:
 async def test_generate_embedding_returns_none_on_failure() -> None:
     """generate_embedding returns None when the API call fails (best-effort)."""
 
-    async def fake_post(*args, **kwargs):
+    async def fake_request(method, url, **kwargs):
         raise httpx.ConnectError("connection refused")
 
-    with patch.object(httpx.AsyncClient, "post", side_effect=fake_post):
+    with (
+        patch.object(httpx.AsyncClient, "request", side_effect=fake_request),
+        patch("asyncio.sleep", new=AsyncMock()),
+    ):
         result = await generate_embedding("text")
 
     assert result is None
+
+
+async def test_generate_embedding_retries_transient_failure() -> None:
+    """generate_embedding retries a transient connect error via RetryClient."""
+    mock_response = MagicMock(spec=httpx.Response)
+    mock_response.json.return_value = {"data": [{"embedding": [1.0, 2.0]}]}
+    mock_response.raise_for_status = MagicMock()
+
+    calls = 0
+
+    async def fake_request(method, url, **kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise httpx.ConnectError("connection refused")
+        return mock_response
+
+    with (
+        patch.object(httpx.AsyncClient, "request", side_effect=fake_request),
+        patch("asyncio.sleep", new=AsyncMock()),
+    ):
+        result = await generate_embedding("text")
+
+    assert result == [1.0, 2.0]
+    assert calls == 2
 
 
 async def test_generate_embedding_truncates_input_to_8000_chars() -> None:
@@ -305,13 +333,13 @@ async def test_generate_embedding_truncates_input_to_8000_chars() -> None:
     mock_response.json.return_value = {"data": [{"embedding": [0.0]}]}
     mock_response.raise_for_status = MagicMock()
 
-    async def fake_post(url, **kwargs):
+    async def fake_request(method, url, **kwargs):
         captured_inputs.append(kwargs["json"]["input"])
         return mock_response
 
     long_text = "x" * 10_000
 
-    with patch.object(httpx.AsyncClient, "post", side_effect=fake_post):
+    with patch.object(httpx.AsyncClient, "request", side_effect=fake_request):
         await generate_embedding(long_text)
 
     assert len(captured_inputs[0]) == 8000
@@ -333,14 +361,14 @@ async def test_generate_embedding_uses_embedding_config() -> None:
     mock_response.json.return_value = {"data": [{"embedding": [0.0]}]}
     mock_response.raise_for_status = MagicMock()
 
-    async def fake_post(url, **kwargs):
+    async def fake_request(method, url, **kwargs):
         nonlocal captured_url, captured_model
         captured_url = url
         captured_model = kwargs["json"]["model"]
         return mock_response
 
     try:
-        with patch.object(httpx.AsyncClient, "post", side_effect=fake_post):
+        with patch.object(httpx.AsyncClient, "request", side_effect=fake_request):
             await generate_embedding("text")
 
         assert captured_url == "http://custom-embed:1234/v1/embeddings"
