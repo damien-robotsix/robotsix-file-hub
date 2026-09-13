@@ -23,7 +23,7 @@ jobs:
     permissions:
       contents: read
       security-events: write  # SARIF upload from the reusable workflow
-    uses: damien-robotsix/robotsix-github-workflows/.github/workflows/python-ci.yml@e94a9aad6c4d6753c860520ba49b6a94a59ceb55  # main
+    uses: damien-robotsix/robotsix-github-workflows/.github/workflows/python-ci.yml@d2a2353830cf211a9f18f3585085016766294dff  # main
     with:
       python-version: "3.14"
       # Must match required-version in pyproject.toml ([tool.uv]).
@@ -68,7 +68,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
-      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4  # v10.1.0
         with:
           # Must match required-version in pyproject.toml ([tool.uv]).
           version: "0.12.5"
@@ -97,7 +97,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
-      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4  # v10.1.0
         with:
           # Must match required-version in pyproject.toml ([tool.uv]).
           version: "0.12.5"
@@ -115,7 +115,7 @@ jobs:
         run: uv audit --frozen --output-format sarif --preview > uv-audit-results.sarif
 
       - name: Upload audit SARIF
-        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938  # v3
+        uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63  # v3
         with:
           sarif_file: uv-audit-results.sarif
 
@@ -132,7 +132,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
-      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4  # v10.1.0
         with:
           # Must match required-version in pyproject.toml ([tool.uv]).
           version: "0.12.5"
