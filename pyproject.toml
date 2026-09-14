@@ -68,9 +68,9 @@ pythonpath = ["."]
 required-version = ">=0.12.5"
 
 [tool.uv.sources]
-robotsix-http = { git = "https://github.com/damien-robotsix/robotsix-http.git", rev = "c57947232685f4e4798a61e2bc53d747d3dbc75d" }
+robotsix-http = { git = "https://github.com/damien-robotsix/robotsix-http.git", rev = "791dcf356f35103dd8a22dec1ebeefbaeb2a5c00" }
 robotsix-modules = { git = "https://github.com/damien-robotsix/robotsix-modules.git", branch = "main" }
-robotsix-llmio = { git = "https://github.com/damien-robotsix/robotsix-llmio.git", rev = "7eee4cf3726daadab6870bf5acbfede81675ce86" }
+robotsix-llmio = { git = "https://github.com/damien-robotsix/robotsix-llmio.git", rev = "bdf7a83b250b72825aa5ac0451a193f7a3f74231" }
 
 [tool.deptry]
 known_first_party = ["robotsix_file_hub"]
