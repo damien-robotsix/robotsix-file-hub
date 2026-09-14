@@ -1185,7 +1185,7 @@ dependencies = [
     { name = "python-multipart" },
     { name = "robotsix-config" },
     { name = "robotsix-http" },
-    { name = "robotsix-llmio", extra = ["openrouter"] },
+    { name = "robotsix-llmio" },
     { name = "slowapi" },
     { name = "sqlalchemy" },
     { name = "uvicorn", extra = ["standard"] },
@@ -1221,8 +1221,8 @@ requires-dist = [
     { name = "python-json-logger", specifier = ">=3.3.0" },
     { name = "python-multipart", specifier = ">=0.0.19" },
     { name = "robotsix-config", git = "https://github.com/damien-robotsix/robotsix-config.git?rev=feabed320883760ec0f449469870d45f73d87194" },
-    { name = "robotsix-http", git = "https://github.com/damien-robotsix/robotsix-http.git?rev=c57947232685f4e4798a61e2bc53d747d3dbc75d" },
-    { name = "robotsix-llmio", extras = ["openrouter"], git = "https://github.com/damien-robotsix/robotsix-llmio.git?rev=7eee4cf3726daadab6870bf5acbfede81675ce86" },
+    { name = "robotsix-http", git = "https://github.com/damien-robotsix/robotsix-http.git?rev=791dcf356f35103dd8a22dec1ebeefbaeb2a5c00" },
+    { name = "robotsix-llmio", extras = ["openrouter"], git = "https://github.com/damien-robotsix/robotsix-llmio.git?rev=bdf7a83b250b72825aa5ac0451a193f7a3f74231" },
     { name = "slowapi", specifier = ">=0.1.9" },
     { name = "sqlalchemy", specifier = ">=2.0.52" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.52.3" },
@@ -1242,28 +1242,24 @@ dev = [
 
 [[package]]
 name = "robotsix-http"
-version = "0.3.3"
-source = { git = "https://github.com/damien-robotsix/robotsix-http.git?rev=c57947232685f4e4798a61e2bc53d747d3dbc75d#c57947232685f4e4798a61e2bc53d747d3dbc75d" }
+version = "0.4.0"
+source = { git = "https://github.com/damien-robotsix/robotsix-http.git?rev=791dcf356f35103dd8a22dec1ebeefbaeb2a5c00#791dcf356f35103dd8a22dec1ebeefbaeb2a5c00" }
 dependencies = [
     { name = "httpx" },
 ]
 
 [[package]]
 name = "robotsix-llmio"
-version = "0.7.0"
-source = { git = "https://github.com/damien-robotsix/robotsix-llmio.git?rev=7eee4cf3726daadab6870bf5acbfede81675ce86#7eee4cf3726daadab6870bf5acbfede81675ce86" }
+version = "0.7.6"
+source = { git = "https://github.com/damien-robotsix/robotsix-llmio.git?rev=bdf7a83b250b72825aa5ac0451a193f7a3f74231#bdf7a83b250b72825aa5ac0451a193f7a3f74231" }
 dependencies = [
     { name = "httpx" },
+    { name = "httpx2" },
+    { name = "openai" },
     { name = "pydantic" },
-    { name = "pydantic-ai-slim" },
+    { name = "pydantic-ai-slim", extra = ["openrouter"] },
     { name = "robotsix-http" },
     { name = "starlette" },
-]
-
-[package.optional-dependencies]
-openrouter = [
-    { name = "openai" },
-    { name = "pydantic-ai-slim", extra = ["openrouter"] },
 ]
 
 [[package]]
