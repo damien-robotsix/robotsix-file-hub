@@ -6,6 +6,9 @@ resolution-markers = [
     "python_full_version < '3.15'",
 ]
 
+[manifest]
+overrides = [{ name = "robotsix-http", git = "https://github.com/damien-robotsix/robotsix-http.git?rev=31422065d6077138d4db637adab065546f0b82cc" }]
+
 [[package]]
 name = "aiosqlite"
 version = "0.22.1"
@@ -1221,7 +1224,7 @@ requires-dist = [
     { name = "python-json-logger", specifier = ">=3.3.0" },
     { name = "python-multipart", specifier = ">=0.0.19" },
     { name = "robotsix-config", git = "https://github.com/damien-robotsix/robotsix-config.git?rev=feabed320883760ec0f449469870d45f73d87194" },
-    { name = "robotsix-http", git = "https://github.com/damien-robotsix/robotsix-http.git?rev=c57947232685f4e4798a61e2bc53d747d3dbc75d" },
+    { name = "robotsix-http", extras = ["fastapi"], git = "https://github.com/damien-robotsix/robotsix-http.git?rev=31422065d6077138d4db637adab065546f0b82cc" },
     { name = "robotsix-llmio", extras = ["openrouter"], git = "https://github.com/damien-robotsix/robotsix-llmio.git?rev=7eee4cf3726daadab6870bf5acbfede81675ce86" },
     { name = "slowapi", specifier = ">=0.1.9" },
     { name = "sqlalchemy", specifier = ">=2.0.52" },
@@ -1242,9 +1245,10 @@ dev = [
 
 [[package]]
 name = "robotsix-http"
-version = "0.3.3"
-source = { git = "https://github.com/damien-robotsix/robotsix-http.git?rev=c57947232685f4e4798a61e2bc53d747d3dbc75d#c57947232685f4e4798a61e2bc53d747d3dbc75d" }
+version = "0.4.0"
+source = { git = "https://github.com/damien-robotsix/robotsix-http.git?rev=31422065d6077138d4db637adab065546f0b82cc#31422065d6077138d4db637adab065546f0b82cc" }
 dependencies = [
+    { name = "httpcore" },
     { name = "httpx" },
 ]
 

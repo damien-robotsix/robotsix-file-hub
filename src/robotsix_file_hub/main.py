@@ -7,8 +7,17 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
 from pythonjsonlogger.json import JsonFormatter
+from robotsix_http.client import ExternalHTTPError
+from robotsix_http.fastapi import (
+    DomainError,
+    domain_error_handler,
+    external_http_error_handler,
+    unhandled_exception_handler,
+    validation_exception_handler,
+)
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIASGIMiddleware
 from sqlalchemy import text
@@ -84,6 +93,21 @@ async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) 
         },
         headers={"Content-Type": "application/problem+json"},
     )
+
+
+# Wire the shared fleet exception handlers so pydantic validation errors and
+# unexpected exceptions render the canonical ``{"error": {"code", "detail"}}``
+# envelope instead of FastAPI's inconsistent defaults.  We register the fleet
+# handlers individually and deliberately KEEP FastAPI's default
+# ``HTTPException`` handler: route code raises ``HTTPException(status_code, detail)``
+# and clients (and the existing test-suite) expect the top-level
+# ``{"detail": ...}`` shape for those, so the fleet ``http_exception_handler``
+# is intentionally not installed.  The RateLimitExceeded handler above is more
+# specific, so it still wins for 429 responses.
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(DomainError, domain_error_handler)
+app.add_exception_handler(ExternalHTTPError, external_http_error_handler)
+app.add_exception_handler(Exception, unhandled_exception_handler)
 
 
 app.include_router(files_router)
