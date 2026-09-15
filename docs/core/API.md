@@ -511,11 +511,77 @@ upload with no metadata is fully backward-compatible.
 |---|---|---|
 | `categories` | `string[]` | Sorted list of distinct category names across all files |
 
-### `ErrorResponse`
+### Error Responses
+
+The API uses two error response formats depending on the error type:
+
+#### `HTTPException` errors (4xx/5xx from route handlers)
+
+Errors raised by route handlers use the standard `ErrorResponse` format with a
+top-level `detail` field. This includes 404 (not found), 400 (bad request), and
+500 (server error) responses from explicit route logic.
+
+**Schema:**
 
 | Field | Type | Description |
 |---|---|---|
 | `detail` | string | Human-readable error message |
+
+**Example:**
+
+```json
+{"detail": "File not found"}
+```
+
+#### Fleet error format (validation & unhandled exceptions)
+
+Pydantic validation errors and unhandled exceptions return the canonical fleet
+error envelope: `{"error": {"code": "<error_code>", "detail": "..."}}`.
+
+- **Validation errors** (422): raised when request body fails pydantic validation
+  - `code`: always `"validation_error"`
+  - `detail`: array of per-field validation failures (pydantic schema)
+- **Unhandled exceptions** (500): raised by unexpected server-side errors
+  - `code`: error class name (e.g. `"ValueError"`, `"DatabaseError"`)
+  - `detail`: error message
+- **Domain errors** (400/5xx): application-specific errors from business logic
+  - `code`: domain error identifier
+  - `detail`: error message
+- **External HTTP errors** (4xx/5xx): errors from downstream services
+  - `code`: `"external_http_error"`
+  - `detail`: upstream error message
+
+**Example (validation error):**
+
+```json
+{
+  "error": {
+    "code": "validation_error",
+    "detail": [
+      {
+        "type": "missing",
+        "loc": ["body", "query"],
+        "msg": "Field required",
+        "input": {}
+      }
+    ]
+  }
+}
+```
+
+#### Rate limit errors (429)
+
+HTTP 429 (Too Many Requests) uses RFC 9457 `application/problem+json` format:
+
+```json
+{
+  "type": "about:blank",
+  "title": "Too Many Requests",
+  "status": 429,
+  "detail": "rate limit exceeded",
+  "instance": "<request URL>"
+}
+```
 
 ### `SearchRequest`
 
