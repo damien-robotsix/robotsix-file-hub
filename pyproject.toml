@@ -18,7 +18,7 @@ dependencies = [
     "asyncpg>=0.30.0",
     "fastapi>=0.141.1",
     "uvicorn[standard]>=0.52.3",
-    "robotsix-http>=0.1",
+    "robotsix-http[fastapi]>=0.4",
     "sqlalchemy>=2.0.52",
     "alembic>=1.19.1",
     "httpx>=0.28.0",
@@ -66,9 +66,16 @@ pythonpath = ["."]
 # Without this, setup-uv fetches the version manifest from
 # raw.githubusercontent.com, which has timed out on GitHub-hosted runners.
 required-version = ">=0.12.5"
+# robotsix-llmio still pins robotsix-http at an older commit via its own
+# [tool.uv.sources]; because robotsix-http is a git (non-index) dependency,
+# uv requires every source URL for it to agree.  Override the transitive pin
+# so the whole graph resolves against the rev that ships robotsix_http.fastapi.
+override-dependencies = [
+    "robotsix-http @ git+https://github.com/damien-robotsix/robotsix-http.git@31422065d6077138d4db637adab065546f0b82cc",
+]
 
 [tool.uv.sources]
-robotsix-http = { git = "https://github.com/damien-robotsix/robotsix-http.git", rev = "c57947232685f4e4798a61e2bc53d747d3dbc75d" }
+robotsix-http = { git = "https://github.com/damien-robotsix/robotsix-http.git", rev = "31422065d6077138d4db637adab065546f0b82cc" }
 robotsix-modules = { git = "https://github.com/damien-robotsix/robotsix-modules.git", branch = "main" }
 robotsix-llmio = { git = "https://github.com/damien-robotsix/robotsix-llmio.git", rev = "7eee4cf3726daadab6870bf5acbfede81675ce86" }
 
