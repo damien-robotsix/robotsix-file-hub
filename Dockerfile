@@ -33,9 +33,18 @@ RUN useradd --create-home --uid 1000 app
 # poppler-utils provides pdftoppm, required by pdf2image for scanned PDF page
 # rendering; libcairo2 is required by cairosvg for SVG rasterization.  Both
 # installed in the runtime stage only (not the builder).
+#
+# The --only-upgrade line pulls the patched perl-base: the base image still
+# carries the older trixie/main build (5.40.1-6), which the Trivy CRITICAL
+# gate rejects for CVE-2026-13221, CVE-2026-42496 and CVE-2026-8376.
+# trixie/main already publishes 5.40.1-6+deb13u1; the builder stage's apt work
+# never reaches this image. Same remedy as robotsix-chat.
 # hadolint ignore=DL3008
 RUN apt-get update \
+    && apt-get install --only-upgrade -y --no-install-recommends \
+        perl-base="5.40.*" \
     && apt-get install -y --no-install-recommends poppler-utils libcairo2 \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /home/app
 
