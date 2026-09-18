@@ -168,7 +168,7 @@ async def test_upload_enqueues_enrichment(
     test_storage: StorageBackend,
 ) -> None:
     """POST /files should enqueue an enrichment job after DB write."""
-    import src.robotsix_file_hub.routes.files as routes_module
+    import src.robotsix_file_hub.routes.upload as routes_module
 
     enqueued: list[tuple[str, str, str]] = []
     original_enqueue = routes_module.enqueue_enrichment
@@ -392,7 +392,7 @@ async def test_get_task_returns_status(test_client: AsyncClient) -> None:
 
 async def test_upload_response_includes_task_id(test_client: AsyncClient) -> None:
     """POST /files response includes a non-null task_id."""
-    import src.robotsix_file_hub.routes.files as routes_module
+    import src.robotsix_file_hub.routes.upload as routes_module
 
     original_enqueue = routes_module.enqueue_enrichment
 

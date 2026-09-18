@@ -144,7 +144,7 @@ async def test_upload_batch_with_metadata(
 
 async def test_upload_file_too_large(test_client: AsyncClient) -> None:
     """POST /files with a file exceeding max size returns 413."""
-    import src.robotsix_file_hub.routes.files as routes_module
+    import src.robotsix_file_hub.routes.upload as routes_module
 
     original_max = routes_module.MAX_FILE_SIZE
     routes_module.MAX_FILE_SIZE = 5
@@ -188,7 +188,7 @@ async def test_upload_batch_partial_failure_rolls_back(
     that was already processed must be rolled back — no database
     records and no stored bytes may remain.
     """
-    import src.robotsix_file_hub.routes.files as routes_module
+    import src.robotsix_file_hub.routes.upload as routes_module
 
     original_max = routes_module.MAX_FILE_SIZE
     routes_module.MAX_FILE_SIZE = 5  # only very small files are accepted

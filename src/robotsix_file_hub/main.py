@@ -28,7 +28,9 @@ from .rate_limiter import DEFAULT_RATE_LIMIT, limiter
 from .routes.config import router as config_router
 from .routes.files import router as files_router
 from .routes.search import router as search_router
+from .routes.tasks import reindex_router
 from .routes.tasks import router as tasks_router
+from .routes.upload import router as upload_router
 from .storage import StorageError, create_storage_backend
 from .tasks import start_workers, stop_workers
 
@@ -111,8 +113,10 @@ app.add_exception_handler(Exception, unhandled_exception_handler)
 
 
 app.include_router(files_router)
+app.include_router(upload_router)
 app.include_router(search_router)
 app.include_router(tasks_router)
+app.include_router(reindex_router)
 app.include_router(config_router)
 
 
