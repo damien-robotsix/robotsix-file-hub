@@ -36,7 +36,8 @@ dev server in development and a set of static assets in production.
      convenience; production runs Alembic migrations explicitly).
   2. Starts the background task worker pool.
   3. On shutdown, stops workers gracefully.
-- Registers four route modules: `files`, `search`, `tasks`, `config`.
+- Registers five route modules: `files`, `upload`, `search`, `tasks`,
+  `config` (plus the `reindex` router defined in `routes/tasks.py`).
 - Exposes `/health` (database + storage liveness check) and
   `/deploy-spec` (returns `deploy/docker-compose.yml` for central-deploy
   contracts).

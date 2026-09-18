@@ -171,7 +171,8 @@ The Vite dev server proxies `/api` (stripping the prefix) and `/files` to
 │   ├── database.py          # Async SQLAlchemy engine + session
 │   ├── models.py            # FileRecord ORM model
 │   ├── schemas.py           # Pydantic request/response models
-│   ├── routes/files.py      # All API endpoints (/files, /search, /reindex)
+│   ├── routes/files.py      # File list/download/view/metadata/delete endpoints
+│   ├── routes/upload.py     # File upload endpoints (/files, /files/batch)
 │   ├── storage.py           # Local filesystem storage
 │   ├── enrichment.py        # LLM enrichment (text/image extraction + AI summary)
 │   ├── embeddings.py        # Embedding text shaping (delegates to enrichment.py)
