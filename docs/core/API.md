@@ -326,7 +326,7 @@ cannot be recovered.
 
 ## Search
 
-### `POST /files/search`
+### `POST /search`
 
 Hybrid natural-language search combining keyword matching with vector
 similarity.  Falls back to keyword-only ranking when embeddings are

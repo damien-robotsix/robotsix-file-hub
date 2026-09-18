@@ -130,7 +130,7 @@ Base URL: `http://localhost:8000`
 | `GET` | `/files/{file_id}/view` | View file inline in browser (PDF/image rendering, `inline`) |
 | `GET` | `/files/{file_id}/metadata` | Get file metadata (category, tags, summary, etc.) |
 | `DELETE` | `/files/{file_id}` | Delete a file and its stored data |
-| `POST` | `/files/search` | Hybrid NL search — JSON body `{"query":"…","offset":0,"limit":50}` |
+| `POST` | `/search` | Hybrid NL search — JSON body `{"query":"…","offset":0,"limit":50}` |
 | `POST` | `/files/reindex` | Re-enqueue enrichment for existing files |
 | `GET` | `/files/reindex/progress` | Reindex progress (`total`, `completed`, `failed`, `active`, `task_id`) |
 | `GET` | `/tasks/{task_id}` | Poll enrichment/reindex task status (`type`, `status`, `progress`, `error`) |

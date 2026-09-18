@@ -143,7 +143,7 @@ configured and OpenAI-compatible, so the local model was removed.
 
 ### Hybrid search (`search.py`)
 
-The `/files/search` endpoint performs a **hybrid** keyword + vector
+The `/search` endpoint performs a **hybrid** keyword + vector
 search weighted by `search_vector_weight` (default 0.7):
 
 - **Keyword search** — SQL `LIKE` / `ILIKE` against `filename`,
@@ -166,9 +166,10 @@ the `/tasks/{task_id}` endpoint for polling.
 
 | Router | Prefix | Endpoints |
 |---|---|---|
-| `files.py` | — | `POST /files` (upload), `POST /files/batch`, `GET /files` (list), `GET /files/categories`, `GET /files/{id}` (download), `GET /files/{id}/metadata`, `DELETE /files/{id}`, `POST /files/search`, `POST /files/reindex`, `GET /files/reindex/progress` |
-| `search.py` | — | `POST /files/search` (hybrid search — logically part of files but in its own module) |
-| `tasks.py` | — | `GET /tasks/{task_id}` |
+| `files.py` | — | `GET /files` (list), `GET /files/categories`, `GET /files/{id}` (download), `GET /files/{id}/view`, `GET /files/{id}/metadata`, `PATCH /files/{id}/metadata`, `DELETE /files/{id}` |
+| `upload.py` | — | `POST /files` (upload), `POST /files/batch` |
+| `search.py` | — | `POST /search` (hybrid search) |
+| `tasks.py` | — | `GET /tasks/{task_id}`, `POST /files/reindex`, `GET /files/reindex/progress` |
 | `config.py` | — | `GET /api/config` (discloses app configuration) |
 
 All routes are registered on the FastAPI app in `main.py` with
