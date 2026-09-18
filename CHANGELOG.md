@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.1](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.13.0...v0.13.1) (2026-09-18)
+
+
+### Bug Fixes
+
+* **docker:** upgrade perl-base in the runtime stage to clear the Trivy CRITICAL gate ([#311](https://github.com/damien-robotsix/robotsix-file-hub/issues/311)) ([45620f1](https://github.com/damien-robotsix/robotsix-file-hub/commit/45620f19519cfcd686cd89b3d4b386a4eb9d8641))
+
 ## [0.13.0](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.12.2...v0.13.0) (2026-09-12)
 
 
