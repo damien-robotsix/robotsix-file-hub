@@ -114,11 +114,15 @@ modules:
       - frontend/src/lib/preview.test.ts
       - frontend/src/lib/preview.ts
       - frontend/src/main.tsx
+      - frontend/src/pages/FileDetailPage.test.tsx
       - frontend/src/pages/FileDetailPage.tsx
       - frontend/src/pages/FilesPage.test.tsx
       - frontend/src/pages/FilesPage.tsx
+      - frontend/src/pages/HomePage.test.tsx
       - frontend/src/pages/HomePage.tsx
+      - frontend/src/pages/SearchPage.test.tsx
       - frontend/src/pages/SearchPage.tsx
+      - frontend/src/pages/UploadPage.test.tsx
       - frontend/src/pages/UploadPage.tsx
       - frontend/src/test/setup.ts
       - frontend/src/vite-env.d.ts
