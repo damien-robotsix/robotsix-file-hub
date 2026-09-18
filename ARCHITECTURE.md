@@ -173,6 +173,75 @@ the `/tasks/{task_id}` endpoint for polling.
 | `tasks.py` | — | `GET /tasks/{task_id}`, `POST /files/reindex`, `GET /files/reindex/progress` |
 | `config.py` | — | `GET /api/config` (discloses app configuration) |
 
+The `routes/` package was refactored from a single 698-line
+`routes/files.py` monolith into one module per **endpoint family**.
+Each module owns a focused slice of the API surface:
+
+| Module | Endpoint family |
+|---|---|
+| `routes/files.py` | File listing, download, inline view, metadata read/update, delete. |
+| `routes/upload.py` | Single and batch upload. |
+| `routes/search.py` | Hybrid keyword + vector search. |
+| `routes/tasks.py` | Background-task status polling and file reindexing. |
+| `routes/config.py` | Runtime configuration disclosure. |
+
+Every module exposes a module-level `router = APIRouter(...)`.  The
+routers that serve file resources reuse the `/files` prefix, and one
+module contributes a second router:
+
+- `routes/files.py`, `routes/upload.py` — `router` with `prefix="/files"`.
+- `routes/tasks.py` — `router` with `prefix="/tasks"` **and** a second
+  `reindex_router` with `prefix="/files"` for the `/files/reindex`
+  endpoints.
+- `routes/search.py`, `routes/config.py` — `router` with no prefix.
+
+#### Import patterns
+
+`main.py` imports each router under an explicit alias and registers them
+in order:
+
+```python
+from .routes.config import router as config_router
+from .routes.files import router as files_router
+from .routes.search import router as search_router
+from .routes.tasks import reindex_router, router as tasks_router
+from .routes.upload import router as upload_router
+
+app.include_router(files_router)
+app.include_router(upload_router)
+app.include_router(search_router)
+app.include_router(tasks_router)
+app.include_router(reindex_router)
+app.include_router(config_router)
+```
+
+Import a router from its family module (`from .routes.upload import
+router as upload_router`); never from `routes/files.py`, which no longer
+re-exports the other families.
+
+#### Adding a new endpoint
+
+- Add the handler to the **family module** that owns its resource — a
+  new file-metadata endpoint belongs in `routes/files.py`, a new search
+  variant in `routes/search.py`.  Register it on that module's existing
+  `router` so it inherits the family prefix and tags.
+- Only create a new module (and a matching `include_router()` call in
+  `main.py`) when the endpoint introduces a genuinely new family.
+- If a handler needs a prefix that differs from the module's primary
+  `router` (as `/files/reindex` does inside the `/tasks` module),
+  define an additional named router (e.g. `reindex_router`) and export
+  it alongside `router` for `main.py` to include.
+
+#### Migration notes for consumers
+
+The refactor is **internal only** — the external HTTP API is unchanged.
+Every path, method, prefix, and response schema is identical to the
+pre-split monolith, so API clients and the frontend need no changes.
+Python code that previously imported a handler or router from
+`robotsix_file_hub.routes.files` must now import it from the owning
+family module (e.g. upload handlers from
+`robotsix_file_hub.routes.upload`).
+
 All routes are registered on the FastAPI app in `main.py` with
 `app.include_router()`.  There is no API version prefix.
 
