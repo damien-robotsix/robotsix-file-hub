@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.2](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.13.1...v0.13.2) (2026-09-18)
+
+
+### Bug Fixes
+
+* Split the 698-line routes/files.py router across the endpoint-family route modules (20260918T101954Z-split-the-698-line-routes-files-py-route-9a73) ([#320](https://github.com/damien-robotsix/robotsix-file-hub/issues/320)) ([81de344](https://github.com/damien-robotsix/robotsix-file-hub/commit/81de344661c0b49a294f416dffb1c7fbaa25af87))
+
 ## [0.13.1](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.13.0...v0.13.1) (2026-09-18)
 
 
