@@ -9,7 +9,6 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
-from pythonjsonlogger.json import JsonFormatter
 from robotsix_http.client import ExternalHTTPError
 from robotsix_http.fastapi import (
     DomainError,
@@ -18,6 +17,7 @@ from robotsix_http.fastapi import (
     unhandled_exception_handler,
     validation_exception_handler,
 )
+from robotsix_llmio.logging import setup_logging
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIASGIMiddleware
 from sqlalchemy import text
@@ -50,19 +50,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 settings = get_settings()
 
-# Configure logging: UTC ISO-8601 timestamps to stdout, structured JSON
+# Structured JSON logging via the shared fleet helper (OTel trace-id
+# injection, single stdout handler scoped to the ``robotsix_file_hub``
+# namespace).  ``time.gmtime`` keeps the helper's renderer on UTC
+# timestamps, preserving the previous log shape's timezone contract.
 logging.Formatter.converter = time.gmtime
-handler = logging.StreamHandler()
-handler.setFormatter(
-    JsonFormatter(
-        "%(asctime)s %(levelname)s %(name)s %(message)s",
-        datefmt="%Y-%m-%dT%H:%M:%S",
-        timestamp=True,
-    )
-)
-logging.basicConfig(
+setup_logging(
     level=settings.log_level,
-    handlers=[handler],
+    fmt="json",
+    loggers=("robotsix_file_hub",),
 )
 
 app = FastAPI(

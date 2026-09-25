@@ -30,7 +30,6 @@ dependencies = [
     "cairosvg>=2.7.1",
     "python-docx>=1.1.0",
     "python-multipart>=0.0.19",
-    "python-json-logger>=3.3.0",
     "slowapi>=0.1.9",
 ]
 
