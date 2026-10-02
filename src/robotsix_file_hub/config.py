@@ -96,12 +96,53 @@ class EmbeddingSettings(BaseModel):
     )
 
 
+class DatabasePoolConfig(BaseModel):
+    """SQLAlchemy connection pool settings."""
+
+    pool_size: int = Field(
+        10,
+        ge=1,
+        description=(
+            "Number of persistent connections to maintain (default 10 for concurrent workloads)."
+        ),
+    )
+    max_overflow: int = Field(
+        20,
+        ge=0,
+        description="Additional connections allowed beyond pool_size (default 20).",
+    )
+    pool_recycle: int = Field(
+        3600,
+        ge=60,
+        description=(
+            "Recycle connections after N seconds to avoid stale DB-side "
+            "closed connections (default 1 hour)."
+        ),
+    )
+    pool_pre_ping: bool = Field(
+        True,
+        description=(
+            "Validate connections with a SELECT 1 before use to detect "
+            "stale connections (default True)."
+        ),
+    )
+
+
 class Settings(ConfigModel):
     """Every setting file-hub reads at runtime."""
 
     database_url: str = Field(
         "sqlite+aiosqlite:///./file_hub.db",
         description="SQLAlchemy database URL for the file-hub metadata database.",
+    )
+    db_pool: DatabasePoolConfig = Field(
+        default_factory=lambda: DatabasePoolConfig(
+            pool_size=10,
+            max_overflow=20,
+            pool_recycle=3600,
+            pool_pre_ping=True,
+        ),
+        description="Connection pool tuning.",
     )
     local_storage_path: str = Field(
         "./uploads",

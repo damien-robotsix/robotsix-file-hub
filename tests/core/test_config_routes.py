@@ -56,6 +56,16 @@ class TestGetConfig:
         body = (await test_client.get("/config")).json()
         assert body["config"]["embedding"]["model"] == "seeded-model"
 
+    async def test_pool_config_defaults_in_schema(self, test_client: AsyncClient):
+        """Connection-pool tuning must be discoverable via the schema."""
+        body = (await test_client.get("/config")).json()
+        pool = config_mod.DatabasePoolConfig()
+        assert pool.pool_size == 10
+        assert pool.max_overflow == 20
+        assert pool.pool_recycle == 3600
+        assert pool.pool_pre_ping is True
+        assert "db_pool" in body["schema"]["properties"]
+
 
 class TestPutConfig:
     async def test_partial_update_keeps_other_keys(self, test_client: AsyncClient):
