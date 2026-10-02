@@ -136,7 +136,12 @@ class Settings(ConfigModel):
         description="SQLAlchemy database URL for the file-hub metadata database.",
     )
     db_pool: DatabasePoolConfig = Field(
-        default_factory=DatabasePoolConfig,
+        default_factory=lambda: DatabasePoolConfig(
+            pool_size=10,
+            max_overflow=20,
+            pool_recycle=3600,
+            pool_pre_ping=True,
+        ),
         description="Connection pool tuning.",
     )
     local_storage_path: str = Field(
