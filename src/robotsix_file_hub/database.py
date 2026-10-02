@@ -12,7 +12,14 @@ logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
-engine = create_async_engine(settings.database_url, echo=False)
+engine = create_async_engine(
+    settings.database_url,
+    echo=False,
+    pool_size=settings.db_pool.pool_size,
+    max_overflow=settings.db_pool.max_overflow,
+    pool_recycle=settings.db_pool.pool_recycle,
+    pool_pre_ping=settings.db_pool.pool_pre_ping,
+)
 async_session_factory = async_sessionmaker(engine, expire_on_commit=False)
 
 
