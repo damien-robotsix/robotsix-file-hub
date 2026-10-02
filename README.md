@@ -189,7 +189,10 @@ The Vite dev server proxies `/api` (stripping the prefix) and `/files` to
 │   │   └── pages/           # HomePage, FilesPage, SearchPage, UploadPage, etc.
 │   ├── vite.config.ts       # Vite config with /api proxy
 │   └── package.json
-├── tests/core/              # pytest test suite
+├── tests/                   # pytest test suite
+│   ├── routes/              # HTTP endpoint tests
+│   ├── core_modules/        # unit tests (no HTTP client)
+│   └── infra/               # infra / config tests
 ├── docs/
 │   ├── core/
 │   │   ├── API.md           # Detailed API reference

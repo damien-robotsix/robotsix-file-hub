@@ -354,10 +354,13 @@ persistent data across container restarts.
 
 ## Testing
 
-### Backend tests (`tests/core/`)
+### Backend tests (`tests/`)
 
-**pytest** with `pytest-asyncio` (`asyncio_mode = "auto"`).  All test
-modules share fixtures from `tests/core/conftest.py`:
+**pytest** with `pytest-asyncio` (`asyncio_mode = "auto"`).  Test
+modules are grouped into `tests/routes/` (HTTP endpoint tests),
+`tests/core_modules/` (unit tests with no HTTP client), and
+`tests/infra/` (infrastructure / config tests).  All modules share
+fixtures from the root `tests/conftest.py`:
 
 - `test_client` — `httpx.AsyncClient` wired to the FastAPI app.
 - `test_db_session` — isolated SQLAlchemy async session (rolled back
