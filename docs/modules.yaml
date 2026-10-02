@@ -64,23 +64,11 @@ modules:
       - src/robotsix_file_hub/storage.py
       - src/robotsix_file_hub/tasks.py
       - vulture_whitelist.py
-      - tests/core/__init__.py
-      - tests/core/conftest.py
-      - tests/core/test_config_routes.py
-      - tests/core/test_delete.py
-      - tests/core/test_deploy_spec.py
-      - tests/core/test_download.py
-      - tests/core/test_embeddings.py
-      - tests/core/test_enrichment.py
-      - tests/core/test_health.py
-      - tests/core/test_rate_limit.py
-      - tests/core/test_search.py
-      - tests/core/test_search_keyword.py
-      - tests/core/test_search_pg.py
-      - tests/core/test_storage.py
-      - tests/core/test_tasks.py
-      - tests/core/test_ui.py
-      - tests/core/test_upload.py
+      - tests/__init__.py
+      - tests/conftest.py
+      - tests/routes/**
+      - tests/core_modules/**
+      - tests/infra/**
   - id: frontend
     description: React/Vite frontend SPA
     paths:
