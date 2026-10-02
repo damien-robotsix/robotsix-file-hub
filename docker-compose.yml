@@ -54,7 +54,7 @@ services:
   # Object storage for the "s3" storage backend. config.docker.json points
   # s3_endpoint at http://minio:9000 with these credentials, so the service
   # name and ports here must stay in sync with that file (asserted by
-  # tests/core/test_compose_config.py).
+  # tests/infra/test_compose_config.py).
   minio:
     image: minio/minio:RELEASE.2025-10-15T17-29-55Z
     command: server /data --console-address ":9001"
