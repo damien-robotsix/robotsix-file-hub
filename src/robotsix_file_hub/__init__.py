@@ -1,3 +1,3 @@
 """robotsix-file-hub — LLM-powered file organization hub."""
 
-__version__ = "0.13.2"
+__version__ = "0.13.3"
