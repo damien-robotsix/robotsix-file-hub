@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.3](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.13.2...v0.13.3) (2026-10-06)
+
+
+### Bug Fixes
+
+* **ci:** bump the shared Docker workflow pin so the hardening render step runs from the shared repo ([#338](https://github.com/damien-robotsix/robotsix-file-hub/issues/338)) ([dc6f90f](https://github.com/damien-robotsix/robotsix-file-hub/commit/dc6f90f53f10e83117685bbeda9ff6f47c1e38fa))
+
 ## [0.13.2](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.13.1...v0.13.2) (2026-09-18)
 
 
