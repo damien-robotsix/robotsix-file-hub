@@ -119,6 +119,11 @@ app.include_router(config_router)
 @app.get("/health/live")
 @limiter.limit(DEFAULT_RATE_LIMIT)
 async def health_live(request: Request) -> dict[str, str]:
+    """Lightweight liveness probe — no dependencies checked.
+
+    Returns:
+        dict with single key ``status`` set to ``ok``.
+    """
     return {"status": "ok"}
 
 
@@ -160,6 +165,12 @@ _UI_STATIC_DIR = Path("static")
 @app.get("/deploy-spec")
 @limiter.limit(DEFAULT_RATE_LIMIT)
 async def deploy_spec(request: Request) -> Response:
+    """Return deployment specification from central-deploy.
+
+    Returns:
+        YAML content of ``deploy/docker-compose.yml`` with the
+        ``central-deploy-contract-version`` header set to ``1``.
+    """
     spec_content = _DEPLOY_SPEC_PATH.read_text()
     return Response(
         content=spec_content,
