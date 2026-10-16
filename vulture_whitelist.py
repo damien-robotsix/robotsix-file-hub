@@ -32,3 +32,6 @@ _.detail  # Pydantic schema field
 _.relevance  # Pydantic schema field
 _.deduplicated  # Pydantic schema field — FileUploadResponse
 _.get_settings  # FastAPI Depends callable — not traced by vulture
+_before_cursor_execute  # SQLAlchemy @event.listens_for listener — registered at runtime
+_after_cursor_execute  # SQLAlchemy @event.listens_for listener — registered at runtime
+_on_checkout  # SQLAlchemy @event.listens_for pool listener — registered at runtime

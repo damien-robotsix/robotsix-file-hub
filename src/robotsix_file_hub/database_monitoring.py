@@ -129,22 +129,22 @@ def register_query_monitoring(
     @event.listens_for(sync_engine, "before_cursor_execute")
     def _before_cursor_execute(
         conn: Any,
-        cursor: Any,
-        statement: str,
-        parameters: Any,
-        context: Any,
-        executemany: bool,
+        _cursor: Any,
+        _statement: str,
+        _parameters: Any,
+        _context: Any,
+        _executemany: bool,
     ) -> None:
         conn.info.setdefault(_QUERY_START_KEY, []).append(time.perf_counter())
 
     @event.listens_for(sync_engine, "after_cursor_execute")
     def _after_cursor_execute(
         conn: Any,
-        cursor: Any,
+        _cursor: Any,
         statement: str,
-        parameters: Any,
-        context: Any,
-        executemany: bool,
+        _parameters: Any,
+        _context: Any,
+        _executemany: bool,
     ) -> None:
         start_times = conn.info.get(_QUERY_START_KEY)
         if not start_times:
@@ -154,8 +154,8 @@ def register_query_monitoring(
 
     @event.listens_for(sync_engine.pool, "checkout")
     def _on_checkout(
-        dbapi_connection: Any,
-        connection_record: Any,
-        connection_proxy: Any,
+        _dbapi_connection: Any,
+        _connection_record: Any,
+        _connection_proxy: Any,
     ) -> None:
         _check_pool(sync_engine.pool, pool_warn_fraction)
