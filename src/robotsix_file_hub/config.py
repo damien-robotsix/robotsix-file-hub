@@ -144,6 +144,15 @@ class Settings(ConfigModel):
         ),
         description="Connection pool tuning.",
     )
+    db_query_threshold_ms: float = Field(
+        500.0,
+        ge=0,
+        description=(
+            "Queries taking at least this many milliseconds are logged at "
+            "WARNING level with structured fields (duration, query hash, "
+            "table, operation). Default 500 ms."
+        ),
+    )
     local_storage_path: str = Field(
         "./uploads",
         description="Directory for uploaded files.",

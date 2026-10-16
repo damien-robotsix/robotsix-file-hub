@@ -7,6 +7,7 @@ from sqlalchemy import Connection, inspect, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from .config import get_settings
+from .database_monitoring import register_query_monitoring
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,7 @@ engine = create_async_engine(
     pool_recycle=settings.db_pool.pool_recycle,
     pool_pre_ping=settings.db_pool.pool_pre_ping,
 )
+register_query_monitoring(engine, threshold_ms=settings.db_query_threshold_ms)
 async_session_factory = async_sessionmaker(engine, expire_on_commit=False)
 
 

@@ -25,6 +25,16 @@ never returned in plain text by the `/config` HTTP surface.
 | Key | Type | Default | Description |
 |---|---|---|---|
 | `database_url` | `str` | `sqlite+aiosqlite:////home/app/data/file_hub.db` | SQLAlchemy async database URL. Swap to any supported database (PostgreSQL, MySQL, etc.) by changing this value. |
+| `db_query_threshold_ms` | `float` | `500.0` | Queries taking at least this many milliseconds are logged at WARNING level with structured fields (duration, query hash, table, operation). Lower it to surface more queries while profiling; raise it in production to cut noise. |
+
+### Query performance monitoring
+
+SQLAlchemy event listeners time every cursor execution. In production, tune
+`db_query_threshold_ms` in `config/config.json` to control the slow-query
+WARNING threshold — for example, set it to `200.0` while investigating a
+performance regression. Every query is additionally logged at `DEBUG` level
+(enable by setting `log_level` to `DEBUG`), and a WARNING fires when the
+connection pool is checked out beyond 80% of `db_pool.pool_size`.
 
 ## Storage
 
