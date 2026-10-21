@@ -53,6 +53,14 @@ WORKDIR /home/app
 # git for the robotsix-http git dependency — absent from this stage — so the
 # container crash-looped on "Git executable not found".  The venv is already
 # complete, so its uvicorn is invoked directly by CMD below.
+# The base image's own pip (26.2.1) vendors certifi 2026.6.17, which the
+# Trivy CRITICAL gate flags (GHSA-6q48-6c7w-9gw2) under the bare "Python"
+# target even though the application venv already carries the fixed certifi
+# (Publish Docker image run 39592851511, 2026-10-21). Nothing at runtime uses
+# pip — the venv is built with uv in the builder stage — so strip it.
+RUN python -m pip uninstall -y pip \
+    && rm -rf /usr/local/lib/python3.14/site-packages/pip* /usr/local/bin/pip*
+
 COPY --from=builder /home/app/.venv /home/app/.venv
 COPY pyproject.toml /home/app/
 COPY src/ /home/app/src/
