@@ -14,6 +14,7 @@ from __future__ import annotations
 import logging
 import math
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import ColumnElement, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -147,6 +148,32 @@ def _record_to_search_result(record: FileRecord, relevance: float) -> SearchResu
     )
 
 
+async def _try_query_embedding(query: str) -> list[float] | None:
+    """Generate a query embedding, returning ``None`` on any failure (best-effort)."""
+    try:
+        return await generate_embedding(query)
+    except Exception:
+        logger.warning("Query embedding generation failed, using keyword-only", exc_info=True)
+        return None
+
+
+def _fts_document() -> ColumnElement[Any]:
+    """Return the ``tsvector`` over filename, summary and tags used for FTS."""
+    return func.to_tsvector(
+        "english",
+        func.coalesce(FileRecord.filename, "")
+        + " "
+        + func.coalesce(FileRecord.summary, "")
+        + " "
+        + func.coalesce(FileRecord.tags, ""),
+    )
+
+
+def _fts_query(query: str) -> ColumnElement[Any]:
+    """Return the ``tsquery`` built from the user's natural-language *query*."""
+    return func.plainto_tsquery("english", query)
+
+
 async def search_files(
     db: AsyncSession,
     query: str,
@@ -174,14 +201,10 @@ async def search_files(
     query_tokens = _tokenize(query)
 
     # Generate query embedding (best-effort)
-    query_embedding: list[float] | None = None
-    try:
-        query_embedding = await generate_embedding(query)
-    except Exception:
-        logger.warning("Query embedding generation failed, using keyword-only", exc_info=True)
+    query_embedding = await _try_query_embedding(query)
 
     # Collect candidates: keyword matches + (if vector available) embedded files
-    candidate_ids: set[str] = set()
+    candidates: dict[str, FileRecord] = {}
 
     # Keyword pre-filter: any token matches filename, summary, or tags
     conditions = []
@@ -196,7 +219,7 @@ async def search_files(
             stmt = stmt.where(cond)
         result = await db.execute(stmt)
         for rec in result.scalars().all():
-            candidate_ids.add(rec.id)
+            candidates[rec.id] = rec
 
     # When vector search is active, also pull in files with embeddings
     if query_embedding is not None:
@@ -205,21 +228,14 @@ async def search_files(
             stmt = stmt.where(cond)
         result = await db.execute(stmt)
         for rec in result.scalars().all():
-            candidate_ids.add(rec.id)
-
-    # Load full candidate records
-    candidates: list[FileRecord] = []
-    if candidate_ids:
-        stmt = select(FileRecord).where(FileRecord.id.in_(list(candidate_ids)))
-        result = await db.execute(stmt)
-        candidates = list(result.scalars().all())
+            candidates[rec.id] = rec
 
     vector_weight = settings.search_vector_weight
 
     # Score and rank
     scored = [
         (_hybrid_score(rec, query_tokens, query_embedding, vector_weight), rec)
-        for rec in candidates
+        for rec in candidates.values()
     ]
     scored.sort(key=lambda pair: pair[0], reverse=True)
 
@@ -269,11 +285,7 @@ async def search_files_pg(
         )
 
     # Generate query embedding (best-effort)
-    query_embedding: list[float] | None = None
-    try:
-        query_embedding = await generate_embedding(query)
-    except Exception:
-        logger.warning("Query embedding generation failed, using keyword-only", exc_info=True)
+    query_embedding = await _try_query_embedding(query)
 
     vector_weight = settings.search_vector_weight
 
@@ -281,14 +293,7 @@ async def search_files_pg(
     conditions: list[ColumnElement[bool]] = []
 
     # Keyword pre-filter
-    kw_cond = func.to_tsvector(
-        "english",
-        func.coalesce(FileRecord.filename, "")
-        + " "
-        + func.coalesce(FileRecord.summary, "")
-        + " "
-        + func.coalesce(FileRecord.tags, ""),
-    ).op("@@")(func.plainto_tsquery("english", query))
+    kw_cond = _fts_document().op("@@")(_fts_query(query))
 
     if query_embedding is not None:
         conditions.append(or_(kw_cond, FileRecord.embedding.isnot(None)))
@@ -304,17 +309,7 @@ async def search_files_pg(
     total: int = total_result.scalar_one()
 
     # Keyword score expression (ts_rank over combined text fields)
-    kw_score_expr = func.ts_rank(
-        func.to_tsvector(
-            "english",
-            func.coalesce(FileRecord.filename, "")
-            + " "
-            + func.coalesce(FileRecord.summary, "")
-            + " "
-            + func.coalesce(FileRecord.tags, ""),
-        ),
-        func.plainto_tsquery("english", query),
-    )
+    kw_score_expr = func.ts_rank(_fts_document(), _fts_query(query))
 
     # Compute hybrid score: weighted combination of keyword + vector
     if query_embedding is not None:
