@@ -7,7 +7,11 @@ on:
 
 jobs:
   docker-release:
-    uses: damien-robotsix/robotsix-github-workflows/.github/workflows/docker-release.yml@2de56a85055b60d0f01c406342eda081e68c0c8b
+    # TEMPORARY rollback (2026-10-21): docker-release.yml at 2de56a8 and at upstream main
+    # references assert-image-user@a123d5f and docker-smoke@22e105f, SHAs that predate those
+    # actions (pre-merge self-pins; upstream PRs #211/#208). Re-bump once upstream fixes the
+    # internal pins, then remove the matching dependabot.yml ignore.
+    uses: damien-robotsix/robotsix-github-workflows/.github/workflows/docker-release.yml@22e105fb6a2aab771e25996b1b18fc5c3cd4dd17
     permissions:
       contents: read
       packages: write
