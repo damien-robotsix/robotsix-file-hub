@@ -47,6 +47,12 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
+    ignore:
+      # TEMPORARY (2026-10-21): docker-release.yml at upstream HEAD references its own
+      # composite actions at pre-merge SHAs where they do not exist (assert-image-user@a123d5f,
+      # docker-smoke@22e105f). Remove this ignore once robotsix-github-workflows fixes those
+      # internal pins, then let Dependabot re-bump.
+      - dependency-name: "damien-robotsix/robotsix-github-workflows/.github/workflows/docker-release.yml"
     groups:
       github-actions-dependencies:
         patterns:
