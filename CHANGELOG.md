@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.13.4](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.13.3...v0.13.4) (2026-10-21)
+
+
+### Bug Fixes
+
+* **ci:** roll docker-release.yml pin back to last green SHA — upstream composite-action self-pins are broken (20261021T091426Z-ci-failure-publish-docker-image-on-main-f074) ([#359](https://github.com/damien-robotsix/robotsix-file-hub/issues/359)) ([3368a77](https://github.com/damien-robotsix/robotsix-file-hub/commit/3368a77242b48645b161fb40171b39dcdfd33897))
+* **docker:** strip the base image pip whose vendored certifi fails the Trivy gate ([#364](https://github.com/damien-robotsix/robotsix-file-hub/issues/364)) ([83dea19](https://github.com/damien-robotsix/robotsix-file-hub/commit/83dea198ad9472593787f8655ad184ea78765859))
+
 ## [0.13.3](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.13.2...v0.13.3) (2026-10-16)
 
 
