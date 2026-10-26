@@ -15,7 +15,7 @@ jobs:
   lint-workflows:
     name: Lint workflows
     permissions:
-      contents: read
+      contents: read  # check out the repo to lint its workflows
       security-events: write  # SARIF upload from the reusable workflow
     uses: damien-robotsix/robotsix-github-workflows/.github/workflows/lint-workflows.yml@92c11fd2be7a9ce80bd60208616271326e0fb08a  # main
     with:
