@@ -5,13 +5,16 @@ on:
     branches: [main]
     tags: ["*.*.*"]
 
+permissions: {}  # no workflow-level default; the job grants its own
+
 jobs:
   docker-release:
     uses: damien-robotsix/robotsix-github-workflows/.github/workflows/docker-release.yml@92c11fd2be7a9ce80bd60208616271326e0fb08a  # main
     permissions:
       contents: read
-      packages: write
-      id-token: write
-      attestations: write
-      security-events: write
-    secrets: inherit
+      packages: write  # push the image to GHCR
+      id-token: write  # OIDC token for keyless signing / provenance
+      attestations: write  # publish build provenance attestations
+      security-events: write  # SARIF upload from the image scan
+    # No `secrets: inherit`: the called workflow only uses GITHUB_TOKEN, which
+    # every reusable workflow receives without it.

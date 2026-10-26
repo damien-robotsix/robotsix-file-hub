@@ -1,0 +1,23 @@
+name: Lint workflows
+
+# Lints this repo's own workflows (actionlint + zizmor) and checks that every
+# Dockerfile FROM is pinned to an @sha256 digest, so template-injection,
+# permission and pinning regressions are caught before merge.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions: {}  # no workflow-level default; the job grants its own
+
+jobs:
+  lint-workflows:
+    name: Lint workflows
+    permissions:
+      contents: read
+      security-events: write  # SARIF upload from the reusable workflow
+    uses: damien-robotsix/robotsix-github-workflows/.github/workflows/lint-workflows.yml@92c11fd2be7a9ce80bd60208616271326e0fb08a  # main
+    with:
+      run-actionlint: true
+      run-zizmor: true
+      dockerfiles: Dockerfile
