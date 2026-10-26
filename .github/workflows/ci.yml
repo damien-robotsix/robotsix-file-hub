@@ -8,6 +8,12 @@ on:
 
 permissions: {}
 
+# Supersede an in-flight run when a PR gets a new push; never cancel runs on
+# main, so every commit there gets a complete result.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   # The repo has 13 test files, 168 tests, a mypy-strict-clean source tree and
   # a ruff config — and until now CI ran none of it. Every PR was structurally
@@ -21,7 +27,7 @@ jobs:
   tests:
     name: Python CI
     permissions:
-      contents: read
+      contents: read  # check out the repo for the reusable Python CI
       security-events: write  # SARIF upload from the reusable workflow
     uses: damien-robotsix/robotsix-github-workflows/.github/workflows/python-ci.yml@2de56a85055b60d0f01c406342eda081e68c0c8b  # main
     with:
@@ -56,9 +62,10 @@ jobs:
     uses: damien-robotsix/robotsix-github-workflows/.github/workflows/docker-pr-scan.yml@92c11fd2be7a9ce80bd60208616271326e0fb08a  # main
 
   migrations:
+    name: migrations
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: read  # check out the repo to run the Alembic migrations
     # The migrations are Postgres-specific (pgvector ``CREATE EXTENSION
     # vector`` + ``vector(N)`` columns in 0002/0003), so a plain SQLite test
     # database cannot run them. Match docker-compose.yml: pgvector image with
@@ -66,7 +73,7 @@ jobs:
     # both here and against a local ``docker compose up postgres``.
     services:
       postgres:
-        image: pgvector/pgvector:pg17
+        image: pgvector/pgvector:pg17@sha256:ac08538c6f8b9904c33c8224c5e5706dbe760aca29db1d096972b4052c22a75d
         env:
           POSTGRES_USER: file_hub
           POSTGRES_PASSWORD: file_hub
@@ -80,6 +87,8 @@ jobs:
           --health-retries 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
 
       - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e  # v10.3.2
         with:
@@ -103,12 +112,15 @@ jobs:
           uv run alembic upgrade head
 
   supply-chain:
+    name: supply-chain
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: read  # check out the repo to audit and check its dependencies
       security-events: write  # upload SARIF from the audit
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
 
       - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e  # v10.3.2
         with:
@@ -139,11 +151,14 @@ jobs:
         run: uv run robotsix-modules check-registration docs/modules.yaml --root .
 
   quality:
+    name: quality
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: read  # check out the repo to lint, type-check and test it
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
 
       - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e  # v10.3.2
         with:
@@ -170,14 +185,17 @@ jobs:
         run: uv run pytest
 
   frontend:
+    name: frontend
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: read  # check out the repo to build and test the frontend
     defaults:
       run:
         working-directory: frontend
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
         with:
