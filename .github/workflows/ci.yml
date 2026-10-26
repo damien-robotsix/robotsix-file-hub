@@ -27,7 +27,7 @@ jobs:
   tests:
     name: Python CI
     permissions:
-      contents: read
+      contents: read  # check out the repo for the reusable Python CI
       security-events: write  # SARIF upload from the reusable workflow
     uses: damien-robotsix/robotsix-github-workflows/.github/workflows/python-ci.yml@2de56a85055b60d0f01c406342eda081e68c0c8b  # main
     with:
@@ -65,7 +65,7 @@ jobs:
     name: migrations
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: read  # check out the repo to run the Alembic migrations
     # The migrations are Postgres-specific (pgvector ``CREATE EXTENSION
     # vector`` + ``vector(N)`` columns in 0002/0003), so a plain SQLite test
     # database cannot run them. Match docker-compose.yml: pgvector image with
@@ -115,7 +115,7 @@ jobs:
     name: supply-chain
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: read  # check out the repo to audit and check its dependencies
       security-events: write  # upload SARIF from the audit
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -154,7 +154,7 @@ jobs:
     name: quality
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: read  # check out the repo to lint, type-check and test it
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -188,7 +188,7 @@ jobs:
     name: frontend
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: read  # check out the repo to build and test the frontend
     defaults:
       run:
         working-directory: frontend

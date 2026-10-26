@@ -7,11 +7,18 @@ on:
 
 permissions: {}  # no workflow-level default; the job grants its own
 
+# Supersede an in-flight run when a new push arrives on a PR; never cancel
+# runs on main or tag pushes, so every release gets a complete result.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   docker-release:
+    name: docker-release
     uses: damien-robotsix/robotsix-github-workflows/.github/workflows/docker-release.yml@92c11fd2be7a9ce80bd60208616271326e0fb08a  # main
     permissions:
-      contents: read
+      contents: read  # check out the repo to build the image
       packages: write  # push the image to GHCR
       id-token: write  # OIDC token for keyless signing / provenance
       attestations: write  # publish build provenance attestations
