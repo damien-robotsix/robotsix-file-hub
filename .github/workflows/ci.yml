@@ -51,8 +51,6 @@ jobs:
   # Pre-merge image gate: build the Dockerfile and Trivy-scan it for
   # CRITICAL/HIGH CVEs on every PR, so a broken Dockerfile or a vulnerable base
   # image is caught before merge rather than by docker-release after push.
-  # A `.trivyignore` at the repo root is picked up automatically (trivyignores
-  # input default) when one is added.
   docker-pr-scan:
     name: docker-pr-scan
     if: github.event_name == 'pull_request'
