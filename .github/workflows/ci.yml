@@ -29,7 +29,7 @@ jobs:
     permissions:
       contents: read  # check out the repo for the reusable Python CI
       security-events: write  # SARIF upload from the reusable workflow
-    uses: damien-robotsix/robotsix-github-workflows/.github/workflows/python-ci.yml@2de56a85055b60d0f01c406342eda081e68c0c8b  # main
+    uses: damien-robotsix/robotsix-github-workflows/.github/workflows/python-ci.yml@05d872b062890597dfcdd83d0eeac8918edc3618  # v1.3.0
     with:
       python-version: "3.14"
       # Must match required-version in pyproject.toml ([tool.uv]).
@@ -57,7 +57,7 @@ jobs:
     permissions:
       contents: read
       security-events: write  # SARIF upload from the reusable workflow
-    uses: damien-robotsix/robotsix-github-workflows/.github/workflows/docker-pr-scan.yml@92c11fd2be7a9ce80bd60208616271326e0fb08a  # main
+    uses: damien-robotsix/robotsix-github-workflows/.github/workflows/docker-pr-scan.yml@05d872b062890597dfcdd83d0eeac8918edc3618  # v1.3.0
 
   migrations:
     name: migrations

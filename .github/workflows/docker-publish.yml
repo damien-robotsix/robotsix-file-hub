@@ -16,7 +16,7 @@ concurrency:
 jobs:
   docker-release:
     name: docker-release
-    uses: damien-robotsix/robotsix-github-workflows/.github/workflows/docker-release.yml@92c11fd2be7a9ce80bd60208616271326e0fb08a  # main
+    uses: damien-robotsix/robotsix-github-workflows/.github/workflows/docker-release.yml@05d872b062890597dfcdd83d0eeac8918edc3618  # v1.3.0
     permissions:
       contents: read  # check out the repo to build the image
       packages: write  # push the image to GHCR
