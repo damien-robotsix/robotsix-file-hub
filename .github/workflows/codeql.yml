@@ -1,0 +1,25 @@
+name: CodeQL
+
+# Static analysis (CodeQL, Python) via the shared robotsix-github-workflows
+# reusable workflow. Results are uploaded as SARIF to code scanning.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "17 4 * * 1"  # weekly, Monday 04:17 UTC
+
+permissions: {}  # no workflow-level default; the job grants its own
+
+jobs:
+  codeql:
+    name: CodeQL
+    permissions:
+      security-events: write  # CodeQL SARIF upload
+      contents: read  # check out the repo to analyse it
+      actions: read  # CodeQL reads workflow run metadata
+    uses: damien-robotsix/robotsix-github-workflows/.github/workflows/codeql.yml@47523e8aa2d34d41da060d29b57f75ab262cb840  # v1.4.0
+    with:
+      languages: python
+      build-mode: none
