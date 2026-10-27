@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.5](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.13.4...v0.13.5) (2026-10-26)
+
+
+### Bug Fixes
+
+* ci_fix: out-of-scope CI failure — supply-chain (20261026T173226Z-ci-fix-out-of-scope-ci-failure-supply-ch-948d) ([#384](https://github.com/damien-robotsix/robotsix-file-hub/issues/384)) ([7e423d4](https://github.com/damien-robotsix/robotsix-file-hub/commit/7e423d4ac09e9786ce0dc93659ab10f53e5d7563))
+
 ## [0.13.4](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.13.3...v0.13.4) (2026-10-21)
 
 
