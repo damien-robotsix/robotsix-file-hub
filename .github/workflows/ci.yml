@@ -59,6 +59,17 @@ jobs:
       security-events: write  # SARIF upload from the reusable workflow
     uses: damien-robotsix/robotsix-github-workflows/.github/workflows/docker-pr-scan.yml@92c11fd2be7a9ce80bd60208616271326e0fb08a  # main 2026-10-26 (post-v1.3.0: trivyignores, push-retries, empty Trivy-DB defaults; re-pin to v1.4.0 when ghwf #243 is released)
 
+  # Static Dockerfile lint (hadolint) on every PR and push, complementing the
+  # docker-pr-scan build/CVE gate above. Justified suppressions live inline in
+  # the Dockerfile as `# hadolint ignore=` comments.
+  lint-dockerfile:
+    name: lint-dockerfile
+    permissions:
+      contents: read  # check out the repo to lint the Dockerfile
+    uses: damien-robotsix/robotsix-github-workflows/.github/workflows/lint-dockerfile.yml@47523e8aa2d34d41da060d29b57f75ab262cb840  # v1.4.0
+    with:
+      dockerfiles: Dockerfile
+
   migrations:
     name: migrations
     runs-on: ubuntu-latest
