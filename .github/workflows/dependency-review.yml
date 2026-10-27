@@ -1,0 +1,21 @@
+name: Dependency review
+
+# PR-time dependency / license review via the shared robotsix-github-workflows
+# reusable workflow: fails the PR when it introduces a dependency with a known
+# vulnerability of moderate severity or higher.
+on:
+  pull_request:
+    branches: [main]
+
+permissions: {}  # no workflow-level default; the job grants its own
+
+jobs:
+  dependency-review:
+    name: Dependency review
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read  # read the PR's base and head manifests
+      pull-requests: write  # PR summary comment from dependency-review
+    uses: damien-robotsix/robotsix-github-workflows/.github/workflows/dependency-review.yml@47523e8aa2d34d41da060d29b57f75ab262cb840  # v1.4.0
+    with:
+      fail-on-severity: moderate
