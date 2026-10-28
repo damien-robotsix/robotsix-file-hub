@@ -163,7 +163,11 @@ jobs:
     name: quality
     runs-on: ubuntu-latest
     permissions:
-      contents: read  # check out the repo to lint, type-check and test it
+      contents: read  # check out the repo to scan it for dead code
+    # ruff, mypy --strict and pytest run once, in the reusable Python CI job
+    # above; this job only keeps the checks that workflow does not cover.
+    # The job id and name stay `quality` so a required status check of that
+    # name keeps resolving.
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -178,20 +182,8 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen
 
-      - name: Lint (ruff)
-        run: uv run ruff check .
-
-      - name: Format check (ruff)
-        run: uv run ruff format --check .
-
-      - name: Type check (mypy)
-        run: uv run mypy src/
-
       - name: Dead code (vulture)
         run: uv run vulture src/ vulture_whitelist.py --ignore-decorators "@field_validator,@model_validator"
-
-      - name: Test (pytest)
-        run: uv run pytest
 
   frontend:
     name: frontend
