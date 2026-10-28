@@ -154,8 +154,8 @@ the DOM environment.  Test files live alongside their source
      coverage threshold (80%).
    - **Supply chain** — dependency audit (`uv audit`) and import
      hygiene (`deptry`).
-   - **Quality** — duplicate of lint + type-check + test (runs as a
-     standalone job).
+   - **Quality** — dead-code scan (`vulture`); lint, type-check and
+     tests run only in Python CI.
    - **Frontend** — TypeScript type-check + ESLint lint.
    - **Migrations** — applies all Alembic migrations against a clean
      pgvector Postgres database, then exercises the full downgrade path
