@@ -7,3 +7,7 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+  - repo: https://github.com/damien-robotsix/robotsix-standards
+    rev: v0.10.0
+    hooks:
+      - id: check-secret-str
