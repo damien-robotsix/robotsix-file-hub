@@ -120,7 +120,8 @@ Base URL: `http://localhost:8000`
 | Method | Path | Description |
 |---|---|---|
 | `GET` | `/health/live` | Lightweight liveness probe — returns `{"status":"ok"}` (no dependencies) |
-| `GET` | `/health` | Readiness probe — checks DB + storage connectivity |
+| `GET` | `/health` | Basic health — returns `{"status":"ok"}` (no dependencies) |
+| `GET` | `/health/ready` | Readiness probe — checks DB + storage connectivity (503 when unready) |
 | `GET` | `/deploy-spec` | Deploy spec for central-deploy — returns `deploy/docker-compose.yml` with contract-version header |
 | `POST` | `/files` | Upload a single file (`multipart/form-data`, field `file`) |
 | `POST` | `/files/batch` | Upload multiple files (field `files`) |

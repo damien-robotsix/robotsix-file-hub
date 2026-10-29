@@ -12,6 +12,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from robotsix_http.client import ExternalHTTPError
 from robotsix_http.fastapi import (
     DomainError,
+    create_health_router,
     domain_error_handler,
     external_http_error_handler,
     unhandled_exception_handler,
@@ -31,7 +32,7 @@ from .routes.search import router as search_router
 from .routes.tasks import reindex_router
 from .routes.tasks import router as tasks_router
 from .routes.upload import router as upload_router
-from .storage import StorageError, create_storage_backend
+from .storage import create_storage_backend
 from .tasks import start_workers, stop_workers
 
 logger = logging.getLogger(__name__)
@@ -116,46 +117,29 @@ app.include_router(reindex_router)
 app.include_router(config_router)
 
 
-@app.get("/health/live")
-@limiter.limit(DEFAULT_RATE_LIMIT)
-async def health_live(request: Request) -> dict[str, str]:
-    """Lightweight liveness probe — no dependencies checked.
-
-    Returns:
-        dict with single key ``status`` set to ``ok``.
-    """
-    return {"status": "ok"}
+async def check_db() -> None:
+    """Readiness check: run ``SELECT 1`` against the database (raises on failure)."""
+    async with engine.connect() as conn:
+        await conn.execute(text("SELECT 1"))
 
 
-@app.get("/health")
-@limiter.limit(DEFAULT_RATE_LIMIT)
-async def health(request: Request) -> dict[str, str]:
-    """Report service liveness by probing the database and storage backend.
+async def check_storage() -> None:
+    """Readiness check: save/delete round-trip on the storage backend (raises on failure)."""
+    storage = create_storage_backend()
+    await storage.save("__health_check__", b"health-check")
+    await storage.delete("__health_check__")
 
-    Returns:
-        dict with keys ``status``, ``db``, and ``storage`` reflecting
-        reachability of each dependency.
-    """
-    db_status = "ok"
-    try:
-        async with engine.connect() as conn:
-            await conn.execute(text("SELECT 1"))
-    except Exception:
-        db_status = "error"
 
-    storage_status = "ok"
-    try:
-        storage = create_storage_backend()
-        await storage.save("__health_check__", b"health-check")
-        await storage.delete("__health_check__")
-    except StorageError:
-        storage_status = "error"
-
-    return {
-        "status": "ok" if db_status == "ok" and storage_status == "ok" else "degraded",
-        "db": db_status,
-        "storage": storage_status,
-    }
+# Shared fleet probes: ``/health`` and ``/health/live`` answer ``{"status": "ok"}``
+# without touching dependencies; ``/health/ready`` runs the DB and storage
+# checks concurrently, each bounded by ``check_timeout_s``, and answers 503
+# ``{"status": "unready", "failures": [...]}`` when any of them fails.
+app.include_router(
+    create_health_router(
+        checks={"db": check_db, "storage": check_storage},
+        check_timeout_s=2.0,
+    )
+)
 
 
 _DEPLOY_SPEC_PATH = Path("deploy/docker-compose.yml")

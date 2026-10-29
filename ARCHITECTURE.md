@@ -38,7 +38,8 @@ dev server in development and a set of static assets in production.
   3. On shutdown, stops workers gracefully.
 - Registers five route modules: `files`, `upload`, `search`, `tasks`,
   `config` (plus the `reindex` router defined in `routes/tasks.py`).
-- Exposes `/health` (database + storage liveness check) and
+- Mounts the shared robotsix-http health router (`/health`, `/health/live`,
+  and `/health/ready` with bounded database + storage readiness checks) and
   `/deploy-spec` (returns `deploy/docker-compose.yml` for central-deploy
   contracts).
 - Configures **UTC ISO-8601 logging** to stdout at the level specified

@@ -11,7 +11,7 @@ services:
     labels:
       robotsix.deploy.mode: "deployment-system"
       robotsix.deploy.port: "8080"
-      robotsix.deploy.health: "/health"
+      robotsix.deploy.health: "/health/ready"
       robotsix.deploy.config-target: "/home/app/config/config.json"
 
 volumes:

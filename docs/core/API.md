@@ -25,16 +25,25 @@ dependencies (database, storage). Used by Docker HEALTHCHECK.
 
 ### `GET /health`
 
-Readiness probe. Checks database connectivity and storage backend health.
+Basic health endpoint. Returns `{"status": "ok"}` without checking
+dependencies.
+
+### `GET /health/ready`
+
+Readiness probe (used by central-deploy). Checks database connectivity
+(`SELECT 1`) and the storage backend (save/delete round-trip)
+concurrently, each bounded by a 2 s timeout.
 
 **Response** `200`
 
 ```json
-{
-  "status": "ok",
-  "db": "ok",
-  "storage": "ok"
-}
+{"status": "ok"}
+```
+
+**Response** `503` (any check failed or timed out)
+
+```json
+{"status": "unready", "failures": ["db: <error>", "storage: timed out after 2.0s"]}
 ```
 
 ---
