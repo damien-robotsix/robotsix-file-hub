@@ -7,7 +7,7 @@ resolution-markers = [
 ]
 
 [manifest]
-overrides = [{ name = "robotsix-http", extras = ["fastapi"], git = "https://github.com/damien-robotsix/robotsix-http.git?rev=a77b6b11e2e24f23421051e4388a9130eb2b93c5" }]
+overrides = [{ name = "robotsix-http", extras = ["fastapi"], git = "https://github.com/damien-robotsix/robotsix-http.git?rev=0f94a68faaf25c8310bec5522742351f40ccac3f" }]
 
 [[package]]
 name = "aiosqlite"
@@ -1331,7 +1331,7 @@ requires-dist = [
     { name = "python-docx", specifier = ">=1.1.0" },
     { name = "python-multipart", specifier = ">=0.0.19" },
     { name = "robotsix-config", git = "https://github.com/damien-robotsix/robotsix-config.git?rev=feabed320883760ec0f449469870d45f73d87194" },
-    { name = "robotsix-http", extras = ["fastapi"], git = "https://github.com/damien-robotsix/robotsix-http.git?rev=a77b6b11e2e24f23421051e4388a9130eb2b93c5" },
+    { name = "robotsix-http", extras = ["fastapi"], git = "https://github.com/damien-robotsix/robotsix-http.git?rev=0f94a68faaf25c8310bec5522742351f40ccac3f" },
     { name = "robotsix-llmio", extras = ["openrouter"], git = "https://github.com/damien-robotsix/robotsix-llmio.git?rev=7eee4cf3726daadab6870bf5acbfede81675ce86" },
     { name = "slowapi", specifier = ">=0.1.9" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.52" },
@@ -1352,8 +1352,8 @@ dev = [
 
 [[package]]
 name = "robotsix-http"
-version = "0.8.3"
-source = { git = "https://github.com/damien-robotsix/robotsix-http.git?rev=a77b6b11e2e24f23421051e4388a9130eb2b93c5#a77b6b11e2e24f23421051e4388a9130eb2b93c5" }
+version = "0.9.0"
+source = { git = "https://github.com/damien-robotsix/robotsix-http.git?rev=0f94a68faaf25c8310bec5522742351f40ccac3f#0f94a68faaf25c8310bec5522742351f40ccac3f" }
 dependencies = [
     { name = "httpcore" },
     { name = "httpx" },
