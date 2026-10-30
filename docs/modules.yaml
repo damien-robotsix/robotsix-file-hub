@@ -13,6 +13,7 @@ modules:
       - .github/workflows/dependabot-auto-merge.yml
       - .github/workflows/dependency-review.yml
       - .github/workflows/docker-publish.yml
+      - .github/workflows/lint-workflows.yml
       - .github/workflows/release-please.yml
       - .gitignore
       - .release-please-manifest.json
