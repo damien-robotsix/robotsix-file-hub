@@ -11,6 +11,7 @@ modules:
       - .github/workflows/ci.yml
       - .github/workflows/codeql.yml
       - .github/workflows/dependabot-auto-merge.yml
+      - .github/workflows/dependency-review.yml
       - .github/workflows/docker-publish.yml
       - .github/workflows/release-please.yml
       - .gitignore
