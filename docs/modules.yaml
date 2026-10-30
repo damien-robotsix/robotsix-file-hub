@@ -10,6 +10,7 @@ modules:
       - .github/dependabot.yml
       - .github/workflows/ci.yml
       - .github/workflows/dependabot-auto-merge.yml
+      - .github/workflows/dependency-review.yml
       - .github/workflows/docker-publish.yml
       - .github/workflows/release-please.yml
       - .gitignore
