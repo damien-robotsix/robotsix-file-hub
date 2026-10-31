@@ -192,5 +192,8 @@ jobs:
       - name: Lint (eslint)
         run: npm run lint
 
+      - name: Format check (prettier)
+        run: npm run format:check
+
       - name: Test (vitest)
         run: npm run test

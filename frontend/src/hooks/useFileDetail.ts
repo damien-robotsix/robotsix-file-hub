@@ -1,10 +1,7 @@
 import { useState, useEffect } from "react";
 import { deleteFile, getFileMetadata, type FileMetadata } from "../api.ts";
 
-export function useFileDetail(
-  fileId: string | undefined,
-  onAfterDelete: () => void,
-) {
+export function useFileDetail(fileId: string | undefined, onAfterDelete: () => void) {
   const [metadata, setMetadata] = useState<FileMetadata | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);

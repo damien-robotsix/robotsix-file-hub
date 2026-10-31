@@ -63,9 +63,7 @@ describe("FileDetailPage", () => {
   });
 
   it('shows "Loading..." before the metadata resolves', () => {
-    vi.spyOn(api, "getFileMetadata").mockReturnValue(
-      new Promise<api.FileMetadata>(() => {}),
-    );
+    vi.spyOn(api, "getFileMetadata").mockReturnValue(new Promise<api.FileMetadata>(() => {}));
 
     renderFileDetailPage();
 
@@ -90,7 +88,9 @@ describe("FileDetailPage", () => {
   });
 
   it("shows an error and the back link when metadata loading fails", async () => {
-    vi.spyOn(api, "getFileMetadata").mockRejectedValue(new Error("500 Internal Server Error: boom"));
+    vi.spyOn(api, "getFileMetadata").mockRejectedValue(
+      new Error("500 Internal Server Error: boom"),
+    );
 
     renderFileDetailPage();
 

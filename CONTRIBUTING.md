@@ -83,7 +83,7 @@ The `pyproject.toml` configures:
 |---|---|---|
 | **TypeScript** | `npm run typecheck` | Type checking (`tsc -b`) |
 | **ESLint** | `npm run lint` | Linting (flat config with TS + React plugins) |
-| **Prettier** | `npm run format` | Formatting (applies fixes; CI only checks) |
+| **Prettier** | `npm run format` / `npm run format:check` | Formatting (`format` applies fixes locally; CI runs `format:check`) |
 
 ---
 
@@ -144,7 +144,7 @@ the DOM environment.  Test files live alongside their source
    uv run pytest
 
    # Frontend
-   cd frontend && npm run typecheck && npm run lint && npm test
+   cd frontend && npm run typecheck && npm run lint && npm run format:check && npm test
    ```
 
 4. **Push your branch** and open a pull request against `main`.
@@ -156,7 +156,8 @@ the DOM environment.  Test files live alongside their source
      hygiene (`deptry`).
    - **Quality** — dead-code scan (`vulture`); lint, type-check and
      tests run only in Python CI.
-   - **Frontend** — TypeScript type-check + ESLint lint.
+   - **Frontend** — TypeScript type-check, ESLint lint, Prettier format
+     check (`npm run format:check`) and Vitest tests.
    - **Migrations** — applies all Alembic migrations against a clean
      pgvector Postgres database, then exercises the full downgrade path
      and re-applies them.
