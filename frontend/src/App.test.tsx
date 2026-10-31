@@ -29,8 +29,26 @@ function stubFetch() {
       ok: true,
       status: 200,
       statusText: "OK",
-      json: () => Promise.resolve({ status: "ok", files: [], total: 0, offset: 0, limit: 20, categories: [] }),
-      text: () => Promise.resolve(JSON.stringify({ status: "ok", files: [], total: 0, offset: 0, limit: 20, categories: [] })),
+      json: () =>
+        Promise.resolve({
+          status: "ok",
+          files: [],
+          total: 0,
+          offset: 0,
+          limit: 20,
+          categories: [],
+        }),
+      text: () =>
+        Promise.resolve(
+          JSON.stringify({
+            status: "ok",
+            files: [],
+            total: 0,
+            offset: 0,
+            limit: 20,
+            categories: [],
+          }),
+        ),
     };
   });
   return mock;

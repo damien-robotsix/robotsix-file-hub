@@ -197,11 +197,7 @@ export default function FilesPage() {
       <div className="files-page-header">
         <h1>Files</h1>
         <div className="files-header-actions">
-          <button
-            className="files-reindex-btn"
-            onClick={handleReindex}
-            disabled={reindexing}
-          >
+          <button className="files-reindex-btn" onClick={handleReindex} disabled={reindexing}>
             {reindexing ? "Reindexing…" : "Reindex"}
           </button>
           <UploadButton onClick={() => setUploadOpen(true)} />
@@ -330,7 +326,9 @@ export default function FilesPage() {
           <tbody>
             {files.map((f) => (
               <tr key={f.id}>
-                <td><span aria-hidden="true">{contentTypeIcon(f.content_type)}</span></td>
+                <td>
+                  <span aria-hidden="true">{contentTypeIcon(f.content_type)}</span>
+                </td>
                 <td>
                   <Link
                     to={`/files/${f.id}`}
@@ -345,7 +343,9 @@ export default function FilesPage() {
                 <td className="cell-mono">{f.content_type}</td>
                 <td>{formatSize(f.size)}</td>
                 <td>{formatDate(f.created_at)}</td>
-                <td>{f.category ? <span className="badge badge-category">{f.category}</span> : "—"}</td>
+                <td>
+                  {f.category ? <span className="badge badge-category">{f.category}</span> : "—"}
+                </td>
                 <td>
                   {f.tags
                     ? f.tags.split(",").map((t) => (

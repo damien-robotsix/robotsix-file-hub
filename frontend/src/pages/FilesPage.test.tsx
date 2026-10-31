@@ -116,10 +116,10 @@ describe("FilesPage", () => {
   });
 
   it("shows 'No files found.' when the list is empty", async () => {
-    vi.stubGlobal("fetch", stubFetchSequence(
-      { categories: [] },
-      { files: [], total: 0, offset: 0, limit: 20 },
-    ));
+    vi.stubGlobal(
+      "fetch",
+      stubFetchSequence({ categories: [] }, { files: [], total: 0, offset: 0, limit: 20 }),
+    );
     renderFilesPage();
 
     await waitFor(() => {
@@ -128,7 +128,8 @@ describe("FilesPage", () => {
   });
 
   it("shows an error message when the API call fails", async () => {
-    const failMock = vi.fn()
+    const failMock = vi
+      .fn()
       .mockResolvedValueOnce({
         ok: true,
         status: 200,

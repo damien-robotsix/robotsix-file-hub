@@ -140,9 +140,7 @@ describe("UploadDialog", () => {
     vi.spyOn(api, "uploadFilesBatchWithProgress").mockResolvedValue([meta]);
 
     const onUploadComplete = vi.fn();
-    render(
-      <UploadDialog open={true} onClose={() => {}} onUploadComplete={onUploadComplete} />,
-    );
+    render(<UploadDialog open={true} onClose={() => {}} onUploadComplete={onUploadComplete} />);
 
     const file = new File(["hello"], "hello.txt", { type: "text/plain" });
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;

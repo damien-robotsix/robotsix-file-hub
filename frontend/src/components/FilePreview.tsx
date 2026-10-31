@@ -18,7 +18,9 @@ export default function FilePreview({
   showMeta = true,
 }: FilePreviewProps) {
   const [textContent, setTextContent] = useState<string | null>(null);
-  const { metadata, error, setError, deleting, handleDelete } = useFileDetail(fileId, () => onClose?.());
+  const { metadata, error, setError, deleting, handleDelete } = useFileDetail(fileId, () =>
+    onClose?.(),
+  );
 
   useEffect(() => {
     // Reset derived state when the file changes.
@@ -104,12 +106,7 @@ export default function FilePreview({
             <a href={downloadUrl} className="download-btn" download={metadata.filename}>
               ⬇ Download
             </a>
-            <button
-              className="delete-btn"
-              onClick={handleDelete}
-              disabled={deleting}
-              type="button"
-            >
+            <button className="delete-btn" onClick={handleDelete} disabled={deleting} type="button">
               {deleting ? "Deleting…" : "🗑 Delete"}
             </button>
             {onClose && (
@@ -174,7 +171,9 @@ export default function FilePreview({
 
         {previewKind === "unsupported" && (
           <div className="preview-unsupported">
-            <div className="fallback-icon" aria-hidden="true">📄</div>
+            <div className="fallback-icon" aria-hidden="true">
+              📄
+            </div>
             <p>Preview not available for this file type ({metadata.content_type}).</p>
             <a href={downloadUrl} className="download-btn" download={metadata.filename}>
               ⬇ Download {metadata.filename}

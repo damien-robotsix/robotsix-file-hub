@@ -54,9 +54,7 @@ describe("FilePreview", () => {
   // -- Loading state --------------------------------------------------------
 
   it('renders "Loading..." header before metadata resolves', () => {
-    vi.spyOn(api, "getFileMetadata").mockReturnValue(
-      new Promise<api.FileMetadata>(() => {}),
-    );
+    vi.spyOn(api, "getFileMetadata").mockReturnValue(new Promise<api.FileMetadata>(() => {}));
 
     render(<FilePreview fileId="abc-123" />);
 
@@ -68,10 +66,7 @@ describe("FilePreview", () => {
     vi.spyOn(api, "getFileMetadata").mockResolvedValue(
       fakeMetadata({ content_type: "text/plain" }),
     );
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockReturnValue(new Promise<Response>(() => {})),
-    );
+    vi.stubGlobal("fetch", vi.fn().mockReturnValue(new Promise<Response>(() => {})));
 
     render(<FilePreview fileId="abc-123" />);
 
@@ -118,11 +113,8 @@ describe("FilePreview", () => {
   // -- XSS regression guard -------------------------------------------------
 
   it("escapes file-controlled text content before injecting it into the DOM", async () => {
-    const malicious =
-      '<script>alert("xss")</script><img src=x onerror=alert(1)>';
-    vi.spyOn(api, "getFileMetadata").mockResolvedValue(
-      fakeMetadata({ content_type: "text/html" }),
-    );
+    const malicious = '<script>alert("xss")</script><img src=x onerror=alert(1)>';
+    vi.spyOn(api, "getFileMetadata").mockResolvedValue(fakeMetadata({ content_type: "text/html" }));
     stubTextFetch(malicious);
 
     const { container } = render(<FilePreview fileId="abc-123" />);
@@ -140,8 +132,7 @@ describe("FilePreview", () => {
     // The rendered markup is the escaped form, not the raw payload
     // (quotes re-serialize literally because they need no escaping in text).
     expect(pre.innerHTML).toBe(
-      "&lt;script&gt;alert(\"xss\")&lt;/script&gt;" +
-        "&lt;img src=x onerror=alert(1)&gt;",
+      '&lt;script&gt;alert("xss")&lt;/script&gt;' + "&lt;img src=x onerror=alert(1)&gt;",
     );
 
     // textContent still holds the original payload — escaped, not stripped.
@@ -151,9 +142,7 @@ describe("FilePreview", () => {
   // -- Image branch ---------------------------------------------------------
 
   it("renders an img with viewFileUrl src for image content types", async () => {
-    vi.spyOn(api, "getFileMetadata").mockResolvedValue(
-      fakeMetadata({ content_type: "image/png" }),
-    );
+    vi.spyOn(api, "getFileMetadata").mockResolvedValue(fakeMetadata({ content_type: "image/png" }));
 
     const { container } = render(<FilePreview fileId="abc-123" />);
 
@@ -196,9 +185,7 @@ describe("FilePreview", () => {
     const { container } = render(<FilePreview fileId="abc-123" />);
 
     await waitFor(() => {
-      expect(
-        screen.getByText(/Preview not available for this file type/),
-      ).toBeInTheDocument();
+      expect(screen.getByText(/Preview not available for this file type/)).toBeInTheDocument();
     });
     expect(container.querySelector(".fallback-icon")).not.toBeNull();
   });

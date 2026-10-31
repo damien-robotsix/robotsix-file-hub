@@ -99,9 +99,7 @@ describe("ErrorBoundary", () => {
 
     expect(spy).toHaveBeenCalled();
     const logged = spy.mock.calls.some(
-      (call) =>
-        typeof call[0] === "string" &&
-        call[0].includes("ErrorBoundary caught an error:"),
+      (call) => typeof call[0] === "string" && call[0].includes("ErrorBoundary caught an error:"),
     );
     expect(logged).toBe(true);
 
