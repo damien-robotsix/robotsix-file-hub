@@ -16,7 +16,7 @@ concurrency:
 jobs:
   docker-release:
     name: docker-release
-    uses: damien-robotsix/robotsix-github-workflows/.github/workflows/docker-release.yml@92c11fd2be7a9ce80bd60208616271326e0fb08a  # main 2026-10-26 (post-v1.3.0: trivyignores, push-retries, empty Trivy-DB defaults; re-pin to v1.4.0 when ghwf #243 is released)
+    uses: damien-robotsix/robotsix-github-workflows/.github/workflows/docker-release.yml@86a722f2938c1dda343bbf8d3c5989613cbf1794  # v1.5.0
     permissions:
       contents: read  # check out the repo to build the image
       packages: write  # push the image to GHCR
