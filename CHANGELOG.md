@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.13.6](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.13.5...v0.13.6) (2026-10-31)
+
+
+### Bug Fixes
+
+* ci_fix: out-of-scope CI failure — quality, Python CI / Dependency audit (SARIF), Python CI / Tests (20261031T085536Z-ci-fix-out-of-scope-ci-failure-quality-p-ddb0) ([#407](https://github.com/damien-robotsix/robotsix-file-hub/issues/407)) ([1cc0712](https://github.com/damien-robotsix/robotsix-file-hub/commit/1cc0712f9be273e7575fe8764f09030200f7394c))
+* ci_fix: out-of-scope CI failure — quality, Python CI / Tests, Python CI / Dependency audit (SARIF) (20261031T085930Z-ci-fix-out-of-scope-ci-failure-quality-p-f596) ([#408](https://github.com/damien-robotsix/robotsix-file-hub/issues/408)) ([5821ffe](https://github.com/damien-robotsix/robotsix-file-hub/commit/5821ffe804dfb3e845c90ef2671cc49672559e40))
+
 ## [0.13.5](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.13.4...v0.13.5) (2026-10-26)
 
 
