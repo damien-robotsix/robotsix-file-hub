@@ -1,4 +1,11 @@
-import { useState, useRef, useCallback, type DragEvent, type ChangeEvent, type KeyboardEvent } from "react";
+import {
+  useState,
+  useRef,
+  useCallback,
+  type DragEvent,
+  type ChangeEvent,
+  type KeyboardEvent,
+} from "react";
 import { uploadFilesBatchWithProgress, type FileMetadata } from "../api.ts";
 import { formatSize } from "../lib/format.ts";
 import "./UploadDialog.css";

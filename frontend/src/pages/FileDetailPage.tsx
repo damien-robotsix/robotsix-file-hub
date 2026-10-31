@@ -7,7 +7,9 @@ import FilePreview from "../components/FilePreview.tsx";
 export default function FileDetailPage() {
   const { fileId } = useParams<{ fileId: string }>();
   const navigate = useNavigate();
-  const { metadata, error, deleting, handleDelete } = useFileDetail(fileId, () => navigate("/", { replace: true }));
+  const { metadata, error, deleting, handleDelete } = useFileDetail(fileId, () =>
+    navigate("/", { replace: true }),
+  );
 
   if (error) {
     return (
@@ -42,12 +44,7 @@ export default function FileDetailPage() {
           <a href={fileUrl} className="download-btn" download={metadata.filename}>
             ⬇ Download
           </a>
-          <button
-            className="delete-btn"
-            onClick={handleDelete}
-            disabled={deleting}
-            type="button"
-          >
+          <button className="delete-btn" onClick={handleDelete} disabled={deleting} type="button">
             {deleting ? "Deleting…" : "🗑 Delete"}
           </button>
         </div>
