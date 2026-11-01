@@ -17,7 +17,7 @@ jobs:
     permissions:
       contents: read  # check out the repo to lint its workflows
       security-events: write  # SARIF upload from the reusable workflow
-    uses: damien-robotsix/robotsix-github-workflows/.github/workflows/lint-workflows.yml@05d872b062890597dfcdd83d0eeac8918edc3618  # v1.3.0
+    uses: damien-robotsix/robotsix-github-workflows/.github/workflows/lint-workflows.yml@86a722f2938c1dda343bbf8d3c5989613cbf1794  # v1.5.0
     with:
       run-actionlint: true
       run-zizmor: true
