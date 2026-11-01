@@ -7,7 +7,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # Stage 2: Build Python dependencies
-FROM python:3.14-slim@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170 AS builder
+FROM python:3.15-slim@sha256:94d3426f1def7db4a106a232ac121bfd975393e5dfd40a619b955fae45fe7913 AS builder
 # git is required at BUILD time only: robotsix-http is a git dependency
 # (pyproject.toml [tool.uv.sources]), and uv shells out to git to fetch it.
 # python:*-slim ships without git, so `uv sync` fails with "Git executable not
@@ -28,7 +28,7 @@ COPY src/ ./src/
 RUN uv sync --no-dev --frozen
 
 # Stage 3: Runtime
-FROM python:3.14-slim@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170 AS runtime
+FROM python:3.15-slim@sha256:94d3426f1def7db4a106a232ac121bfd975393e5dfd40a619b955fae45fe7913 AS runtime
 RUN useradd --create-home --uid 1000 app
 # poppler-utils provides pdftoppm, required by pdf2image for scanned PDF page
 # rendering; libcairo2 is required by cairosvg for SVG rasterization.  Both
