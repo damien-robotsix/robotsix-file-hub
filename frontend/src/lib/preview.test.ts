@@ -52,8 +52,6 @@ describe("escapeHtml", () => {
   });
 
   it("escapes multiple special characters in one string", () => {
-    expect(escapeHtml('<a href="x & y">')).toBe(
-      "&lt;a href=&quot;x &amp; y&quot;&gt;",
-    );
+    expect(escapeHtml('<a href="x & y">')).toBe("&lt;a href=&quot;x &amp; y&quot;&gt;");
   });
 });

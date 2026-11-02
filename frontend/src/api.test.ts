@@ -30,22 +30,42 @@ function mockFetch(status: number, body: unknown) {
 }
 
 const fakeFile: FileMetadata = {
-  id: "abc-123", filename: "test.txt", size: 42, content_type: "text/plain",
-  checksum: "sha256:deadbeef", storage_key: "sk-1", created_at: "2025-01-15T10:00:00Z",
-  category: null, tags: null, summary: null, source: null,
+  id: "abc-123",
+  filename: "test.txt",
+  size: 42,
+  content_type: "text/plain",
+  checksum: "sha256:deadbeef",
+  storage_key: "sk-1",
+  created_at: "2025-01-15T10:00:00Z",
+  category: null,
+  tags: null,
+  summary: null,
+  source: null,
 };
 
 describe("API client", () => {
-  beforeEach(() => { localStorage.clear(); });
+  beforeEach(() => {
+    localStorage.clear();
+  });
 
   it("throws on non-OK HTTP status", async () => {
-    const f = vi.fn().mockResolvedValue({ ok: false, status: 500, statusText: "ERR", text: () => Promise.resolve("boom") });
+    const f = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      statusText: "ERR",
+      text: () => Promise.resolve("boom"),
+    });
     vi.stubGlobal("fetch", f);
     await expect(listFiles()).rejects.toThrow("500 ERR: boom");
   });
 
   it("returns undefined for 204 No Content", async () => {
-    const f = vi.fn().mockResolvedValue({ ok: true, status: 204, statusText: "NC", text: () => Promise.resolve("") });
+    const f = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 204,
+      statusText: "NC",
+      text: () => Promise.resolve(""),
+    });
     vi.stubGlobal("fetch", f);
     expect(await deleteFile("x")).toBeUndefined();
   });
@@ -108,7 +128,12 @@ describe("API client", () => {
   });
 
   it("deleteFile sends DELETE with X-Confirm-Delete", async () => {
-    const f = vi.fn().mockResolvedValue({ ok: true, status: 204, statusText: "NC", text: () => Promise.resolve("") });
+    const f = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 204,
+      statusText: "NC",
+      text: () => Promise.resolve(""),
+    });
     vi.stubGlobal("fetch", f);
     await deleteFile("x");
     const [, init] = f.mock.calls[0] as [string, RequestInit];
@@ -187,15 +212,15 @@ describe("API client", () => {
 
       // The constructor returns our mock; we also need to trigger the 'load' handler
       const OriginalXHR = globalThis.XMLHttpRequest;
-      globalThis.XMLHttpRequest = vi.fn(function() { return mockXHR; }) as unknown as typeof XMLHttpRequest;
+      globalThis.XMLHttpRequest = vi.fn(function () {
+        return mockXHR;
+      }) as unknown as typeof XMLHttpRequest;
 
       // Capture the 'load' handler so we can fire it synchronously
       let loadHandler: (() => void) | undefined;
-      mockXHR.addEventListener.mockImplementation(
-        (event: string, handler: () => void) => {
-          if (event === "load") loadHandler = handler;
-        },
-      );
+      mockXHR.addEventListener.mockImplementation((event: string, handler: () => void) => {
+        if (event === "load") loadHandler = handler;
+      });
 
       const file = new File(["content"], "up.txt", { type: "text/plain" });
       const promise = uploadFilesBatchWithProgress([file], vi.fn());
@@ -223,14 +248,14 @@ describe("API client", () => {
       };
 
       const OriginalXHR = globalThis.XMLHttpRequest;
-      globalThis.XMLHttpRequest = vi.fn(function() { return mockXHR; }) as unknown as typeof XMLHttpRequest;
+      globalThis.XMLHttpRequest = vi.fn(function () {
+        return mockXHR;
+      }) as unknown as typeof XMLHttpRequest;
 
       let loadHandler: (() => void) | undefined;
-      mockXHR.addEventListener.mockImplementation(
-        (event: string, handler: () => void) => {
-          if (event === "load") loadHandler = handler;
-        },
-      );
+      mockXHR.addEventListener.mockImplementation((event: string, handler: () => void) => {
+        if (event === "load") loadHandler = handler;
+      });
 
       const file = new File(["x"], "f.txt", { type: "text/plain" });
       const promise = uploadFilesBatchWithProgress([file], vi.fn());
@@ -252,14 +277,14 @@ describe("API client", () => {
       };
 
       const OriginalXHR = globalThis.XMLHttpRequest;
-      globalThis.XMLHttpRequest = vi.fn(function() { return mockXHR; }) as unknown as typeof XMLHttpRequest;
+      globalThis.XMLHttpRequest = vi.fn(function () {
+        return mockXHR;
+      }) as unknown as typeof XMLHttpRequest;
 
       let errorHandler: (() => void) | undefined;
-      mockXHR.addEventListener.mockImplementation(
-        (event: string, handler: () => void) => {
-          if (event === "error") errorHandler = handler;
-        },
-      );
+      mockXHR.addEventListener.mockImplementation((event: string, handler: () => void) => {
+        if (event === "error") errorHandler = handler;
+      });
 
       const file = new File(["x"], "f.txt", { type: "text/plain" });
       const promise = uploadFilesBatchWithProgress([file], vi.fn());
@@ -281,14 +306,14 @@ describe("API client", () => {
       };
 
       const OriginalXHR = globalThis.XMLHttpRequest;
-      globalThis.XMLHttpRequest = vi.fn(function() { return mockXHR; }) as unknown as typeof XMLHttpRequest;
+      globalThis.XMLHttpRequest = vi.fn(function () {
+        return mockXHR;
+      }) as unknown as typeof XMLHttpRequest;
 
       let abortHandler: (() => void) | undefined;
-      mockXHR.addEventListener.mockImplementation(
-        (event: string, handler: () => void) => {
-          if (event === "abort") abortHandler = handler;
-        },
-      );
+      mockXHR.addEventListener.mockImplementation((event: string, handler: () => void) => {
+        if (event === "abort") abortHandler = handler;
+      });
 
       const file = new File(["x"], "f.txt", { type: "text/plain" });
       const promise = uploadFilesBatchWithProgress([file], vi.fn());
@@ -312,21 +337,20 @@ describe("API client", () => {
       };
 
       const OriginalXHR = globalThis.XMLHttpRequest;
-      globalThis.XMLHttpRequest = vi.fn(function() { return mockXHR; }) as unknown as typeof XMLHttpRequest;
+      globalThis.XMLHttpRequest = vi.fn(function () {
+        return mockXHR;
+      }) as unknown as typeof XMLHttpRequest;
 
-      let progressHandler: ((e: { loaded: number; total: number; lengthComputable: boolean }) => void) | undefined;
+      let progressHandler:
+        ((e: { loaded: number; total: number; lengthComputable: boolean }) => void) | undefined;
       let loadHandler: (() => void) | undefined;
 
-      mockXHR.upload.addEventListener.mockImplementation(
-        (event: string, handler: () => void) => {
-          if (event === "progress") progressHandler = handler;
-        },
-      );
-      mockXHR.addEventListener.mockImplementation(
-        (event: string, handler: () => void) => {
-          if (event === "load") loadHandler = handler;
-        },
-      );
+      mockXHR.upload.addEventListener.mockImplementation((event: string, handler: () => void) => {
+        if (event === "progress") progressHandler = handler;
+      });
+      mockXHR.addEventListener.mockImplementation((event: string, handler: () => void) => {
+        if (event === "load") loadHandler = handler;
+      });
 
       const onProgress = vi.fn();
       const fileA = new File(["1234"], "a.txt"); // 4 bytes
@@ -361,7 +385,9 @@ interface MockXHR {
   open: ReturnType<typeof vi.fn>;
   setRequestHeader: ReturnType<typeof vi.fn>;
   send: ReturnType<typeof vi.fn>;
-  status: number; statusText: string; responseText: string;
+  status: number;
+  statusText: string;
+  responseText: string;
   _triggerUploadEvent(e: string, d?: Partial<ProgressEvent>): void;
   _triggerEvent(e: string, d?: Partial<ProgressEvent>): void;
 }
@@ -370,31 +396,76 @@ function createMockXHR(o?: Partial<MockXHR>): MockXHR {
   const ul = new Map<string, Array<(e: unknown) => void>>();
   const ls = new Map<string, Array<(e: unknown) => void>>();
   return {
-    upload: { addEventListener: vi.fn((ev: string, h: (d: unknown) => void) => { const a = ul.get(ev) ?? []; a.push(h); ul.set(ev, a); }) },
-    addEventListener: vi.fn((ev: string, h: (d: unknown) => void) => { const a = ls.get(ev) ?? []; a.push(h); ls.set(ev, a); }),
-    open: vi.fn(), setRequestHeader: vi.fn(), send: vi.fn(),
-    status: 200, statusText: "OK", responseText: "",
-    _triggerUploadEvent(ev: string, d?: Partial<ProgressEvent>) { for (const h of ul.get(ev) ?? []) h(d ?? {}); },
-    _triggerEvent(ev: string, d?: Partial<ProgressEvent>) { for (const h of ls.get(ev) ?? []) h(d ?? {}); },
+    upload: {
+      addEventListener: vi.fn((ev: string, h: (d: unknown) => void) => {
+        const a = ul.get(ev) ?? [];
+        a.push(h);
+        ul.set(ev, a);
+      }),
+    },
+    addEventListener: vi.fn((ev: string, h: (d: unknown) => void) => {
+      const a = ls.get(ev) ?? [];
+      a.push(h);
+      ls.set(ev, a);
+    }),
+    open: vi.fn(),
+    setRequestHeader: vi.fn(),
+    send: vi.fn(),
+    status: 200,
+    statusText: "OK",
+    responseText: "",
+    _triggerUploadEvent(ev: string, d?: Partial<ProgressEvent>) {
+      for (const h of ul.get(ev) ?? []) h(d ?? {});
+    },
+    _triggerEvent(ev: string, d?: Partial<ProgressEvent>) {
+      for (const h of ls.get(ev) ?? []) h(d ?? {});
+    },
     ...o,
   };
 }
 
 describe("uploadFilesBatchWithProgress", () => {
   let mx: MockXHR;
-  beforeEach(() => { localStorage.clear(); mx = createMockXHR(); vi.stubGlobal("XMLHttpRequest", vi.fn(function() { return mx; })); });
-  function mf(n: string, s: number) { return new File([new Uint8Array(s)], n); }
+  beforeEach(() => {
+    localStorage.clear();
+    mx = createMockXHR();
+    vi.stubGlobal(
+      "XMLHttpRequest",
+      vi.fn(function () {
+        return mx;
+      }),
+    );
+  });
+  function mf(n: string, s: number) {
+    return new File([new Uint8Array(s)], n);
+  }
 
   it("resolves with FileMetadata[] on 2xx", async () => {
     const p = uploadFilesBatchWithProgress([mf("a", 100)], vi.fn());
-    mx.responseText = JSON.stringify({ files: [{ id:"1", filename:"a", size:100, content_type:"t", checksum:"c", storage_key:"s", created_at:"d" }] });
+    mx.responseText = JSON.stringify({
+      files: [
+        {
+          id: "1",
+          filename: "a",
+          size: 100,
+          content_type: "t",
+          checksum: "c",
+          storage_key: "s",
+          created_at: "d",
+        },
+      ],
+    });
     mx._triggerEvent("load");
     expect(await p).toHaveLength(1);
   });
 
   it("falls back content_type to application/octet-stream", async () => {
     const p = uploadFilesBatchWithProgress([mf("x", 10)], vi.fn());
-    mx.responseText = JSON.stringify({ files: [{ id:"x", filename:"x", size:10, checksum:"c", storage_key:"s", created_at:"t" }] });
+    mx.responseText = JSON.stringify({
+      files: [
+        { id: "x", filename: "x", size: 10, checksum: "c", storage_key: "s", created_at: "t" },
+      ],
+    });
     mx._triggerEvent("load");
     expect((await p)[0].content_type).toBe("application/octet-stream");
   });
@@ -410,7 +481,10 @@ describe("uploadFilesBatchWithProgress", () => {
     const calls: Array<{ i: number; p: number }> = [];
     uploadFilesBatchWithProgress([mf("a", 100), mf("b", 200)], (i, p) => calls.push({ i, p }));
     mx._triggerUploadEvent("progress", { lengthComputable: true, loaded: 150 } as ProgressEvent);
-    expect(calls).toEqual([{ i: 0, p: 1 }, { i: 1, p: 0.25 }]);
+    expect(calls).toEqual([
+      { i: 0, p: 1 },
+      { i: 1, p: 0.25 },
+    ]);
   });
 
   it("skips progress when !lengthComputable", () => {
@@ -428,7 +502,9 @@ describe("uploadFilesBatchWithProgress", () => {
   });
 
   it("rejects on non-2xx", async () => {
-    mx.status = 500; mx.statusText = "ERR"; mx.responseText = "boom";
+    mx.status = 500;
+    mx.statusText = "ERR";
+    mx.responseText = "boom";
     const p = uploadFilesBatchWithProgress([mf("a", 10)], vi.fn());
     mx._triggerEvent("load");
     await expect(p).rejects.toThrow("500 ERR: boom");

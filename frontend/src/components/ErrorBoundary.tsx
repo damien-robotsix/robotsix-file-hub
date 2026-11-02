@@ -10,10 +10,7 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-export default class ErrorBoundary extends Component<
-  ErrorBoundaryProps,
-  ErrorBoundaryState
-> {
+export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null };
@@ -42,9 +39,7 @@ export default class ErrorBoundary extends Component<
             fontFamily: "system-ui, sans-serif",
           }}
         >
-          <h2 style={{ margin: "0 0 0.5rem", fontSize: "1.25rem" }}>
-            Something went wrong
-          </h2>
+          <h2 style={{ margin: "0 0 0.5rem", fontSize: "1.25rem" }}>Something went wrong</h2>
           <p style={{ margin: "0 0 1rem", color: "#666" }}>
             An unexpected error occurred. Please try refreshing the page.
           </p>
