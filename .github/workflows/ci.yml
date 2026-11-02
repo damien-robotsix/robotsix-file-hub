@@ -50,6 +50,24 @@ jobs:
       # rather than a baseline ratchet.
       mypy-advisory: false
 
+  # TruffleHog secret scan (robotsix-standards security-posture): file-hub
+  # holds storage/DB credentials, so a committed secret is high-impact. PRs
+  # scan only their diff; pushes to main scan the full checkout.
+  secret-scan:
+    name: secret-scan
+    permissions:
+      contents: read  # check out the repo for the reusable security scan
+    uses: damien-robotsix/robotsix-github-workflows/.github/workflows/python-security.yml@86a722f2938c1dda343bbf8d3c5989613cbf1794  # v1.5.0
+    with:
+      # Must match required-version in pyproject.toml ([tool.uv]).
+      uv-version: "0.12.5"
+      # Same as the python-ci call above: the repo defines no `tracing` extra.
+      install-extras: ""
+      trufflehog-pr-diff: true
+      trufflehog-extra-args: "--results=verified,unknown"
+      # python-ci v1.5.0 run-audit already covers the dependency audit.
+      run-pip-audit: false
+
   # Pre-merge image gate: build the Dockerfile and Trivy-scan it for
   # CRITICAL/HIGH CVEs on every PR, so a broken Dockerfile or a vulnerable base
   # image is caught before merge rather than by docker-release after push.
