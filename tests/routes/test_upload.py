@@ -3,9 +3,10 @@
 import io
 import json
 
+import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from src.robotsix_file_hub.models import FileRecord
 from src.robotsix_file_hub.storage import StorageBackend
@@ -214,6 +215,73 @@ async def test_upload_batch_partial_failure_rolls_back(
     # --- Verify no storage files remain (ignore the test database) ---
     stored = [p for p in test_storage.base_path.iterdir() if p.suffix != ".db"]
     assert len(stored) == 0, f"Expected 0 stored files after rollback, got {len(stored)}"
+
+
+def _force_commit_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Make every ``AsyncSession.commit`` raise to simulate a DB failure."""
+
+    async def _failing_commit(self: AsyncSession) -> None:
+        raise RuntimeError("simulated commit failure")
+
+    monkeypatch.setattr(AsyncSession, "commit", _failing_commit)
+
+
+def _stored_blobs(storage: StorageBackend) -> list:
+    """Stored blob files, ignoring the SQLite test database files."""
+    return [p for p in storage.base_path.iterdir() if not p.name.startswith("test.db")]
+
+
+async def test_upload_single_commit_failure_cleans_up_storage(
+    test_client: AsyncClient,
+    test_session_factory: async_sessionmaker,
+    test_storage: StorageBackend,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A failing ``db.commit()`` on single upload deletes the stored blob."""
+    _force_commit_failure(monkeypatch)
+
+    response = await test_client.post(
+        "/files",
+        files={"file": ("orphan.txt", io.BytesIO(b"orphan bytes"), "text/plain")},
+    )
+
+    monkeypatch.undo()
+
+    assert response.status_code == 500
+    assert "Database failure" in response.json()["detail"]
+
+    async with test_session_factory() as session:
+        rows = (await session.execute(select(FileRecord))).scalars().all()
+        assert rows == []
+
+    assert _stored_blobs(test_storage) == []
+
+
+async def test_upload_batch_commit_failure_cleans_up_storage(
+    test_client: AsyncClient,
+    test_session_factory: async_sessionmaker,
+    test_storage: StorageBackend,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A failing ``db.commit()`` on batch upload deletes every stored blob."""
+    _force_commit_failure(monkeypatch)
+
+    files = [
+        ("files", ("a.txt", io.BytesIO(b"aaa"), "text/plain")),
+        ("files", ("b.txt", io.BytesIO(b"bbbbb"), "text/plain")),
+    ]
+    response = await test_client.post("/files/batch", files=files)
+
+    monkeypatch.undo()
+
+    assert response.status_code == 500
+    assert "Database failure" in response.json()["detail"]
+
+    async with test_session_factory() as session:
+        rows = (await session.execute(select(FileRecord))).scalars().all()
+        assert rows == []
+
+    assert _stored_blobs(test_storage) == []
 
 
 # ---------------------------------------------------------------------------
