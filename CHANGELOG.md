@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.13.7](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.13.6...v0.13.7) (2026-11-04)
+
+
+### Bug Fixes
+
+* Single-file upload leaks stored blob when DB commit fails (batch path cleans up, single path does not) (20261104T173451Z-single-file-upload-leaks-stored-blob-whe-ab57) ([#424](https://github.com/damien-robotsix/robotsix-file-hub/issues/424)) ([29612a5](https://github.com/damien-robotsix/robotsix-file-hub/commit/29612a5d3609ede9937425519bfbb2c09c4585ca))
+* Stop leaking raw exception text in HTTP 500 error details across routes (20261104T173451Z-stop-leaking-raw-exception-text-in-http-d183) ([#426](https://github.com/damien-robotsix/robotsix-file-hub/issues/426)) ([d43598c](https://github.com/damien-robotsix/robotsix-file-hub/commit/d43598cdde208287e5e4b53477fa439a064f1dd5))
+
+
+### Documentation
+
+* AGENT.md: Project layout — Every new file under `src/` must be claimed by a module in `docs/modules.yaml`… (20261104T182254Z-agent-md-project-layout-every-new-file-u-3250) ([#427](https://github.com/damien-robotsix/robotsix-file-hub/issues/427)) ([59a239e](https://github.com/damien-robotsix/robotsix-file-hub/commit/59a239e0ec960888d819892e1958fe9c6e281687))
+
 ## [0.13.6](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.13.5...v0.13.6) (2026-11-01)
 
 
