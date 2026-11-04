@@ -224,33 +224,10 @@ async def upload_file(
         metadata=parsed_metadata,
     )
     if not is_dedup:
-        try:
-            await db.commit()
-        except Exception as exc:
-            await db.rollback()
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Database failure: {exc}",
-            ) from exc
+        await _commit_or_cleanup(db, storage, [record])
     await db.refresh(record)
-    task_id: str | None = None
-    if not is_dedup:
-        task_id = enqueue_enrichment(
-            file_id=record.id,
-            storage_key=record.storage_key,
-            content_type=record.content_type,
-            upload_metadata=record.upload_metadata,
-        )
-    return FileUploadResponse(
-        id=record.id,
-        filename=record.filename,
-        size=record.size,
-        content_type=record.content_type,
-        checksum=record.checksum,
-        created_at=record.created_at,
-        task_id=task_id,
-        deduplicated=is_dedup,
-    )
+    task_id = _enqueue_if_new(record, is_dedup)
+    return _to_upload_response(record, is_dedup, task_id)
 
 
 @router.post(
@@ -310,41 +287,68 @@ async def upload_files_batch(
             new_records.append(record)
 
     if new_records:
-        try:
-            await db.commit()
-        except Exception as exc:
-            await db.rollback()
-            await _cleanup_storage(storage, new_records)
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Database failure: {exc}",
-            ) from exc
+        await _commit_or_cleanup(db, storage, new_records)
 
-    task_ids: dict[str, str] = {}
+    task_ids: dict[str, str | None] = {}
     for record, is_dedup in results:
         await db.refresh(record)
         if not is_dedup:
-            task_ids[record.id] = enqueue_enrichment(
-                file_id=record.id,
-                storage_key=record.storage_key,
-                content_type=record.content_type,
-                upload_metadata=record.upload_metadata,
-            )
+            task_ids[record.id] = _enqueue_if_new(record, is_dedup)
 
     return BatchUploadResponse(
-        files=[
-            FileUploadResponse(
-                id=r.id,
-                filename=r.filename,
-                size=r.size,
-                content_type=r.content_type,
-                checksum=r.checksum,
-                created_at=r.created_at,
-                task_id=task_ids.get(r.id),
-                deduplicated=dedup,
-            )
-            for r, dedup in results
-        ]
+        files=[_to_upload_response(r, dedup, task_ids.get(r.id)) for r, dedup in results]
+    )
+
+
+async def _commit_or_cleanup(
+    db: AsyncSession,
+    storage: StorageBackend,
+    new_records: list[FileRecord],
+) -> None:
+    """Commit the session; on failure roll back and delete stored bytes.
+
+    Raises ``500`` when the commit fails, after rolling back the session
+    and best-effort deleting the blobs of *new_records* so no orphaned
+    bytes are left in storage without a matching DB row.
+    """
+    try:
+        await db.commit()
+    except Exception as exc:
+        await db.rollback()
+        await _cleanup_storage(storage, new_records)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database failure: {exc}",
+        ) from exc
+
+
+def _enqueue_if_new(record: FileRecord, is_dedup: bool) -> str | None:
+    """Enqueue enrichment for a newly stored *record*; skip dedup hits."""
+    if is_dedup:
+        return None
+    return enqueue_enrichment(
+        file_id=record.id,
+        storage_key=record.storage_key,
+        content_type=record.content_type,
+        upload_metadata=record.upload_metadata,
+    )
+
+
+def _to_upload_response(
+    record: FileRecord,
+    dedup: bool,
+    task_id: str | None,
+) -> FileUploadResponse:
+    """Build the API response for an uploaded (or deduplicated) record."""
+    return FileUploadResponse(
+        id=record.id,
+        filename=record.filename,
+        size=record.size,
+        content_type=record.content_type,
+        checksum=record.checksum,
+        created_at=record.created_at,
+        task_id=task_id,
+        deduplicated=dedup,
     )
 
 
