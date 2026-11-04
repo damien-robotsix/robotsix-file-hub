@@ -10,6 +10,7 @@ from ..database import get_db
 from ..rate_limiter import DEFAULT_RATE_LIMIT, limiter
 from ..schemas import ErrorResponse, SearchRequest, SearchResponse
 from ..search import search_files_pg
+from .errors import internal_error
 
 logger = logging.getLogger(__name__)
 
@@ -56,8 +57,4 @@ async def search(
     except HTTPException:
         raise
     except Exception as exc:
-        logger.warning("POST /search: search failed: %s", exc)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Search failed: {exc}",
-        ) from exc
+        raise internal_error("Search failed", exc) from exc

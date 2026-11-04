@@ -33,6 +33,7 @@ from ..schemas import (
 )
 from ..storage import StorageBackend, StorageError, _get_storage, compute_checksum
 from ..tasks import enqueue_enrichment
+from .errors import internal_error
 
 logger = logging.getLogger(__name__)
 
@@ -165,10 +166,7 @@ async def _process_upload(
     try:
         storage_key = await storage.save(file_id, content)
     except StorageError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Storage failure: {exc}",
-        ) from exc
+        raise internal_error("Storage failure", exc) from exc
 
     # Create DB record
     record = FileRecord(
@@ -277,10 +275,7 @@ async def upload_files_batch(
         except Exception as exc:
             await db.rollback()
             await _cleanup_storage(storage, new_records)
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Upload failed: {exc}",
-            ) from exc
+            raise internal_error("Upload failed", exc) from exc
         records.append(record)
         results.append((record, is_dedup))
         if not is_dedup:
@@ -316,10 +311,7 @@ async def _commit_or_cleanup(
     except Exception as exc:
         await db.rollback()
         await _cleanup_storage(storage, new_records)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database failure: {exc}",
-        ) from exc
+        raise internal_error("Database failure", exc) from exc
 
 
 def _enqueue_if_new(record: FileRecord, is_dedup: bool) -> str | None:

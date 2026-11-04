@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from src.robotsix_file_hub.models import FileRecord
+from src.robotsix_file_hub.routes import errors as errors_module
 from src.robotsix_file_hub.storage import StorageBackend
 
 
@@ -282,6 +283,36 @@ async def test_upload_batch_commit_failure_cleans_up_storage(
         assert rows == []
 
     assert _stored_blobs(test_storage) == []
+
+
+async def test_upload_db_failure_does_not_leak_exception_text(
+    test_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A DB exception message is logged server-side but never sent to the client."""
+    secret = "INSERT INTO files_records host=db.internal:5432 password=hunter2"
+
+    async def _failing_commit(self: AsyncSession) -> None:
+        raise RuntimeError(secret)
+
+    monkeypatch.setattr(AsyncSession, "commit", _failing_commit)
+
+    errors_logger = errors_module.logger.name
+    with caplog.at_level("ERROR", logger=errors_logger):
+        response = await test_client.post(
+            "/files",
+            files={"file": ("leak.txt", io.BytesIO(b"leak bytes"), "text/plain")},
+        )
+
+    monkeypatch.undo()
+
+    assert response.status_code == 500
+    assert response.json()["detail"] == "Database failure"
+    assert "hunter2" not in response.text
+    assert "db.internal" not in response.text
+    logged = [r for r in caplog.records if r.name == errors_logger]
+    assert any(r.exc_info and str(r.exc_info[1]) == secret for r in logged)
 
 
 # ---------------------------------------------------------------------------

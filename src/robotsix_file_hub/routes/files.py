@@ -28,6 +28,7 @@ from ..schemas import (
     MetadataUpdateRequest,
 )
 from ..storage import StorageBackend, StorageError, _get_storage
+from .errors import internal_error
 
 logger = logging.getLogger(__name__)
 
@@ -69,10 +70,7 @@ async def _stream_file(
     try:
         content = await storage.get(record.storage_key)
     except StorageError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Storage failure: {exc}",
-        ) from exc
+        raise internal_error("Storage failure", exc) from exc
 
     return Response(
         content=content,
@@ -159,10 +157,7 @@ async def delete_file(
         await db.commit()
     except Exception as exc:
         await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database failure: {exc}",
-        ) from exc
+        raise internal_error("Database failure", exc) from exc
 
     # Best-effort storage cleanup — the record is already gone, so
     # a stale file on disk is harmless; log and move on.
@@ -237,10 +232,7 @@ async def update_file_metadata(
         await db.commit()
     except Exception as exc:
         await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database failure: {exc}",
-        ) from exc
+        raise internal_error("Database failure", exc) from exc
     await db.refresh(record)
     return FileMetadataResponse.model_validate(record)
 
