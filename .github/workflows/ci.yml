@@ -93,6 +93,7 @@ jobs:
   migrations:
     name: migrations
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read  # check out the repo to run the Alembic migrations
     # The migrations are Postgres-specific (pgvector ``CREATE EXTENSION
@@ -143,6 +144,7 @@ jobs:
   supply-chain:
     name: supply-chain
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read  # check out the repo to check its dependencies
     # Only what the reusable Python CI does not cover: the malware-checked
@@ -175,6 +177,7 @@ jobs:
     needs: tests
     if: ${{ always() }}
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions: {}
     steps:
       - name: Require the reusable Python CI to pass
@@ -185,6 +188,7 @@ jobs:
   frontend:
     name: frontend
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read  # check out the repo to build and test the frontend
     defaults:
