@@ -20,6 +20,7 @@ modules:
       - .pre-commit-config.yaml
       - .robotsix-mill/config.yaml
       - .robotsix-mill/periodic/*.yaml
+      - AGENT.md
       - ARCHITECTURE.md
       - CONTRIBUTING.md
       - Dockerfile
