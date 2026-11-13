@@ -10,39 +10,8 @@ from src.robotsix_file_hub.storage import (
     LocalStorageBackend,
     StorageError,
     _get_storage,
-    compute_checksum,
     create_storage_backend,
 )
-
-# ---------------------------------------------------------------------------
-# compute_checksum
-# ---------------------------------------------------------------------------
-
-
-def test_compute_checksum_deterministic() -> None:
-    """Same input always produces the same hex digest."""
-    content = b"hello world"
-    assert compute_checksum(content) == compute_checksum(content)
-
-
-def test_compute_checksum_distinct_inputs() -> None:
-    """Different inputs produce different hex digests."""
-    digest_a = compute_checksum(b"alpha")
-    digest_b = compute_checksum(b"beta")
-    assert digest_a != digest_b
-
-
-def test_compute_checksum_empty_content() -> None:
-    """Empty bytes produce the well-known empty SHA-256 digest."""
-    assert (
-        compute_checksum(b"") == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-    )
-
-
-def test_compute_checksum_length() -> None:
-    """Digest is 64 hex characters (256 bits)."""
-    assert len(compute_checksum(b"anything")) == 64
-
 
 # ---------------------------------------------------------------------------
 # create_storage_backend factory
@@ -205,27 +174,3 @@ class TestGetStorage:
         # All must be the same instance
         assert results[0] is results[1] is results[2]
         assert storage_module._storage is results[0]
-
-
-class TestComputeChecksum:
-    """Tests for compute_checksum."""
-
-    def test_returns_sha256_hex(self) -> None:
-        """Returns the SHA-256 hex digest of the input bytes."""
-        result = compute_checksum(b"hello")
-        expected = "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
-        assert result == expected
-
-    def test_empty_bytes(self) -> None:
-        """Returns the correct digest for empty bytes."""
-        result = compute_checksum(b"")
-        expected = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        assert result == expected
-
-    def test_different_content_different_digest(self) -> None:
-        """Different input produces different digests."""
-        a = compute_checksum(b"hello")
-        b = compute_checksum(b"world")
-        assert a != b
-        assert len(a) == 64
-        assert len(b) == 64

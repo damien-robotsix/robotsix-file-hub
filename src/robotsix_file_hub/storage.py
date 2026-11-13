@@ -1,7 +1,6 @@
 """Storage backend abstraction — local filesystem."""
 
 import asyncio
-import hashlib
 import logging
 import shutil
 from abc import ABC, abstractmethod
@@ -149,8 +148,3 @@ def _get_storage() -> StorageBackend:
     if _storage is None:
         _storage = create_storage_backend()
     return _storage
-
-
-def compute_checksum(content: bytes) -> str:
-    """Compute the SHA-256 hex digest of *content*."""
-    return hashlib.sha256(content).hexdigest()
