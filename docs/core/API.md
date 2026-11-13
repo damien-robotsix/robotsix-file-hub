@@ -121,7 +121,7 @@ curl -F 'file=@Old_structure.stl' \
 }
 ```
 
-**Errors:** `413` (file too large), `500` (storage or database failure)
+**Errors:** `413` (file larger than `max_file_size`; enforced while the body is streamed, so the upload is aborted as soon as the limit is passed and nothing is stored), `500` (storage or database failure)
 
 ---
 
@@ -162,7 +162,7 @@ Upload multiple files in one request.
 }
 ```
 
-**Errors:** `413`, `500`
+**Errors:** `413` (any file larger than `max_file_size`; the whole batch is rolled back), `500`
 
 ---
 

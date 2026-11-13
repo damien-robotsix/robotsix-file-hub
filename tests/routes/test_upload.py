@@ -2,6 +2,7 @@
 
 import io
 import json
+from collections.abc import AsyncIterator
 
 import pytest
 from httpx import AsyncClient
@@ -203,6 +204,121 @@ async def test_upload_too_large_stops_reading_early(
     assert all(size == 4 for size in read_sizes)
     assert len(read_sizes) == 3
     assert _stored_blobs(test_storage) == []
+
+
+@pytest.mark.parametrize(
+    ("size", "expected_status"),
+    [(10, 200), (11, 413)],
+    ids=["exactly-max-accepted", "one-byte-over-rejected"],
+)
+async def test_upload_size_limit_boundary(
+    test_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+    size: int,
+    expected_status: int,
+) -> None:
+    """A body of exactly ``MAX_FILE_SIZE`` is accepted; one byte more is 413.
+
+    The chunk size does not divide the limit evenly, so the boundary is
+    checked against a partial final chunk.
+    """
+    import src.robotsix_file_hub.routes.upload as routes_module
+
+    monkeypatch.setattr(routes_module, "MAX_FILE_SIZE", 10)
+    monkeypatch.setattr(routes_module, "STREAM_CHUNK_SIZE", 4)
+
+    response = await test_client.post(
+        "/files",
+        files={"file": ("edge.bin", io.BytesIO(b"x" * size), "application/octet-stream")},
+    )
+
+    assert response.status_code == expected_status
+    if expected_status == 200:
+        assert response.json()["size"] == size
+
+
+@pytest.mark.parametrize(
+    ("size", "expected_status"),
+    [(10, 200), (11, 413)],
+    ids=["exactly-max-accepted", "one-byte-over-rejected"],
+)
+async def test_upload_batch_size_limit_boundary(
+    test_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+    size: int,
+    expected_status: int,
+) -> None:
+    """The batch endpoint applies the same per-file inclusive size limit."""
+    import src.robotsix_file_hub.routes.upload as routes_module
+
+    monkeypatch.setattr(routes_module, "MAX_FILE_SIZE", 10)
+    monkeypatch.setattr(routes_module, "STREAM_CHUNK_SIZE", 4)
+
+    files = [
+        ("files", ("small.bin", io.BytesIO(b"abc"), "application/octet-stream")),
+        ("files", ("edge.bin", io.BytesIO(b"y" * size), "application/octet-stream")),
+    ]
+    response = await test_client.post("/files/batch", files=files)
+
+    assert response.status_code == expected_status
+    if expected_status == 200:
+        assert [f["size"] for f in response.json()["files"]] == [3, size]
+
+
+def _chunked_multipart(payload: bytes) -> tuple[dict[str, str], AsyncIterator[bytes]]:
+    """Build a multipart body streamed without a ``Content-Length`` header.
+
+    Returns ``(headers, content)`` where *content* is an async generator,
+    so httpx sends it with ``Transfer-Encoding: chunked`` (unknown length).
+    """
+    boundary = "testboundary7c3f"
+    head = (
+        f"--{boundary}\r\n"
+        'Content-Disposition: form-data; name="file"; filename="stream.bin"\r\n'
+        "Content-Type: application/octet-stream\r\n\r\n"
+    ).encode()
+    tail = f"\r\n--{boundary}--\r\n".encode()
+
+    async def _body() -> AsyncIterator[bytes]:
+        yield head
+        for i in range(0, len(payload), 3):
+            yield payload[i : i + 3]
+        yield tail
+
+    headers = {"Content-Type": f"multipart/form-data; boundary={boundary}"}
+    return headers, _body()
+
+
+@pytest.mark.parametrize(
+    ("size", "expected_status"),
+    [(10, 200), (25, 413)],
+    ids=["within-limit-accepted", "oversize-rejected"],
+)
+async def test_upload_chunked_unknown_length_body(
+    test_client: AsyncClient,
+    test_storage: StorageBackend,
+    monkeypatch: pytest.MonkeyPatch,
+    size: int,
+    expected_status: int,
+) -> None:
+    """A chunked body with no ``Content-Length`` is still size-checked."""
+    import src.robotsix_file_hub.routes.upload as routes_module
+
+    monkeypatch.setattr(routes_module, "MAX_FILE_SIZE", 10)
+    monkeypatch.setattr(routes_module, "STREAM_CHUNK_SIZE", 4)
+
+    payload = b"z" * size
+    headers, content = _chunked_multipart(payload)
+    response = await test_client.post("/files", headers=headers, content=content)
+
+    assert response.status_code == expected_status
+    if expected_status == 200:
+        data = response.json()
+        assert data["size"] == size
+        download = await test_client.get(f"/files/{data['id']}")
+        assert download.content == payload
+    else:
+        assert _stored_blobs(test_storage) == []
 
 
 async def test_upload_streamed_content_roundtrips(test_client: AsyncClient) -> None:
