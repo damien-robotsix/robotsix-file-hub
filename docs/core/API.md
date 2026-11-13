@@ -121,7 +121,7 @@ curl -F 'file=@Old_structure.stl' \
 }
 ```
 
-**Errors:** `413` (file larger than `max_file_size`; enforced while the body is streamed, so the upload is aborted as soon as the limit is passed and nothing is stored), `500` (storage or database failure)
+**Errors:** `413` (file larger than `max_file_size`; enforced by reading the received file in bounded chunks before any hashing or storage write, so an oversized file is rejected and nothing is stored), `500` (storage or database failure)
 
 ---
 

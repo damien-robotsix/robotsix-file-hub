@@ -46,7 +46,7 @@ connection pool is checked out beyond 80% of `db_pool.pool_size`.
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `max_file_size` | `int` | `104857600` (100 MB) | Maximum upload file size in bytes, applied per file on both `POST /files` and `POST /files/batch`. A file of exactly this size is accepted; one byte more is rejected with `413`. The limit is enforced while the body is streamed in bounded chunks, so it also applies to chunked (unknown-length) requests and an oversized body is never buffered in full or written to storage. |
+| `max_file_size` | `int` | `104857600` (100 MB) | Maximum upload file size in bytes, applied per file on both `POST /files` and `POST /files/batch`. A file of exactly this size is accepted; one byte more is rejected with `413`. The limit is enforced by reading each received file in bounded chunks before any hashing or storage write, so it also applies to chunked (unknown-length) requests and an oversized file is never written to storage. Note that the multipart parser spools each file part (to a temporary file) before the limit check runs. |
 
 ## LLM Enrichment
 
