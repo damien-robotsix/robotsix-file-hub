@@ -1,6 +1,7 @@
 """File upload endpoints: single-file and batch upload."""
 
 import contextlib
+import hashlib
 import json
 import logging
 import uuid
@@ -31,7 +32,7 @@ from ..schemas import (
     FileUploadResponse,
     UploadMetadata,
 )
-from ..storage import StorageBackend, StorageError, _get_storage, compute_checksum
+from ..storage import STREAM_CHUNK_SIZE, StorageBackend, StorageError, _get_storage
 from ..tasks import enqueue_enrichment
 from .errors import internal_error
 
@@ -125,27 +126,33 @@ async def _process_upload(
     rollback) and then refresh the returned record before reading
     server-generated fields such as ``created_at``.
     """
-    # Read file content
+    # Read file content in bounded chunks, enforcing the size limit and
+    # computing the checksum incrementally so the full payload is never
+    # materialised in memory.
+    hasher = hashlib.sha256()
+    size = 0
     try:
-        content = await file.read()
+        while chunk := await file.read(STREAM_CHUNK_SIZE):
+            size += len(chunk)
+            if size > MAX_FILE_SIZE:
+                raise HTTPException(
+                    status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                    detail=f"File exceeds maximum size of {MAX_FILE_SIZE} bytes",
+                )
+            hasher.update(chunk)
+        await file.seek(0)
+    except HTTPException:
+        raise
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Failed to read uploaded file: {exc}",
         ) from exc
 
-    # Validate size
-    if len(content) > MAX_FILE_SIZE:
-        raise HTTPException(
-            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-            detail=f"File exceeds maximum size of {MAX_FILE_SIZE} bytes",
-        )
-
     # Determine content-type
     content_type = file.content_type or "application/octet-stream"
 
-    # Compute checksum
-    checksum = compute_checksum(content)
+    checksum = hasher.hexdigest()
 
     # --- Dedup check ---
     if not allow_duplicate:
@@ -164,7 +171,7 @@ async def _process_upload(
 
     # Store file bytes
     try:
-        storage_key = await storage.save(file_id, content)
+        storage_key = await storage.save_stream(file_id, file.file)
     except StorageError as exc:
         raise internal_error("Storage failure", exc) from exc
 
@@ -172,7 +179,7 @@ async def _process_upload(
     record = FileRecord(
         id=file_id,
         filename=file.filename or "unnamed",
-        size=len(content),
+        size=size,
         content_type=content_type,
         checksum=checksum,
         storage_key=storage_key,

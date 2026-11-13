@@ -3,12 +3,16 @@
 import asyncio
 import hashlib
 import logging
+import shutil
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import BinaryIO
 
 from .config import get_settings
 
 logger = logging.getLogger(__name__)
+
+STREAM_CHUNK_SIZE = 1024 * 1024  # 1 MiB
 
 settings = get_settings()
 
@@ -22,6 +26,16 @@ class StorageBackend(ABC):
     async def save(self, file_id: str, content: bytes) -> str:
         """Save file bytes. Returns the storage path/identifier."""
         ...
+
+    async def save_stream(self, file_id: str, source: BinaryIO) -> str:
+        """Save the remaining bytes of the readable *source* stream.
+
+        Returns the storage path/identifier.  The default implementation
+        buffers the stream and delegates to :meth:`save`; backends should
+        override it to copy in bounded chunks.
+        """
+        content = await asyncio.to_thread(source.read)
+        return await self.save(file_id, content)
 
     @abstractmethod
     async def get(self, path: str) -> bytes:
@@ -58,6 +72,27 @@ class LocalStorageBackend(StorageBackend):
 
         try:
             await asyncio.to_thread(_write)
+        except OSError as exc:
+            logger.error("Local storage save failed (file_id=%s): %s", file_id, exc)
+            raise StorageError(f"Failed to write file: {exc}") from exc
+
+        return str(file_path)
+
+    async def save_stream(self, file_id: str, source: BinaryIO) -> str:
+        """Copy *source* to a file named *file_id* in bounded chunks.
+
+        Offloads the copy to a thread so the full payload is never held in
+        memory; raises ``StorageError`` (wrapping ``OSError``) on failure.
+        """
+        self.base_path.mkdir(parents=True, exist_ok=True)
+        file_path = self.base_path / file_id
+
+        def _copy() -> None:
+            with file_path.open("wb") as dest:
+                shutil.copyfileobj(source, dest, STREAM_CHUNK_SIZE)
+
+        try:
+            await asyncio.to_thread(_copy)
         except OSError as exc:
             logger.error("Local storage save failed (file_id=%s): %s", file_id, exc)
             raise StorageError(f"Failed to write file: {exc}") from exc

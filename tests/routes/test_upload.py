@@ -7,6 +7,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from starlette.datastructures import UploadFile
 
 from src.robotsix_file_hub.models import FileRecord
 from src.robotsix_file_hub.routes import errors as errors_module
@@ -160,6 +161,75 @@ async def test_upload_file_too_large(test_client: AsyncClient) -> None:
     routes_module.MAX_FILE_SIZE = original_max
 
     assert response.status_code == 413
+
+
+async def test_upload_too_large_stops_reading_early(
+    test_client: AsyncClient,
+    test_storage: StorageBackend,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An oversized upload is rejected mid-stream without being stored.
+
+    The body is read in bounded chunks: reading stops once the running
+    byte count passes ``MAX_FILE_SIZE``, and nothing is written to storage.
+    """
+    import src.robotsix_file_hub.routes.upload as routes_module
+
+    monkeypatch.setattr(routes_module, "MAX_FILE_SIZE", 10)
+    monkeypatch.setattr(routes_module, "STREAM_CHUNK_SIZE", 4)
+
+    read_sizes: list[int] = []
+    original_read = UploadFile.read
+
+    async def _tracking_read(self: UploadFile, size: int = -1) -> bytes:
+        read_sizes.append(size)
+        return await original_read(self, size)
+
+    async def _forbidden_save(*args: object, **kwargs: object) -> str:
+        raise AssertionError("storage must not be written for oversized uploads")
+
+    monkeypatch.setattr(UploadFile, "read", _tracking_read)
+    monkeypatch.setattr(type(test_storage), "save", _forbidden_save)
+    monkeypatch.setattr(type(test_storage), "save_stream", _forbidden_save)
+
+    response = await test_client.post(
+        "/files",
+        files={"file": ("big.bin", io.BytesIO(b"x" * 1000), "application/octet-stream")},
+    )
+
+    assert response.status_code == 413
+    # Never an unbounded read, and stopped just past the limit (3 x 4 bytes).
+    assert read_sizes
+    assert all(size == 4 for size in read_sizes)
+    assert len(read_sizes) == 3
+    assert _stored_blobs(test_storage) == []
+
+
+async def test_upload_streamed_content_roundtrips(test_client: AsyncClient) -> None:
+    """A multi-chunk upload is stored intact with a correct checksum."""
+    import hashlib
+
+    import src.robotsix_file_hub.routes.upload as routes_module
+
+    content = bytes(range(256)) * 50
+    original_chunk = routes_module.STREAM_CHUNK_SIZE
+    routes_module.STREAM_CHUNK_SIZE = 1000
+    try:
+        response = await test_client.post(
+            "/files",
+            files={"file": ("blob.bin", io.BytesIO(content), "application/octet-stream")},
+        )
+    finally:
+        routes_module.STREAM_CHUNK_SIZE = original_chunk
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["size"] == len(content)
+    assert data["checksum"] == hashlib.sha256(content).hexdigest()
+
+    download = await test_client.get(f"/files/{data['id']}")
+    assert download.status_code == 200
+    assert download.content == content
 
 
 async def test_upload_batch(test_client: AsyncClient) -> None:

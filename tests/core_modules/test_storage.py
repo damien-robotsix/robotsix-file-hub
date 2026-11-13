@@ -100,6 +100,15 @@ async def test_local_save_and_get_roundtrip(local_backend: LocalStorageBackend) 
     assert result == content
 
 
+async def test_local_save_stream_roundtrip(local_backend: LocalStorageBackend) -> None:
+    """save_stream() copies a readable stream to storage byte-for-byte."""
+    import io
+
+    content = b"streamed payload " * 1000
+    path = await local_backend.save_stream("streamed.bin", io.BytesIO(content))
+    assert await local_backend.get(path) == content
+
+
 async def test_local_save_and_delete_roundtrip(local_backend: LocalStorageBackend) -> None:
     """Data saved can be deleted, and subsequent get raises StorageError."""
     path = await local_backend.save("to-delete.bin", b"tmp")
