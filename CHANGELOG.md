@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.8](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.13.7...v0.13.8) (2026-11-13)
+
+
+### Bug Fixes
+
+* Enforce upload size during streaming read instead of buffering whole file before the 413 check (20261113T131739Z-enforce-upload-size-during-streaming-rea-0454) ([#439](https://github.com/damien-robotsix/robotsix-file-hub/issues/439)) ([14dcb78](https://github.com/damien-robotsix/robotsix-file-hub/commit/14dcb7852b2ab1f49a04991d5b8a23a79ac74885))
+
 ## [0.13.7](https://github.com/damien-robotsix/robotsix-file-hub/compare/v0.13.6...v0.13.7) (2026-11-04)
 
 

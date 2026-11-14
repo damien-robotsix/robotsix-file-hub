@@ -1277,7 +1277,7 @@ dependencies = [
 
 [[package]]
 name = "robotsix-file-hub"
-version = "0.13.7"
+version = "0.13.8"
 source = { editable = "." }
 dependencies = [
     { name = "aiosqlite" },
