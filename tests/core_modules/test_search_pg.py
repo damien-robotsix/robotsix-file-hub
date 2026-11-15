@@ -578,7 +578,7 @@ async def test_search_files_weight_constants(
     ):
         response_kw = await search_files(_search_db_session, "financial report")
 
-    # keyword: "financial"(summary=5) + "report"(filename=10, summary=5) = 20/36
+    # Keyword score: "financial" (summary=5) plus "report" (filename=10, summary=5) is 20/36.
     kw_only = 20.0 / 36.0
     assert response_kw.results[0].relevance == pytest.approx(kw_only, abs=1e-4)
 

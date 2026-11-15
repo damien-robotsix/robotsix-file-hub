@@ -190,7 +190,7 @@ class Settings(ConfigModel):
         1,
         ge=1,
         le=4,
-        description="Capability tier for chat enrichment (1–4; default 1 for cheap extraction).",
+        description="Capability tier for chat enrichment (1-4; default 1 for cheap extraction).",
     )
 
     enrichment_vision_model: str = Field(

@@ -38,11 +38,16 @@ line-length = 100
 target-version = "py314"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "W", "UP", "B", "SIM", "C4", "S"]
+select = ["E", "F", "I", "N", "W", "UP", "B", "SIM", "C4", "S", "LOG", "G", "ERA", "PGH", "RUF", "PT"]
+ignore = ["PT006"]
 
 [tool.ruff.lint.per-file-ignores]
 # Tests legitimately assert, and use throwaway credentials and temp paths.
 "tests/**/*.py" = ["S101", "S105", "S106", "S108"]
+# Underscore-prefixed fixtures whose returned value IS used by the tests
+# (session / config path); PT019 misreads the leading underscore as "no value".
+"tests/core_modules/test_search_pg.py" = ["PT019"]
+"tests/routes/test_config_routes.py" = ["PT019"]
 
 [tool.ruff.format]
 quote-style = "double"

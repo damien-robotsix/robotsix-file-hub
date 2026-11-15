@@ -178,7 +178,7 @@ async def test_vision_caption_uses_configured_vision_model() -> None:
     assert caption == "A photo of a sunset over the ocean."
 
     # Vision provider resolved from the configured model identifier.
-    id_args, id_kwargs = mock_get_provider.call_args
+    id_args, _id_kwargs = mock_get_provider.call_args
     assert id_args == ("openrouter-google/gemini-2.0-flash",)
 
     # Agent built for caption output (str) with the vision model's bare name.
