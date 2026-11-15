@@ -24,7 +24,6 @@ def _reset_rate_limiter() -> None:
     popular endpoint (e.g. ``/search``) crosses the shared 60/minute cap.
     """
     limiter.reset()
-    yield
 
 
 @pytest.fixture

@@ -92,7 +92,7 @@ async def test_call_llm_uses_configured_tier_level() -> None:
         enrichment_module.settings.enrichment_llm_tier_level = 3
         try:
             await call_llm("text")
-            args, kwargs = mock_get_provider.call_args
+            args, _kwargs = mock_get_provider.call_args
             assert args == (3,)
         finally:
             enrichment_module.settings.enrichment_llm_tier_level = original
