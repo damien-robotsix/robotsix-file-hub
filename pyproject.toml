@@ -9,7 +9,7 @@ description = "LLM-powered file organization hub"
 license = {text = "MIT"}
 requires-python = ">=3.14"
 dependencies = [
-    "robotsix-config @ git+https://github.com/damien-robotsix/robotsix-config.git@feabed320883760ec0f449469870d45f73d87194",
+    "robotsix-config @ git+https://github.com/damien-robotsix/robotsix-config.git@09eec40ab7e29ea3fc22566159eb751b72c7d52b",
     "robotsix-llmio[openrouter]>=0.4.0",
     # enrichment.py imports pydantic_ai directly (vision path, PR #273) — declare
     # it explicitly instead of leaning on robotsix-llmio's transitive pin (deptry DEP003).
@@ -71,13 +71,13 @@ required-version = ">=0.12.5"
 # uv requires every source URL for it to agree.  Override the transitive pin
 # so the whole graph resolves against the rev that ships robotsix_http.fastapi.
 override-dependencies = [
-    "robotsix-http[fastapi] @ git+https://github.com/damien-robotsix/robotsix-http.git@a77b6b11e2e24f23421051e4388a9130eb2b93c5",
+    "robotsix-http[fastapi] @ git+https://github.com/damien-robotsix/robotsix-http.git@63eee26d2c887c2301c81341bbc864fcec3f36c7",
 ]
 
 [tool.uv.sources]
-robotsix-http = { git = "https://github.com/damien-robotsix/robotsix-http.git", rev = "a77b6b11e2e24f23421051e4388a9130eb2b93c5" }
+robotsix-http = { git = "https://github.com/damien-robotsix/robotsix-http.git", rev = "63eee26d2c887c2301c81341bbc864fcec3f36c7" }
 robotsix-modules = { git = "https://github.com/damien-robotsix/robotsix-modules.git", branch = "main" }
-robotsix-llmio = { git = "https://github.com/damien-robotsix/robotsix-llmio.git", rev = "7eee4cf3726daadab6870bf5acbfede81675ce86" }
+robotsix-llmio = { git = "https://github.com/damien-robotsix/robotsix-llmio.git", rev = "f51b03c3c8ec4d9b3fac71de01aa2762f6ce9b3c" }
 
 [tool.deptry]
 known_first_party = ["robotsix_file_hub"]
